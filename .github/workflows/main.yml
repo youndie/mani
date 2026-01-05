@@ -20,7 +20,7 @@ jobs:
       - name: Run tests
         run: ./gradlew :shared:jvmTest :server:test :composeApp:desktopTest :composeApp:wasmJsTest --no-daemon
       - name: Summarize tests results
-        uses: jeantessier/test-summary-action@v1.0.7
+        uses: jeantessier/test-summary-action@v1.0.10
         if: ${{ always() }}
 
   test-android:
@@ -67,7 +67,7 @@ jobs:
           script: ./gradlew :composeApp:connectedAndroidTest
 
       - name: Summarize tests results
-        uses: jeantessier/test-summary-action@v1.0.7
+        uses: jeantessier/test-summary-action@v1.0.10
         if: ${{ always() }}
 
   test-ios:
