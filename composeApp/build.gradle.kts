@@ -122,7 +122,8 @@ kotlin {
             implementation(libs.compose.shimmer)
 
             implementation(libs.navigation.compose)
-            implementation(libs.compose.charts)
+            // compose-charts is vendored under src/commonMain/kotlin/ir/ehsannarmani/compose_charts
+            // (from the 0.0.17-js4 fork) because the published fork targets Compose 1.9's skiko ABI.
             implementation(libs.androidx.lifecycle.viewmodel)
             implementation(libs.androidx.lifecycle.runtime.compose)
 
@@ -150,6 +151,16 @@ kotlin {
         iosMain.dependencies {
             implementation(libs.ktor.client.darwin)
         }
+    }
+}
+
+// The Compose/Kotlin wasm pipeline generates an app bundle that imports "./skiko.mjs"
+// at runtime, but the browser distribution Sync task does not include the skiko JS/WASM
+// glue by default. Without this, the SPA index.html fallback is served for skiko.mjs and
+// wasm instantiation fails with "function import requires a callable".
+tasks.named<Sync>("wasmJsBrowserDistribution") {
+    from(tasks.named("processSkikoRuntimeForKWasm")) {
+        include("skiko.mjs", "skiko.wasm")
     }
 }
 
