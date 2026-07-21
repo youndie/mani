@@ -63,6 +63,7 @@ val copyFrontend by tasks.registering(Copy::class) {
             "index.html",
             "manifest.json",
             "**/*.js",
+            "**/*.mjs",
             "**/*.wasm",
             "composeResources/**/*",
             "styles.css",
