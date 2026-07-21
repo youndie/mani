@@ -17,7 +17,7 @@
                 tools:targetApi="29"/>
 
         <activity
-                android:name=".MainActivity"
+                android:name="ru.workinprogress.mani.MainActivity"
                 android:windowSoftInputMode="adjustResize"
                 android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|mnc|colorMode|density|fontScale|fontWeightAdjustment|keyboard|layoutDirection|locale|mcc|navigation|smallestScreenSize|touchscreen|uiMode"
                 android:exported="true">

@@ -1,31 +1,39 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 plugins {
     alias(libs.plugins.androidTest)
-    alias(libs.plugins.kotlinAndroid)
     alias(libs.plugins.baselineprofile)
 }
 
 android {
     namespace = "ru.workinprogress.baselineprofile"
-    compileSdk = 34
+    compileSdk =
+        libs.versions.android.compileSdk
+            .get()
+            .toInt()
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
-    }
-
-    kotlinOptions {
-        jvmTarget = "1.8"
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
     }
 
     defaultConfig {
         minSdk = 28
-        targetSdk = 34
+        targetSdk =
+            libs.versions.android.targetSdk
+                .get()
+                .toInt()
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
-    targetProjectPath = ":composeApp"
+    targetProjectPath = ":androidApp"
+}
 
+kotlin {
+    compilerOptions {
+        jvmTarget.set(JvmTarget.JVM_11)
+    }
 }
 
 // This is the configuration block for the Baseline Profile plugin.
@@ -46,7 +54,7 @@ androidComponents {
         val artifactsLoader = v.artifacts.getBuiltArtifactsLoader()
         v.instrumentationRunnerArguments.put(
             "targetAppId",
-            v.testedApks.map { artifactsLoader.load(it)?.applicationId }
+            v.testedApks.map { artifactsLoader.load(it)?.applicationId },
         )
     }
 }

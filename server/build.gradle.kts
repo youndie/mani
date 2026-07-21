@@ -51,20 +51,14 @@ dependencies {
     testImplementation(libs.de.flapdoodle.embed.mongo)
 }
 
+// `from(taskProvider)` carries the task dependency, so no explicit dependsOn is needed
+// and nothing reaches across projects at execution time (configuration-cache safe).
 val copyFrontend by tasks.registering(Copy::class) {
-    val distTask =
+    from(
         project(rootProject.projects.composeApp.path)
             .tasks
-            .named("wasmJsBrowserDistribution")
-
-    dependsOn(distTask)
-
-    val distDir =
-        project(rootProject.projects.composeApp.path)
-            .buildDir
-            .resolve("dist/wasmJs/productionExecutable")
-
-    from(distDir) {
+            .named("wasmJsBrowserDistribution"),
+    ) {
         include(
             "index.html",
             "manifest.json",
@@ -75,10 +69,10 @@ val copyFrontend by tasks.registering(Copy::class) {
         )
     }
 
-    into("$projectDir/build/resources/main/static")
+    into(layout.buildDirectory.dir("resources/main/static"))
 }
 
-project.tasks.find { "processResources" == it.name }!!.dependsOn(copyFrontend)
+tasks.named("processResources") { dependsOn(copyFrontend) }
 
 ktor {
     docker {

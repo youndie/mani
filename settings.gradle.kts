@@ -29,16 +29,11 @@ dependencyResolutionManagement {
         maven("https://jogamp.org/deployment/maven")
         maven("https://reposilite.kotlin.website/releases")
     }
-
-    versionCatalogs {
-        create("kotlinWrappers") {
-            val wrappersVersion = "0.0.1-pre.852"
-            from("org.jetbrains.kotlin-wrappers:kotlin-wrappers-catalog:$wrappersVersion")
-        }
-    }
 }
 
 include(":composeApp")
+include(":androidApp")
+include(":iosApp")
 include(":server")
 include(":shared")
 include(":baselineprofile")

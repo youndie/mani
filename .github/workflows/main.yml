@@ -64,7 +64,7 @@ jobs:
           force-avd-creation: false
           emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: true
-          script: ./gradlew :composeApp:connectedAndroidTest
+          script: ./gradlew :androidApp:connectedAndroidTest
 
       - name: Summarize tests results
         uses: jeantessier/test-summary-action@v1.0.7
