@@ -1,23 +1,17 @@
 @file:OptIn(ExperimentalComposeLibrary::class)
 
-import org.gradle.kotlin.dsl.implementation
 import org.jetbrains.compose.ExperimentalComposeLibrary
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
-import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-import org.jetbrains.kotlin.gradle.dsl.KotlinJsCompile
-import org.jetbrains.kotlin.gradle.plugin.KotlinSourceSetTree
 import org.jetbrains.kotlin.gradle.targets.js.webpack.KotlinWebpackConfig
-import org.jetbrains.kotlin.gradle.targets.js.yarn.YarnRootExtension
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
-    alias(libs.plugins.androidApplication)
+    alias(libs.plugins.androidKotlinMultiplatformLibrary)
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.pluginSerialization)
-    alias(libs.plugins.baselineprofile)
 }
 
 composeCompiler {
@@ -28,25 +22,33 @@ composeCompiler {
 }
 
 kotlin {
-    androidTarget {
-        @OptIn(ExperimentalKotlinGradlePluginApi::class)
+    android {
+        namespace = "ru.workinprogress.mani"
+        compileSdk =
+            libs.versions.android.compileSdk
+                .get()
+                .toInt()
+        minSdk =
+            libs.versions.android.minSdk
+                .get()
+                .toInt()
+
         compilerOptions {
             jvmTarget.set(JvmTarget.JVM_21)
         }
-        @OptIn(ExperimentalKotlinGradlePluginApi::class)
-        instrumentedTestVariant.sourceSetTree.set(KotlinSourceSetTree.test)
-    }
 
-    listOf(
-        iosX64(),
-        iosArm64(),
-        iosSimulatorArm64(),
-    ).forEach { iosTarget ->
-        iosTarget.binaries.framework {
-            baseName = "ComposeApp"
-            isStatic = true
+        androidResources { enable = true }
+
+        packaging {
+            resources {
+                excludes += "/META-INF/AL2.0"
+                excludes += "/META-INF/LGPL2.1"
+            }
         }
     }
+
+    iosArm64()
+    iosSimulatorArm64()
 
     jvm("desktop")
 
@@ -79,7 +81,6 @@ kotlin {
                 implementation(compose.desktop.currentOs)
                 implementation(compose.desktop.uiTestJUnit4)
                 implementation(compose.uiTest)
-                implementation(libs.androidx.ui.test.junit4.desktop)
                 implementation(libs.ktor.client.mock)
                 implementation(libs.kotlin.test)
                 implementation(libs.koin.test)
@@ -94,6 +95,7 @@ kotlin {
             implementation(libs.koin.android)
             implementation(libs.androidx.core.splashscreen)
             implementation(libs.androidx.profileinstaller)
+            implementation(libs.androidx.compose.ui.tooling.preview)
         }
         commonMain.dependencies {
             implementation(libs.bignum)
@@ -110,11 +112,11 @@ kotlin {
             implementation(libs.koin.compose.viewmodel)
             implementation(libs.koin.compose.viewmodel.navigation)
 
-            implementation(compose.runtime)
-            implementation(compose.foundation)
-            implementation(compose.material3)
+            api(compose.runtime)
+            api(compose.foundation)
+            api(compose.material3)
             implementation(compose.materialIconsExtended)
-            implementation(compose.ui)
+            api(compose.ui)
             implementation(compose.components.resources)
             implementation(compose.components.uiToolingPreview)
             implementation(libs.compose.shimmer)
@@ -130,7 +132,7 @@ kotlin {
             implementation(libs.multiplatform.settings.no.arg)
             implementation(libs.multiplatform.settings.make.observable)
 
-            implementation(projects.shared)
+            api(projects.shared)
         }
 
         commonTest.dependencies {
@@ -148,73 +150,7 @@ kotlin {
         iosMain.dependencies {
             implementation(libs.ktor.client.darwin)
         }
-
-        jsMain.dependencies {
-            implementation(kotlinWrappers.browser)
-        }
     }
-}
-
-android {
-    namespace = "ru.workinprogress.mani"
-    compileSdk =
-        libs.versions.android.compileSdk
-            .get()
-            .toInt()
-    defaultConfig {
-        applicationId = "ru.workinprogress.mani"
-        minSdk =
-            libs.versions.android.minSdk
-                .get()
-                .toInt()
-        targetSdk =
-            libs.versions.android.targetSdk
-                .get()
-                .toInt()
-        versionCode = 1
-        versionName = "1.0"
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-    }
-    packaging {
-        resources {
-            excludes += "/META-INF/{AL2.0,LGPL2.1}"
-        }
-    }
-    buildTypes {
-        getByName("release") {
-            isMinifyEnabled = false
-        }
-        create("benchmark") {
-            initWith(buildTypes.getByName("release"))
-            signingConfig = signingConfigs.getByName("debug")
-            matchingFallbacks += listOf("release")
-            isDebuggable = false
-        }
-    }
-    compileOptions {
-        isCoreLibraryDesugaringEnabled = true
-
-        sourceCompatibility = JavaVersion.VERSION_21
-        targetCompatibility = JavaVersion.VERSION_21
-    }
-}
-
-dependencies {
-    coreLibraryDesugaring(libs.desugar.jdk.libs)
-
-    implementation(libs.androidx.profileinstaller)
-    androidTestImplementation(libs.androidx.ui.test.junit4.android)
-    baselineProfile(projects.baselineprofile)
-    debugImplementation(libs.androidx.ui.test.manifest)
-    debugImplementation(compose.uiTooling)
-    debugImplementation(libs.androidx.compose.ui.tooling)
-    implementation(libs.androidx.compose.ui.tooling.preview)
-    testImplementation(libs.koin.test.junit4)
-    testImplementation(libs.koin.test)
-}
-
-baselineProfile {
-    dexLayoutOptimization = true
 }
 
 compose.desktop {

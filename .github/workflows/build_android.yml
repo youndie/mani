@@ -18,11 +18,11 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v5
       - name: Build
-        run: ./gradlew :composeApp:assembleBenchmark --no-daemon
+        run: ./gradlew :androidApp:assembleBenchmark --no-daemon
       - name: Archive APK
         uses: actions/upload-artifact@v5
         with:
           name: mani-android
           retention-days: 1
           path: |
-            composeApp/build/outputs/apk/**/*.apk
+            androidApp/build/outputs/apk/**/*.apk
