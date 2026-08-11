@@ -7,18 +7,36 @@
 ![Static Badge](https://img.shields.io/badge/Server(JVM)-red)
 ![Static Badge](https://img.shields.io/badge/Server(Kotlin%2FNative)-blueviolet)
 
-A modern Kotlin multiplatform budget planner application built with [Ktor](https://ktor.io/) for the backend
-and [Compose Multiplatform](https://www.jetbrains.com/compose-multiplatform/) for clients.
+A budget planner written end to end in Kotlin: [Compose Multiplatform](https://www.jetbrains.com/compose-multiplatform/)
+clients for Android, iOS, desktop and the browser, a [Ktor](https://ktor.io/) server that compiles
+both to the JVM and to a native Linux binary, and one shared module holding the API contract for
+all of them.
 
 ![Screenshot](/Screenshot.png?raw=true "screenshot")
 
-### Demo
+> **This is a demo project.** It exists to show what a full Kotlin Multiplatform stack looks like
+> when every part of it is real — the same `@Resource` classes route requests on the server and
+> build URLs on the client, the same code signs a token in both server builds. It is not a
+> product: there is no email confirmation, no password recovery, no rate limiting, and passwords
+> are hashed with salted SHA-256 rather than a slow KDF. The public instance is a playground —
+> please do not keep anything you would miss in it.
 
-Check out live demo here: [mani.kotlin.website](https://mani.kotlin.website)  
+Live instance: **[mani.kotlin.website](https://mani.kotlin.website)**
 
-### Running Locally
+## What is where
 
-1. Configure server settings in `ru.workinprogress.mani.Constants.kt`:
+| Module | What it is | Targets |
+|---|---|---|
+| `:shared` | API contract: resources, model, serializers | android, ios, jvm, wasmJs, linuxX64 |
+| `:composeApp` | the app itself — one UI for every platform | android, ios, desktop, wasmJs |
+| `:server-common` | server code: routes, storage ports, config, auth | jvm, linuxX64 |
+| `:server` | JVM build of the server | jvm |
+| `:server-native` | Kotlin/Native build — the image the demo runs | linuxX64 |
+| `:androidApp`, `:iosApp` | thin platform launchers | |
+
+## Running locally
+
+1. Point the clients at your machine in `shared/.../mani/Constants.kt`:
 
    ```kotlin
    val currentServerConfig: ServerConfig = ServerConfig(
@@ -30,42 +48,59 @@ Check out live demo here: [mani.kotlin.website](https://mani.kotlin.website)
    )
    ```
 
-2. Build the server:
+2. Build the JVM server image:
 
    ```bash
    ./gradlew publishImageToLocalRegistry
    ```
 
-3. Start the server using Docker:
+3. Start it next to MongoDB:
 
    ```bash
-   docker-compose up -d
+   docker compose up -d
    ```
 
-4. Access the web application at [http://localhost:8080/](http://localhost:8080/).
+4. Open [http://localhost:8080/](http://localhost:8080/).
 
----
+### Clients
 
-### Server builds
+```bash
+./gradlew installDebug          # Android
+```
 
-The server code lives in `:server-common` and is compiled twice. `:server` is the JVM build —
-it uses the official MongoDB driver and is the one to run on macOS, where the native target
-cannot be linked at all. `:server-native` is the Kotlin/Native build that ships to the demo
-stand: it talks to MongoDB through [mongkn](https://github.com/youndie/mongkn), a binding over
-the C driver, and serves the wasm frontend from a directory instead of the classpath.
+```bash
+./gradlew desktopRun            # desktop
+```
 
-Routing, dependency injection, configuration, token issuing and password hashing are shared —
-both builds sign and verify JWTs with the same code, so a token issued by one is accepted by
-the other.
+```bash
+./gradlew :composeApp:wasmJsBrowserDevelopmentRun   # browser
+```
 
-The native build is `linuxX64` only, because mongkn is published for that target alone. It needs
-the C driver headers on the build machine:
+For iOS, open `iosApp/iosApp.xcodeproj` in Xcode, or use
+[Fleet](https://www.jetbrains.com/help/kotlin-multiplatform-dev/fleet.html).
+
+## Two server builds
+
+The server code lives in `:server-common` and is compiled twice.
+
+`:server` is the JVM build, on the official MongoDB driver. It is the one to run on macOS, where
+the native target cannot be linked at all.
+
+`:server-native` is the Kotlin/Native binary the demo instance runs. It talks to MongoDB through
+[mongkn](https://github.com/youndie/mongkn) — a binding over the C driver, because there is no
+official Kotlin/Native driver — and serves the wasm frontend from a directory instead of the
+classpath, since `staticResources` does not exist outside the JVM.
+
+Routing, dependency injection, configuration, token issuing and password hashing are **shared**.
+Both builds sign and verify JWTs with the same code, so a token issued by one is accepted by the
+other, and both write documents in the same shape: `_id` as `ObjectId`, amounts as `decimal128`.
+
+The native build is `linuxX64` only, because that is the single target mongkn publishes. It needs
+the C driver on the build machine:
 
 ```bash
 sudo apt-get install -y libmongoc-dev libbson-dev
 ```
-
-Build the binary and the image:
 
 ```bash
 ./gradlew :server-native:linkReleaseExecutableLinuxX64 :composeApp:wasmJsBrowserDistribution
@@ -75,37 +110,38 @@ Build the binary and the image:
 docker build -f server-native/Dockerfile -t mani-native .
 ```
 
-Tests for the native storage run against a real `mongod` — the failures they look for (an `_id`
-written as a string, an amount written as text) do not raise errors, they silently match nothing:
+Measured on that image: 87 ms from start to the first answered request, 42 MiB resident,
+13 MB binary.
+
+### Configuration
+
+Both builds read the environment, with the same names:
+
+| | |
+|---|---|
+| `PORT` | 8080 |
+| `MONGO_HOST`, `MONGO_DATABASE` | `localhost`, `mani` |
+| `JWT_SECRET`, `JWT_AUDIENCE`, `JWT_ISSUER`, `JWT_EXPIRATION_SECONDS` | |
+| `MANI_WEB_ROOT` | directory with the wasm bundle; unset — no frontend, API only |
+| `MANI_DEVELOPMENT` | `true` enables CORS |
+
+### Tests
+
+```bash
+./gradlew :shared:jvmTest :server-common:jvmTest :server:test :composeApp:desktopTest
+```
+
+Native tests need a real `mongod`, because what they look for does not raise errors — an `_id`
+written as a string or an amount written as text simply matches nothing:
 
 ```bash
 docker run -d --name mani-mongo -p 27017:27017 mongo:8
 ```
 
 ```bash
-./gradlew :server-native:linuxX64Test
+./gradlew :server-native:linuxX64Test :server-native:linuxX64ReleaseTest
 ```
 
-Configuration comes from the environment in both builds: `PORT`, `MONGO_HOST`, `MONGO_DATABASE`,
-`JWT_SECRET`, `JWT_AUDIENCE`, `JWT_ISSUER`, `JWT_EXPIRATION_SECONDS`, `MANI_WEB_ROOT`,
-`MANI_DEVELOPMENT`.
-
----
-
-#### Running on Different Platforms:
-
-- **Android:**  
-  Build and install with:
-  ```bash
-  ./gradlew installDebug
-  ```
-
-- **Desktop:**  
-  Run the app on desktop with:
-  ```bash
-  ./gradlew desktopRun
-  ```
-
-- **iOS:**  
-  Open `iosApp/iosApp.xcodeproj` in Xcode and run the application, or
-  use [Fleet](https://www.jetbrains.com/help/kotlin-multiplatform-dev/fleet.html) for development.
+The release run is not optional. Kotlin/Native omits type-cast checks in release builds, so code
+that fails with a catchable exception in debug can reach undefined behaviour in release — and the
+binary that ships is the release one.
