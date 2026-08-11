@@ -22,23 +22,26 @@ spec:
             - name: http
               containerPort: 8080
           imagePullPolicy: Always
+          # Под нативный бинарь: JVM здесь больше нет, а с ней ушли и heap, и метаспейс.
+          # Снято на образе: 42 МиБ в покое, пик 45 МиБ, старт до первого ответа 87 мс.
+          # Замер без нагрузки и на одной реплике — под трафиком не мерили.
           resources:
             requests:
-              cpu: "100m"
-              memory: "128Mi"
+              cpu: "50m"
+              memory: "64Mi"
             limits:
               cpu: "1"
-              memory: "176Mi"
+              memory: "128Mi"
           env:
             - name: MONGO_HOST
               value: mani-mongodb
-            - name: JAVA_TOOL_OPTIONS
-              value: >-
-                -XX:+UseSerialGC
-                -XX:ReservedCodeCacheSize=64M
-                -Xss256k
-                -XX:MaxMetaspaceSize=64M
-                -Xmx64M
+            # Секрет подписи токенов. До этой правки переменная не задавалась вовсе, и сервер
+            # подписывал значением по умолчанию — строкой "secret" из application.conf.
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: mani-backend
+                  key: jwt-secret
       restartPolicy: Always
       imagePullSecrets:
         - name: regcred

@@ -5,9 +5,12 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
+# Раннер — ubuntu-24.04 явно, а не `ubuntu-latest`. Бинарь линкуется с системной libmongoc, и
+# версия дистрибутива обязана совпадать с базой образа (см. server-native/Dockerfile). При
+# `latest` эта пара разъедется молча в день, когда GitHub переведёт ярлык на следующий LTS.
 jobs:
   build:
-    runs-on: [ ubuntu-latest ]
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout sources
         uses: actions/checkout@v5
@@ -27,13 +30,30 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v5
 
-      - name: Build
-        run: ./gradlew :server:publishImage --no-configuration-cache --no-daemon
-        env:
-          ORG_GRADLE_PROJECT_BUILD_NUMBER: ${{ github.run_number }}
-          ORG_GRADLE_PROJECT_REGISTRY_HOSTNAME: ${{ vars.REGISTRY_HOSTNAME }}
-          ORG_GRADLE_PROJECT_REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
-          ORG_GRADLE_PROJECT_REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
+      # Заголовки и .so-симлинки нужны линковке mongkn; в образ поедет только рантайм.
+      - name: Install MongoDB C driver
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libmongoc-dev libbson-dev
+
+      - name: Build native server and frontend
+        run: ./gradlew :server-native:linkReleaseExecutableLinuxX64 :composeApp:wasmJsBrowserDistribution --no-daemon
+
+      - name: Log in to registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ vars.REGISTRY_HOSTNAME }}
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: server-native/Dockerfile
+          push: true
+          platforms: linux/amd64
+          tags: ${{ vars.REGISTRY_HOSTNAME }}/mani-kotlin-fullstack:0.2.${{ github.run_number }}
 
       - name: Configure Kubeconfig
         run: |
@@ -42,7 +62,7 @@ jobs:
 
       - name: Apply deployment
         env:
-          buildnumber: ${{github.run_number}}
+          buildnumber: ${{ github.run_number }}
         run: |
           envsubst < .k8s-templates/deployment.yaml > .k8s/deployment.yaml
           kubectl apply -f .k8s/

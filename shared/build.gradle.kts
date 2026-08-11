@@ -30,6 +30,10 @@ kotlin {
 
     jvm()
 
+    // Ради нативного сервера: контракт (`@Resource`-классы, модель, сериализаторы) один на
+    // клиента и обе сборки сервера, и без этого таргета `:server-common` не слинкуется.
+    linuxX64()
+
     @OptIn(ExperimentalWasmDsl::class)
     wasmJs {
         browser {
@@ -51,7 +55,10 @@ kotlin {
 
     sourceSets {
         commonMain.dependencies {
-            implementation(libs.bignum)
+            // `api`, а не `implementation`: `Transaction.amount` — тип из bignum, то есть он
+            // часть публичного контракта. Потребители (сервер, клиент) иначе обязаны объявлять
+            // ту же зависимость сами и молча разъедутся по версиям.
+            api(libs.bignum)
 
             api(libs.ktor.client.resources)
             api(libs.kotlinx.datetime)
