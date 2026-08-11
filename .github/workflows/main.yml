@@ -18,7 +18,7 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v5
       - name: Run tests
-        run: ./gradlew :shared:jvmTest :server:test :composeApp:desktopTest :composeApp:wasmJsTest --no-daemon
+        run: ./gradlew :shared:jvmTest :server-common:jvmTest :server:test :composeApp:desktopTest :composeApp:wasmJsTest --no-daemon
       - name: Summarize tests results
         uses: mikepenz/action-junit-report@v5
         if: ${{ always() }}
@@ -26,6 +26,42 @@ jobs:
           report_paths: |
             **/build/test-results/**/TEST-*.xml
             **/build/outputs/androidTest-results/**/TEST-*.xml
+
+  # Нативная сборка проверяется отдельной джобой: ей нужен и C-драйвер, и настоящий mongod.
+  # Без неё зелёный CI ничего не говорит об образе, который едет на стенд, — JVM-сборка
+  # компилируется и проходит тесты даже когда нативная не линкуется вовсе.
+  #
+  # Раннер прибит к ubuntu-24.04, как и в deploy.yml: версия libmongoc обязана совпадать
+  # с базой образа.
+  test-native:
+    runs-on: ubuntu-24.04
+    services:
+      mongo:
+        image: mongo:8
+        ports:
+          - 27017:27017
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v5
+      - name: Setup Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: 21
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v5
+      - name: Install MongoDB C driver
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libmongoc-dev libbson-dev
+      - name: Run native tests
+        run: ./gradlew :server-common:linuxX64Test :server-native:linuxX64Test --no-daemon
+      - name: Summarize tests results
+        uses: mikepenz/action-junit-report@v5
+        if: ${{ always() }}
+        with:
+          report_paths: |
+            **/build/test-results/**/TEST-*.xml
 
   test-android:
     runs-on: ubuntu-latest

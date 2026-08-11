@@ -14,6 +14,7 @@ androidx-test-junit = "1.3.0"
 appframeDesktop = "0.0.12"
 bignum = "0.3.10"
 compose-multiplatform = "1.11.1"
+cryptography = "0.6.0"
 composeShimmer = "1.5.0"
 coreSplashscreen = "1.2.0"
 deFlapdoodleEmbedMongo = "4.33.0"
@@ -22,12 +23,13 @@ junit = "4.13.2"
 kotlin = "2.4.10"
 kotlinxCollectionsImmutable = "0.5.1"
 kotlinxDatetime = "0.7.1"
+kotlinxIo = "0.9.1"
 kotlinxSerializationJson = "1.11.0"
 ktor = "3.5.1"
 jib = "3.5.1"
-ktorSwaggerUi = "5.7.0"
-schemaKeneratorSwagger = "2.7.2"
+javaJwt = "4.6.0"
 logback = "1.5.38"
+mongkn = "0.1.4"
 kotlinx-coroutines = "1.11.0"
 koinBom = "4.2.2"
 mongodbDriverKotlinCoroutine = "5.9.0"
@@ -36,7 +38,6 @@ navigationCompose = "2.9.2"
 preferenceKtx = "1.2.1"
 profileinstaller = "1.4.1"
 slf4jApi = "2.0.18"
-swaggerParser = "2.1.45"
 uiTestManifest = "1.11.4"
 uiTestJunit4Android = "1.11.4"
 junitVersion = "1.3.0"
@@ -70,27 +71,41 @@ androidx-lifecycle-runtime-compose = { group = "org.jetbrains.androidx.lifecycle
 
 kotlinx-collections-immutable = { module = "org.jetbrains.kotlinx:kotlinx-collections-immutable", version.ref = "kotlinxCollectionsImmutable" }
 kotlinx-coroutines-swing = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-swing", version.ref = "kotlinx-coroutines" }
+kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "kotlinx-coroutines" }
 
 kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinxDatetime" }
-ktor-swagger-ui = { module = "io.github.smiley4:ktor-swagger-ui", version.ref = "ktorSwaggerUi" }
-ktor-openapi = { module = "io.github.smiley4:ktor-openapi", version.ref = "ktorSwaggerUi" }
-schema-kenerator-core = { module = "io.github.smiley4:schema-kenerator-core", version.ref = "schemaKeneratorSwagger" }
-schema-kenerator-swagger = { module = "io.github.smiley4:schema-kenerator-swagger", version.ref = "schemaKeneratorSwagger" }
-
-ktor-server-swagger = { module = "io.ktor:ktor-server-swagger" }
+kotlinx-io-core = { module = "org.jetbrains.kotlinx:kotlinx-io-core", version.ref = "kotlinxIo" }
 ktor-serialization-kotlinx-json = { module = "io.ktor:ktor-serialization-kotlinx-json", version.ref = "ktor" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerializationJson" }
-ktor-server-content-negotiation = { module = "io.ktor:ktor-server-content-negotiation" }
-ktor-server-resources = { module = "io.ktor:ktor-server-resources" }
-ktor-server-auth-jwt = { module = "io.ktor:ktor-server-auth-jwt" }
-ktor-server-auth = { module = "io.ktor:ktor-server-auth" }
-ktor-server-cors = { module = "io.ktor:ktor-server-cors" }
+ktor-server-content-negotiation = { module = "io.ktor:ktor-server-content-negotiation", version.ref = "ktor" }
+ktor-server-resources = { module = "io.ktor:ktor-server-resources", version.ref = "ktor" }
+ktor-server-auth = { module = "io.ktor:ktor-server-auth", version.ref = "ktor" }
+ktor-server-cors = { module = "io.ktor:ktor-server-cors", version.ref = "ktor" }
 
 logback = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
-ktor-server-core = { module = "io.ktor:ktor-server-core-jvm", version.ref = "ktor" }
-ktor-server-netty = { module = "io.ktor:ktor-server-netty-jvm", version.ref = "ktor" }
-ktor-server-cio = { module = "io.ktor:ktor-server-cio-jvm", version.ref = "ktor" }
+# Без суффикса `-jvm`: артефакты тянет и KMP-модуль `:server-common`, а `*-jvm` под linuxX64
+# не существует. Вариант платформы Gradle выбирает сам по метаданным.
+ktor-server-core = { module = "io.ktor:ktor-server-core", version.ref = "ktor" }
+ktor-server-netty = { module = "io.ktor:ktor-server-netty", version.ref = "ktor" }
+ktor-server-cio = { module = "io.ktor:ktor-server-cio", version.ref = "ktor" }
 ktor-server-tests = { module = "io.ktor:ktor-server-test-host", version.ref = "ktor" }
+
+# Подпись и хеширование — одним кодом на обеих сборках. На JVM провайдер идёт через JDK,
+# на linuxX64 — `-prebuilt`, то есть OpenSSL внутри артефакта: ни libssl-dev на сборочной
+# машине, ни libssl в образе не требуется.
+cryptography-core = { module = "dev.whyoleg.cryptography:cryptography-core", version.ref = "cryptography" }
+cryptography-random = { module = "dev.whyoleg.cryptography:cryptography-random", version.ref = "cryptography" }
+cryptography-provider-jdk = { module = "dev.whyoleg.cryptography:cryptography-provider-jdk", version.ref = "cryptography" }
+cryptography-provider-openssl3 = { module = "dev.whyoleg.cryptography:cryptography-provider-openssl3-prebuilt", version.ref = "cryptography" }
+
+# Только в тестах: эталон, которым выдавались токены до перехода на свой HS256. Проверяет,
+# что старые refresh-токены из базы новая проверка принимает.
+auth0-java-jwt = { module = "com.auth0:java-jwt", version.ref = "javaJwt" }
+
+# MongoDB для Kotlin/Native — обвязка над mongo-c-driver. Публикуется только под linuxX64,
+# поэтому живёт в `:server-native`, а не в общей части.
+mongkn-core = { module = "io.github.youndie.mongkn:mongkn-core", version.ref = "mongkn" }
+mongkn-extensions = { module = "io.github.youndie.mongkn:mongkn-extensions", version.ref = "mongkn" }
 
 ktor-client-auth = { module = "io.ktor:ktor-client-auth", version.ref = "ktor" }
 ktor-client-cio = { module = "io.ktor:ktor-client-cio", version.ref = "ktor" }
@@ -120,7 +135,6 @@ multiplatform-settings-no-arg = { module = "com.russhwolf:multiplatform-settings
 multiplatform-settings-serialization = { module = "com.russhwolf:multiplatform-settings-serialization", version.ref = "multiplatformSettings" }
 navigation-compose = { module = "org.jetbrains.androidx.navigation:navigation-compose", version.ref = "navigationCompose" }
 slf4j-api = { module = "org.slf4j:slf4j-api", version.ref = "slf4jApi" }
-swagger-parser = { module = "io.swagger.parser.v3:swagger-parser", version.ref = "swaggerParser" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
 androidx-uiautomator = { group = "androidx.test.uiautomator", name = "uiautomator", version.ref = "uiautomator" }
