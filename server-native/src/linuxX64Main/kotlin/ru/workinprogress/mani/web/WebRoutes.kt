@@ -15,6 +15,26 @@ import kotlinx.io.buffered
 import kotlinx.io.files.SystemFileSystem
 
 private const val CHUNK = 64 * 1024
+private const val IMMUTABLE = "public, max-age=31536000, immutable"
+
+/** Столько шестнадцатеричных цифр webpack даёт своим именам; короче — не хеш, а обычное имя. */
+private const val HASH_LENGTH = 16
+
+/**
+ * Навсегда кэшируется только то, чьё **имя** зависит от содержимого.
+ *
+ * Правило «расширение `.wasm` — значит immutable» выглядит верным и неверно: в бандле лежит
+ * `skiko.wasm` с постоянным именем рядом с `6e23e5428398b92da386.wasm`. Пометив первый
+ * неизменяемым на год, мы получили бы браузеры, до которых обновление Compose не доезжает
+ * вовсе, — и починить это выкатом было бы нельзя, только сменой имени файла.
+ *
+ * Поэтому проверяется имя, а не расширение: имя из одних шестнадцатеричных цифр webpack даёт
+ * ровно тем файлам, которые пересобираются под новым именем при любой правке.
+ */
+internal fun String.isContentHashed(): Boolean {
+    val name = substringBeforeLast('.', "")
+    return name.length >= HASH_LENGTH && name.all { it in '0'..'9' || it in 'a'..'f' }
+}
 
 /**
  * Отдача wasm-приложения тем же сервером — как и на JVM, только вручную.
@@ -50,9 +70,7 @@ fun Route.webRoutes(assets: WebAssets) {
         call.response.header(HttpHeaders.ETag, asset.etag)
         call.response.header(
             HttpHeaders.CacheControl,
-            // Имя .wasm содержит хеш содержимого — те же байты навсегда. Остальное обязано
-            // перепроверяться, иначе выкат новой версии не доедет до открытых вкладок.
-            if (asset.name.endsWith(".wasm")) "public, max-age=31536000, immutable" else "no-cache",
+            if (asset.name.isContentHashed()) IMMUTABLE else "no-cache",
         )
         if (asset.gzipped) call.response.header(HttpHeaders.ContentEncoding, "gzip")
 
