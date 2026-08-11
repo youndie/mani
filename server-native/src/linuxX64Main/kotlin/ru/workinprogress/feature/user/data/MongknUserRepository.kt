@@ -66,9 +66,21 @@ class MongknTokenRepository(
      * Ищется **элемент** массива, а не массив целиком: в MongoDB `{"tokens": "…"}` по полю-массиву
      * означает «содержит такое значение». Ссылка на свойство здесь не годится — она типизирована
      * списком и закодировала бы массив из одного элемента.
+     *
+     * **Значение передаётся готовым [BsonString], и это не стилистика.** Строковая форма фильтра
+     * кодирует значение сериализатором **поля**, а у `tokens` это `List<String>`. mongkn
+     * рассчитывает на откат: при несовпадении типа ловит `ClassCastException` и кодирует
+     * значение по рантайм-типу. В отладочной сборке так и происходит — в релизной
+     * Kotlin/Native проверку приведения не вставляет, исключения не возникает, и
+     * `CollectionSerializer` идёт итерировать строку как коллекцию. Наружу это выходит
+     * `ArrayIndexOutOfBoundsException` и 500 на `/auth/refresh` — **только в релизном бинаре**,
+     * то есть ровно в том, который едет в образ.
+     *
+     * Готовый [BsonValue] `FieldCodec` возвращает как есть, не доходя до сериализатора, поэтому
+     * расхождения между сборками здесь больше нет.
      */
     override suspend fun findUserByToken(refreshToken: String): User? =
-        db.find { TOKENS eq refreshToken }.firstOrNull()?.toUser()
+        db.find { TOKENS eq BsonString(refreshToken) }.firstOrNull()?.toUser()
 
     override suspend fun removeToken(
         token: String,

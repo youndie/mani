@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.plugin.mpp.NativeBuildType
+
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.pluginSerialization)
@@ -18,6 +20,21 @@ kotlin {
                 entryPoint = "ru.workinprogress.mani.main"
                 baseName = "mani"
             }
+
+            // Тесты гоняются **и в релизе**, а не только в отладке, и это не перестраховка.
+            // Kotlin/Native в релизе не вставляет проверок приведения типов, поэтому код,
+            // который в отладке честно падает `ClassCastException` (и чей-то `catch` его
+            // ловит), в релизе уходит в неопределённое поведение. Так `/auth/refresh` отдавал
+            // 500 на стенде при полностью зелёном прогоне: тестовый бинарь собирался
+            // отладочным, а в образ едет релизный.
+            test(listOf(NativeBuildType.RELEASE))
+        }
+
+        // Один только релизный бинарь задачу запуска не создаёт: она заводится под тестовый
+        // прогон, а он по умолчанию единственный и привязан к отладочному. Отсюда
+        // `:server-native:linuxX64ReleaseTest`.
+        testRuns.create("release") {
+            setExecutionSourceFrom(binaries.getTest(NativeBuildType.RELEASE))
         }
     }
 

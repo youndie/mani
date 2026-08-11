@@ -54,8 +54,12 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends libmongoc-dev libbson-dev
+      # Релизный прогон обязателен, а не «дополнителен»: Kotlin/Native в релизе не вставляет
+      # проверок приведения типов, и код, который в отладке падает ловимым исключением,
+      # в релизе уходит в неопределённое поведение. Так `/auth/refresh` отдавал 500 на стенде
+      # при зелёном CI — тестовый бинарь был отладочным, а в образе едет релизный.
       - name: Run native tests
-        run: ./gradlew :server-common:linuxX64Test :server-native:linuxX64Test --no-daemon
+        run: ./gradlew :server-common:linuxX64Test :server-native:linuxX64Test :server-native:linuxX64ReleaseTest --no-daemon
       - name: Summarize tests results
         uses: mikepenz/action-junit-report@v5
         if: ${{ always() }}
