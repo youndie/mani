@@ -2,6 +2,18 @@ package ru.workinprogress.mani.screenshots
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.runtime.remember
+import androidx.compose.ui.unit.dp
+import ru.workinprogress.mani.components.Action
+import ru.workinprogress.mani.components.MainAppBarState
+import ru.workinprogress.mani.components.ManiAppBar
+import ru.workinprogress.mani.navigation.ManiScreen
+import ru.workinprogress.mani.navigation.title
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
@@ -80,6 +92,41 @@ private fun item(
     ),
     Currency.Usd,
 )
+
+/**
+ * Шапка в двух своих видах: на корневом экране — словесный знак, на вложенном — «назад» и
+ * название места. Снимок узкий и низкий: проверять тут нечего, кроме самой полосы.
+ */
+@ViddikScreenshot(name = "app bar", group = "screens", width = WIDTH, height = 160)
+@Composable
+fun AppBarScreenshot() {
+    Harness {
+        Column {
+            ManiAppBar(
+                appbarState = remember {
+                    MainAppBarState().apply {
+                        title.value = ManiScreen.Main.title()
+                        showAction(Action("Profile", Icons.Default.Person) {})
+                    }
+                },
+                onBack = {},
+            )
+
+            Spacer(Modifier.height(8.dp))
+
+            ManiAppBar(
+                appbarState = remember {
+                    MainAppBarState().apply {
+                        title.value = ManiScreen.Add.title()
+                        showBack.value = true
+                        showAction(Action("Profile", Icons.Default.Person) {})
+                    }
+                },
+                onBack = {},
+            )
+        }
+    }
+}
 
 @ViddikScreenshot(name = "welcome", group = "screens", width = WIDTH, height = HEIGHT)
 @Composable
