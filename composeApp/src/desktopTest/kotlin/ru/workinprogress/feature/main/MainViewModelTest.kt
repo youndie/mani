@@ -77,7 +77,13 @@ class MainViewModelTest : KoinTest {
 
         assertTrue(!viewModel.observe.value.loading)
         assertTrue(viewModel.observe.value.transactions.isEmpty())
-        assertTrue(viewModel.observe.value.errorMessage != null)
+
+        // Сервер не ответил и показать нечего — это состояние всего экрана, а не сообщение в
+        // углу, и у него есть причина, которую можно прочитать.
+        val unreachable = viewModel.observe.value.unreachable
+        assertNotNull(unreachable)
+        assertTrue(unreachable.cause?.contains("no response") == true, unreachable.cause)
+        assertEquals(MainViewModel.RETRY_SECONDS, unreachable.retryInSeconds)
 
         get<TransactionRepository>().reset()
     }

@@ -49,7 +49,22 @@ data class TransactionUiState(
 	 * Дата обязательна: правило без неё не разворачивается в календарь, а кнопка «Create»
 	 * при одной введённой сумме приглашала сохранить то, что сохранить нельзя.
 	 */
-	val valid get() = amount.toDoubleOrNull() != null && date.value != null
+	val valid get() = amountError == null && amount.isNotEmpty() && date.value != null
+
+	/**
+	 * Почему сумма не годится — под самим полем, а не в общем сообщении внизу.
+	 *
+	 * Ноль тут не придирка: правило на ноль ничего не сдвигает в прогнозе, то есть не делает
+	 * того единственного, ради чего заводится. А неактивная кнопка без объяснения оставляла
+	 * человека гадать, чего от него ждут.
+	 */
+	val amountError: String?
+		get() = when {
+			amount.isEmpty() -> null
+			amount.toDoubleOrNull() == null -> "this is not an amount"
+			amount.toDouble() == 0.0 -> "an amount is required"
+			else -> null
+		}
 	val tempTransaction get() = buildTransaction(this)
 
 	private fun buildTransaction(stateValue: TransactionUiState): Transaction {

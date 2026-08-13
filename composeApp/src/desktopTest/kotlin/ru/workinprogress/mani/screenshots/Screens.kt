@@ -32,6 +32,8 @@ import ru.workinprogress.feature.currency.Currency
 import ru.workinprogress.feature.main.ui.FiltersState
 import ru.workinprogress.feature.main.ui.ForecastUiState
 import ru.workinprogress.feature.main.ui.MainContent
+import ru.workinprogress.feature.main.ui.ServerUnreachable
+import ru.workinprogress.feature.main.ui.ServerUnreachableUiState
 import ru.workinprogress.feature.transaction.Category
 import ru.workinprogress.feature.transaction.Transaction
 import ru.workinprogress.feature.transaction.ui.component.TransactionComponentImpl
@@ -261,6 +263,37 @@ fun RuleFormScreenshot() {
                     "\u2212340 $ from 20 Aug 2026. In 1 year's repeat 12 times, total: \u22124\u00A0080 $"
                 ),
                 runsOutShift = RunsOutShift("money runs out 12 days earlier \u00B7 19 Nov 2026", worse = true),
+            ),
+            onAction = {},
+        ) {}
+    }
+}
+
+/** Сервер не ответил и показать нечего: причина, кнопка и обратный отсчёт. */
+@ViddikScreenshot(name = "server unreachable", group = "screens", width = WIDTH, height = HEIGHT)
+@Composable
+fun ServerUnreachableScreenshot() {
+    Harness {
+        ServerUnreachable(
+            ServerUnreachableUiState(
+                cause = "HTTP 503 · mani.kotlin.website · 11:42:07",
+                retryInSeconds = 8,
+            )
+        )
+    }
+}
+
+/** Та же форма с ошибкой в сумме: ноль правило не сдвинет. */
+@ViddikScreenshot(name = "rule form error", group = "screens", width = WIDTH, height = HEIGHT)
+@Composable
+fun RuleFormErrorScreenshot() {
+    Harness {
+        TransactionComponentImpl(
+            state = TransactionUiState(
+                amount = "0",
+                currency = Currency.Usd,
+                period = Transaction.Period.Month,
+                date = DateDataUiState(LocalDate(2026, 8, 20)),
             ),
             onAction = {},
         ) {}

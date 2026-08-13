@@ -158,6 +158,8 @@ fun MainComponent(
         { viewModel.onCategorySelected(it) },
         onAddFirstRule = onAddTransactionClicked,
         onFillWithDemoData = viewModel::onFillWithDemoDataClicked,
+        unreachable = state.value.unreachable,
+        onRetry = viewModel::onRetryClicked,
     )
 }
 
@@ -278,8 +280,17 @@ internal fun MainContent(
     onCategorySelected: (Category?) -> Unit = {},
     onAddFirstRule: (() -> Unit)? = null,
     onFillWithDemoData: (() -> Unit)? = null,
+    unreachable: ServerUnreachableUiState? = null,
+    onRetry: () -> Unit = {},
     chart: @Composable ((Boolean) -> Unit) = remember { @Composable { expanded: Boolean -> ChartComponent(expanded = expanded) } }
 ) {
+    // Сервер не ответил и показать нечего — тогда весь экран об этом, а не лента-заглушка с
+    // сообщением в углу.
+    if (unreachable != null) {
+        ServerUnreachable(unreachable, onRetry = onRetry)
+        return
+    }
+
     val filters = remember(filtersState) {
         @Composable {
             FiltersChips(

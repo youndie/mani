@@ -13,16 +13,22 @@ import kotlinx.collections.immutable.toImmutableSet
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalTime
+import kotlinx.datetime.TimeZone
 import kotlinx.datetime.format
 import kotlinx.datetime.format.MonthNames
 import kotlinx.datetime.format.char
 import kotlinx.datetime.daysUntil
 import kotlinx.datetime.plus
 import kotlinx.datetime.toLocalDateTime
+import kotlin.time.Clock
+import kotlin.time.Duration.Companion.seconds
 import ru.workinprogress.feature.auth.domain.LogoutUseCase
 import ru.workinprogress.feature.categories.domain.GetCategoriesUseCase
 import ru.workinprogress.feature.currency.Currency
@@ -39,6 +45,9 @@ import ru.workinprogress.feature.transaction.ui.model.PositiveColor
 import ru.workinprogress.feature.transaction.ui.model.TransactionUiItem
 import ru.workinprogress.feature.transaction.ui.model.formatMoney
 import ru.workinprogress.feature.transaction.ui.model.formatMoneyAbsolute
+import ru.workinprogress.feature.main.ui.ServerUnreachableUiState
+import ru.workinprogress.mani.currentServerConfig
+import ru.workinprogress.mani.data.ServerException
 import ru.workinprogress.mani.emptyImmutableMap
 import ru.workinprogress.mani.today
 import ru.workinprogress.useCase.UseCase
@@ -71,6 +80,9 @@ class MainViewModel(
 		}
 	}
 
+	private var retryJob: Job? = null
+	private var retryAttempt = 0
+
 	private suspend fun load() {
 		state.value = MainUiState(loading = true, transactions = loadingItems)
 
@@ -78,10 +90,14 @@ class MainViewModel(
 
 		when (result) {
 			is UseCase.Result.Error -> {
-				state.value = MainUiState(errorMessage = result.throwable.message)
+				// Показать нечего — ни свежего, ни сохранённого. Это не сообщение в углу, а
+				// состояние всего экрана, и у него должна быть причина и путь наружу.
+				state.value = MainUiState(unreachable = ServerUnreachableUiState(cause = describe(result.throwable)))
+				scheduleRetry()
 			}
 
 			is UseCase.Result.Success -> {
+				retryAttempt = 0
 				state.value = state.value.copy(loading = true, transactions = emptyImmutableMap())
 
 				combine(
@@ -137,6 +153,38 @@ class MainViewModel(
 					state.update { result }
 				}
 			}
+		}
+	}
+
+	/** Повтор вручную: отсчёт сбрасывается, чтобы автоповтор не выстрелил поверх. */
+	fun onRetryClicked() {
+		retryJob?.cancel()
+		// Нажали руками — значит, ждать снова готовы: счётчик автоматических попыток обнуляется.
+		retryAttempt = 0
+		viewModelScope.launch { load() }
+	}
+
+	/**
+	 * Автоповтор с обратным отсчётом.
+	 *
+	 * Молча повторять нельзя: экран выглядел бы застывшим. Секунды на экране — обещание, что
+	 * приложение занято делом, а не ждёт, пока на него нажмут.
+	 */
+	private fun scheduleRetry() {
+		// Попытки не бесконечны: если сервера нет и через три захода, экран перестаёт дёргаться
+		// и ждёт человека. Бесконечный цикл к тому же держал бы приложение занятым в фоне.
+		if (retryAttempt >= MAX_RETRIES) return
+		retryAttempt++
+
+		retryJob?.cancel()
+		retryJob = viewModelScope.launch {
+			for (left in RETRY_SECONDS downTo 1) {
+				state.update { current ->
+					current.copy(unreachable = current.unreachable?.copy(retryInSeconds = left))
+				}
+				delay(1.seconds)
+			}
+			load()
 		}
 	}
 
@@ -247,6 +295,28 @@ class MainViewModel(
 			).toImmutableMap()
 		}
 
+
+		internal const val RETRY_SECONDS = 8
+		internal const val MAX_RETRIES = 3
+
+		/**
+		 * «HTTP 503 · mani.kotlin.website · 11:42:07».
+		 *
+		 * Код, адрес и время: по ним человек отличит «у меня нет сети» от «у них лежит сервер», а
+		 * в переписке это то, что имеет смысл переслать. Сообщение вида «Network Error» не
+		 * отличает ничего.
+		 */
+		internal fun describe(throwable: Throwable, at: LocalTime = nowLocalTime()): String {
+			val status = (throwable as? ServerException)?.status?.let { "HTTP $it" } ?: "no response"
+			return "$status · ${currentServerConfig.host} · ${at.format(timeFormat)}"
+		}
+
+		private fun nowLocalTime() =
+			Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).time
+
+		private val timeFormat = LocalTime.Format {
+			hour(); char(':'); minute(); char(':'); second()
+		}
 
 		private fun Map<LocalDate, List<Transaction>>.sumByMonth(monthDate: LocalDate) =
 			this

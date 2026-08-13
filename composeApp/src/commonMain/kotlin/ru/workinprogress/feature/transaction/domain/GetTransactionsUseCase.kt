@@ -1,6 +1,7 @@
 package ru.workinprogress.feature.transaction.domain
 
 import kotlinx.coroutines.flow.Flow
+import io.ktor.client.plugins.ResponseException
 import ru.workinprogress.mani.data.ServerException
 import ru.workinprogress.feature.transaction.Transaction
 import ru.workinprogress.useCase.EmptyParams
@@ -22,7 +23,7 @@ class GetTransactionsUseCase(
         try {
             transactionRepository.load()
         } catch (e: Exception) {
-            return Result.Error(ServerException("Network Error", e))
+            return Result.Error(ServerException("Network Error", e, (e as? ResponseException)?.response?.status?.value))
         }
 
         return Result.Success(transactionRepository.dataStateFlow)

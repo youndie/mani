@@ -335,7 +335,8 @@ private fun AmountField(
     onAmountChanged: (String) -> Unit,
     onNext: () -> Unit,
 ) {
-    val underline = MaterialTheme.colorScheme.primary
+    val error = state.amountError
+    val underline = if (error != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
 
     Column {
         FieldLabel("Amount")
@@ -378,7 +379,7 @@ private fun AmountField(
 
             // Что получится из введённого: сумма со знаком и как часто она повторится. Раньше
             // проверить себя можно было только сохранив правило.
-            if (state.amount.isNotBlank()) {
+            if (state.amount.isNotBlank() && error == null) {
                 Text(
                     run {
                         val periodText = stringResource(state.period.stringResource)
@@ -401,6 +402,17 @@ private fun AmountField(
                     modifier = Modifier.padding(start = 12.dp, bottom = 14.dp).testTag("amountPreview"),
                 )
             }
+        }
+
+        // Причина — под самим полем: «Create» неактивна, и без объяснения человек гадает, чего
+        // от него хотят.
+        error?.let {
+            Text(
+                it,
+                modifier = Modifier.padding(top = 6.dp).testTag("amountError"),
+                style = MaterialTheme.typography.labelSmall.copy(fontFamily = LocalManiFonts.current.mono),
+                color = MaterialTheme.colorScheme.error,
+            )
         }
     }
 }

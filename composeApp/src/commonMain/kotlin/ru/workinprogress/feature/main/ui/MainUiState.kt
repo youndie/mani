@@ -22,5 +22,7 @@ data class MainUiState(
     val filtersState: FiltersState = FiltersState(),
     /** Не `null` — сети нет, показано последнее известное, снятое в это время. */
     val showingCacheFrom: String? = null,
+    /** Не `null` — сервер не ответил и показать нечего: ни свежего, ни сохранённого. */
+    val unreachable: ServerUnreachableUiState? = null,
 )
 
