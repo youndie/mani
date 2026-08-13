@@ -20,5 +20,7 @@ data class MainUiState(
     val dayBalances: ImmutableMap<LocalDate, String> = persistentMapOf(),
     val loading: Boolean = false,
     val filtersState: FiltersState = FiltersState(),
+    /** Не `null` — сети нет, показано последнее известное, снятое в это время. */
+    val showingCacheFrom: String? = null,
 )
 

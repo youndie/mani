@@ -22,6 +22,7 @@ import kotlinx.datetime.format.MonthNames
 import kotlinx.datetime.format.char
 import kotlinx.datetime.daysUntil
 import kotlinx.datetime.plus
+import kotlinx.datetime.toLocalDateTime
 import ru.workinprogress.feature.auth.domain.LogoutUseCase
 import ru.workinprogress.feature.categories.domain.GetCategoriesUseCase
 import ru.workinprogress.feature.currency.Currency
@@ -86,8 +87,9 @@ class MainViewModel(
 					result.data,
 					getCategoriesUseCase.get(),
 					filterUpcoming,
-					filterCategory
-				) { transactions, categories, upcoming, category ->
+					filterCategory,
+					transactionsUseCase.showingCacheFrom,
+				) { transactions, categories, upcoming, category, cacheFrom ->
 					val simulationResult = transactions.simulate()
 
 					MainUiState(
@@ -127,7 +129,8 @@ class MainViewModel(
 							}
 							.associate { it.key to it.value }.toImmutableMap(),
 						forecast = buildForecast(simulationResult, currency),
-						dayBalances = buildDayBalances(simulationResult, currency)
+						dayBalances = buildDayBalances(simulationResult, currency),
+							showingCacheFrom = cacheFrom?.let(::formatTakenAt)
 					)
 				}.flowOn(dispatcher).collectLatest { result: MainUiState ->
 					state.update { result }
@@ -313,3 +316,11 @@ class MainViewModel(
 	}
 }
 
+/** «11:42» — время последнего удачного ответа, как в макете офлайна. */
+@OptIn(kotlin.time.ExperimentalTime::class)
+private fun formatTakenAt(at: kotlin.time.Instant): String =
+	at
+		.toLocalDateTime(kotlinx.datetime.TimeZone.currentSystemDefault())
+		.time
+		.toString()
+		.substringBeforeLast(':')

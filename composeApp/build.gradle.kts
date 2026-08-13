@@ -85,6 +85,8 @@ kotlin {
                 implementation(libs.ktor.client.mock)
                 implementation(libs.kotlin.test)
                 implementation(libs.koin.test)
+                // MapSettings — хранилище в памяти для тестов кэша.
+                implementation(libs.multiplatform.settings.test)
 
                 // Скриншот-тесты: viddik рисует Compose в настоящем Skiko-окне и пишет PNG.
                 // Иначе сверять экраны с макетом нечем — приложение headless не запускается.

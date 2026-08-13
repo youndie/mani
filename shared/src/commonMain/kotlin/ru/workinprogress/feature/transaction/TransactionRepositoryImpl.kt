@@ -50,6 +50,11 @@ abstract class BaseFlowRepository<T : WithId>(private val dataSource: DataSource
         data.value = dataSource.load()
     }
 
+    /** Подставить список, минуя источник, — нужно наследнику, показывающему кэш без сети. */
+    protected fun replaceAll(items: List<T>) {
+        data.value = items
+    }
+
     override fun getById(transactionId: String): T {
         return dataStateFlow.value.first { it.id == transactionId }
     }

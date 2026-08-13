@@ -149,6 +149,7 @@ fun MainComponent(
         state.value.filtersState,
         state.value.forecast,
         state.value.dayBalances,
+        state.value.showingCacheFrom,
         state.value.loading,
         appBarState.contextMode,
         { onTransactionClicked(it.id) },
@@ -268,6 +269,7 @@ internal fun MainContent(
     filtersState: FiltersState = FiltersState(),
     forecast: ForecastUiState = ForecastUiState.Loading,
     dayBalances: ImmutableMap<LocalDate, String> = persistentMapOf(),
+    showingCacheFrom: String? = null,
     loading: Boolean = false,
     contextMode: Boolean = false,
     onTransactionClicked: (TransactionUiItem) -> Unit = {},
@@ -300,7 +302,7 @@ internal fun MainContent(
                 } + DefaultFabButtonPadding + DefaultFabButtonPadding + DefaultFabButtonSize)) {
                 item {
                     val handle = LocalPinnableContainer.current?.pin()
-                    ForecastAndChart(forecast, expanded = false, chart = chart)
+                    ForecastAndChart(forecast, expanded = false, showingCacheFrom = showingCacheFrom, chart = chart)
                 }
 
                 item {
@@ -341,7 +343,7 @@ internal fun MainContent(
                 // Ширина ограничена: график тянется по ширине родителя, и без потолка левая
                 // колонка забирала всю строку, а списку не оставалось места.
                 Column(modifier = Modifier.widthIn(max = 780.dp).padding(top = 8.dp, end = 40.dp)) {
-                    ForecastAndChart(forecast, expanded = true, chart = chart)
+                    ForecastAndChart(forecast, expanded = true, showingCacheFrom = showingCacheFrom, chart = chart)
                 }
                 LazyColumn(
                     modifier = lazyColumnModifier, contentPadding = PaddingValues(16.dp)
@@ -490,6 +492,7 @@ private val DefaultFabButtonSize = 56.dp
 private fun ForecastAndChart(
     forecast: ForecastUiState,
     expanded: Boolean,
+    showingCacheFrom: String?,
     chart: @Composable (Boolean) -> Unit,
 ) {
     Column(
@@ -506,6 +509,17 @@ private fun ForecastAndChart(
                 bottom = 20.dp,
             )
     ) {
+        showingCacheFrom?.let { takenAt ->
+            // Данные не пропали и не устарели по смыслу — правила остаются верными без сети.
+            // Сказать, что они последние известные, честнее, чем показать пустой экран.
+            Text(
+                "No connection · showing data from $takenAt",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.padding(bottom = 12.dp).testTag("offlineBanner"),
+            )
+        }
+
         ForecastHero(forecast, expanded = expanded)
 
         // Пустой график в пустом состоянии — карточка, которая ничего не показывает и занимает
