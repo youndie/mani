@@ -19,6 +19,8 @@ import ru.workinprogress.feature.auth.data.hashing.HashingService
 import ru.workinprogress.feature.auth.data.hashing.Sha256HashingService
 import ru.workinprogress.feature.category.categoryRouting
 import ru.workinprogress.feature.currency.currencyRouting
+import ru.workinprogress.feature.demo.data.DemoService
+import ru.workinprogress.feature.demo.demoRouting
 import ru.workinprogress.feature.transaction.transactionRouting
 import ru.workinprogress.feature.user.userRouting
 import ru.workinprogress.mani.config.JWTConfig
@@ -41,6 +43,7 @@ fun coreModule(config: ManiConfig): Module =
         single<TokenService> { TokenService(config.jwt) }
         single<HashingService> { Sha256HashingService() }
         single<AuthService> { AuthService(get(), get(), get()) }
+        single<DemoService> { DemoService(get(), get(), get(), get()) }
     }
 
 /**
@@ -94,6 +97,7 @@ fun Application.configureManiAuth(
 fun Routing.maniApiRouting() {
     authRouting()
     categoryRouting()
+    demoRouting()
     currencyRouting()
     transactionRouting()
     userRouting()

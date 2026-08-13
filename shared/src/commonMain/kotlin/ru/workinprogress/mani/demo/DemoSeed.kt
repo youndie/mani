@@ -63,12 +63,19 @@ object DemoSeed {
     val categories: List<String> = rules.map(DemoRule::category).distinct()
 
     /**
-     * Разворачивает сид в транзакции — для симуляции и тестов.
+     * Разворачивает сид в транзакции.
      *
-     * Идентификаторы здесь синтетические: настоящие раздаёт хранилище при создании, а расчёту
-     * прогноза они безразличны.
+     * [category] отдаёт настоящую категорию по имени — на сервере это уже заведённая в документе
+     * пользователя запись с идентификатором. По умолчанию подставляется синтетическая: расчёту
+     * прогноза идентификаторы безразличны, и тестам с симуляцией хранилище незачем.
+     *
+     * Правило превращается в транзакцию **здесь и только здесь**: сервер, разворачивая
+     * песочницу, обязан получить те же даты, на которых проверен сид.
      */
-    fun transactions(today: LocalDate = today()): List<Transaction> =
+    fun transactions(
+        today: LocalDate = today(),
+        category: (String) -> Category = { Category(it, it) },
+    ): List<Transaction> =
         rules.mapIndexed { index, rule ->
             Transaction(
                 id = index.toString(),
@@ -78,7 +85,7 @@ object DemoSeed {
                 until = null,
                 period = rule.period,
                 comment = rule.comment,
-                category = Category(rule.category, rule.category),
+                category = category(rule.category),
             )
         }
 }
