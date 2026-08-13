@@ -36,6 +36,8 @@ import ru.workinprogress.feature.transaction.domain.TransactionRepository
 import ru.workinprogress.mani.today
 import kotlin.test.*
 import ru.workinprogress.feature.main.ui.ForecastUiState
+import ru.workinprogress.feature.demo.domain.SeedUseCase
+import ru.workinprogress.useCase.EmptyParams
 
 
 class MainViewModelTest : KoinTest {
@@ -366,7 +368,8 @@ class MainViewModelTest : KoinTest {
         single<CurrentCurrencyRepository> { testCurrencyRepository }
         single<DeleteTransactionsUseCase> { DeleteTransactionsUseCase(get(), Dispatchers.Unconfined) }
         single<GetCategoriesUseCase> { GetCategoriesUseCase(get()) }
-        factory<MainViewModel> { MainViewModel(get(), get(), get(), get(), get(), Dispatchers.Unconfined) }
+        single<SeedUseCase> { FakeSeedUseCase() }
+        factory<MainViewModel> { MainViewModel(get(), get(), get(), get(), get(), get(), Dispatchers.Unconfined) }
 
         singleOf(::TokenRepositoryCommon).bind<TokenRepository>()
         singleOf(::TokenStorageImpl).bind<TokenStorage>()
@@ -375,4 +378,8 @@ class MainViewModelTest : KoinTest {
         singleOf(::CategoriesRepository)
     }
 
+}
+
+private class FakeSeedUseCase : SeedUseCase() {
+    override suspend fun invoke(params: EmptyParams): Result<Boolean> = Result.Success(true)
 }

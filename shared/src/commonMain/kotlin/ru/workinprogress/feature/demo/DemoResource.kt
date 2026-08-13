@@ -9,4 +9,13 @@ import io.ktor.resources.Resource
  * Тела у запроса нет — посетитель ничего не вводит, в этом и смысл: «no account, no password».
  */
 @Resource("/demo")
-class DemoResource
+class DemoResource {
+    /**
+     * `POST /demo/seed` — засеять теми же данными **текущего** пользователя.
+     *
+     * Нужен пустому экрану: у человека уже есть аккаунт, заводить ему второй незачем, а
+     * посмотреть, как выглядит заполненное приложение, хочется.
+     */
+    @Resource("seed")
+    class Seed(val parent: DemoResource = DemoResource())
+}

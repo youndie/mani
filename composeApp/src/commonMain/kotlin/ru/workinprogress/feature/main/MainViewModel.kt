@@ -26,6 +26,7 @@ import ru.workinprogress.feature.auth.domain.LogoutUseCase
 import ru.workinprogress.feature.categories.domain.GetCategoriesUseCase
 import ru.workinprogress.feature.currency.Currency
 import ru.workinprogress.feature.currency.GetCurrentCurrencyUseCase
+import ru.workinprogress.feature.demo.domain.SeedUseCase
 import ru.workinprogress.feature.main.ui.FiltersState
 import ru.workinprogress.feature.main.ui.ForecastUiState
 import ru.workinprogress.feature.main.ui.MainUiState
@@ -48,6 +49,7 @@ class MainViewModel(
 	private val getCurrencyUseCase: GetCurrentCurrencyUseCase,
 	private val getCategoriesUseCase: GetCategoriesUseCase,
 	private val logoutUseCase: LogoutUseCase,
+	private val seedUseCase: SeedUseCase,
 	private val dispatcher: CoroutineDispatcher = Dispatchers.Default,
 ) : ViewModel() {
 
@@ -184,6 +186,16 @@ class MainViewModel(
 		}
 	}
 
+
+	/** Заполнить пустой аккаунт данными сида — предложение с первого экрана. */
+	fun onFillWithDemoDataClicked() {
+		viewModelScope.launch {
+			val result = seedUseCase()
+			if (result is UseCase.Result.Error) {
+				state.update { it.copy(errorMessage = result.throwable.message) }
+			}
+		}
+	}
 
 	fun onProfileClicked() {
 		state.update { state ->

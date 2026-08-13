@@ -56,6 +56,7 @@ fun MainComponent(
     appBarState: MainAppBarState,
     snackbarHostState: SnackbarHostState,
     onTransactionClicked: (String) -> Unit,
+    onAddTransactionClicked: () -> Unit = {},
 ) {
     rememberKoinModules {
         listOf(module {
@@ -153,7 +154,10 @@ fun MainComponent(
         { onTransactionClicked(it.id) },
         { viewModel.onTransactionSelected(it) },
         { viewModel.onUpcomingToggle(it) },
-        { viewModel.onCategorySelected(it) })
+        { viewModel.onCategorySelected(it) },
+        onAddFirstRule = onAddTransactionClicked,
+        onFillWithDemoData = viewModel::onFillWithDemoDataClicked,
+    )
 }
 
 @Composable
@@ -270,6 +274,8 @@ internal fun MainContent(
     onTransactionSelected: (TransactionUiItem) -> Unit = {},
     onUpcomingToggle: (Boolean) -> Unit = {},
     onCategorySelected: (Category?) -> Unit = {},
+    onAddFirstRule: (() -> Unit)? = null,
+    onFillWithDemoData: (() -> Unit)? = null,
     chart: @Composable ((Boolean) -> Unit) = remember { @Composable { expanded: Boolean -> ChartComponent(expanded = expanded) } }
 ) {
     val filters = remember(filtersState) {
@@ -324,6 +330,8 @@ internal fun MainContent(
                     onTransactionClicked,
                     onTransactionSelected,
                     dayBalances,
+                    onAddFirstRule,
+                    onFillWithDemoData,
                 )
             }
         } else {
@@ -351,6 +359,8 @@ internal fun MainContent(
                         onTransactionClicked,
                         onTransactionSelected,
                         dayBalances,
+                        onAddFirstRule,
+                        onFillWithDemoData,
                     )
 
                     item {
@@ -370,10 +380,15 @@ private fun LazyListScope.transactionItemsOrEmpty(
     onTransactionClicked: (TransactionUiItem) -> Unit,
     onTransactionSelected: (TransactionUiItem) -> Unit,
     dayBalances: ImmutableMap<LocalDate, String>,
+    onAddFirstRule: (() -> Unit)?,
+    onFillWithDemoData: (() -> Unit)?,
 ) {
     if (!loading && transactions.isEmpty()) {
         item {
-            TrasactionsEmpty()
+            TrasactionsEmpty(
+                onAddFirstRule = onAddFirstRule,
+                onFillWithDemoData = onFillWithDemoData,
+            )
         }
     } else {
         transactionItems(
@@ -492,7 +507,12 @@ private fun ForecastAndChart(
             )
     ) {
         ForecastHero(forecast, expanded = expanded)
-        Spacer(Modifier.height(18.dp))
-        chart(expanded)
+
+        // Пустой график в пустом состоянии — карточка, которая ничего не показывает и занимает
+        // треть экрана. Рисовать нечего, пока нет ни одного правила.
+        if (forecast != ForecastUiState.Empty) {
+            Spacer(Modifier.height(18.dp))
+            chart(expanded)
+        }
     }
 }

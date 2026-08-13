@@ -10,7 +10,12 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import kotlinx.coroutines.delay
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
@@ -24,6 +29,13 @@ import ru.workinprogress.feature.currency.Currency
 import ru.workinprogress.feature.transaction.ui.model.formatMoney
 import ru.workinprogress.utilz.bigdecimal.BigDecimalSerializable
 import kotlin.math.absoluteValue
+
+/**
+ * Разворот линии. Был 1200 мс плюс 600 мс задержки заливки плюс каскад по 300 мс на серию —
+ * почти две секунды поверх многомегабайтной загрузки веб-сборки. Витрину открывают на десять
+ * секунд, и треть из них уходила на пустой прямоугольник.
+ */
+private const val ANIMATION_MS = 600
 
 private const val CHART_HEIGHT_COMPACT = 220
 private const val CHART_HEIGHT_EXPANDED = 320
@@ -40,6 +52,15 @@ fun ChartImpl(
     val color = MaterialTheme.colorScheme.primary
     val secondary = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
 
+    // Разворот проигрывается один раз за жизнь экрана. Дальше данные меняются от фильтров и
+    // правок, и каждый раз перерисовывать линию с нуля — не показ, а мигание.
+    var alreadyShown by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        delay(ANIMATION_MS.toLong())
+        alreadyShown = true
+    }
+
     val data =
         remember(values) {
             listOf(
@@ -49,8 +70,9 @@ fun ChartImpl(
                     color = SolidColor(color),
                     firstGradientFillColor = color.copy(alpha = .5f),
                     secondGradientFillColor = Color.Transparent,
-                    strokeAnimationSpec = tween(1200, easing = EaseInOutCubic),
-                    gradientAnimationDelay = 600,
+                    strokeAnimationSpec =
+                        if (alreadyShown) tween(0) else tween(ANIMATION_MS, easing = EaseInOutCubic),
+                    gradientAnimationDelay = 0,
                     drawStyle = DrawStyle.Stroke(2.dp),
                     curvedEdges = false,
                     dotPointProperties =
@@ -87,10 +109,8 @@ fun ChartImpl(
                     LineChart(
                         modifier = Modifier.fillMaxSize(),
                         data = data,
-                        animationMode =
-                            AnimationMode.Together(delayBuilder = {
-                                it * 300L
-                            }),
+                        // Серия здесь одна, и каскад по 300 мс на индекс только откладывал показ.
+                        animationMode = AnimationMode.Together(delayBuilder = { 0L }),
                         zeroLineProperties =
                             ZeroLineProperties(
                                 enabled = true,

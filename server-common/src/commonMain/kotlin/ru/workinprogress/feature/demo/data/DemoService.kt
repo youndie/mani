@@ -37,8 +37,18 @@ class DemoService(
         val credentials = freeCredentials() ?: return null
         val userId = userRepository.save(credentials) ?: return null
 
-        // Категории заводятся первыми: у правила есть только имя категории, а транзакции нужен
-        // идентификатор, который появляется в момент создания.
+        seed(userId)
+
+        return authService.authenticate(credentials)
+    }
+
+    /**
+     * Кладёт данные сида пользователю.
+     *
+     * Категории заводятся первыми: у правила есть только имя категории, а транзакции нужен
+     * идентификатор, который появляется в момент создания.
+     */
+    suspend fun seed(userId: String) {
         val categories =
             DemoSeed.categories.associateWith { name ->
                 categoryRepository.create(Category(id = "", name = name), userId)
@@ -47,8 +57,6 @@ class DemoService(
         DemoSeed
             .transactions(category = { name -> categories.getValue(name) })
             .forEach { transaction -> transactionRepository.create(transaction, userId) }
-
-        return authService.authenticate(credentials)
     }
 
     /**

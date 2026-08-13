@@ -50,9 +50,12 @@ fun ManiAppNavHost(
         modifier = Modifier.fillMaxSize().then(modifier)
     ) {
         composable(ManiScreen.Main.name) {
-            MainComponent(appBarState, snackbarHostState, {
-                navController.navigate(TransactionRoute(it))
-            })
+            MainComponent(
+                appBarState,
+                snackbarHostState,
+                onTransactionClicked = { navController.navigate(TransactionRoute(it)) },
+                onAddTransactionClicked = { navController.navigate(ManiScreen.Add.name) },
+            )
         }
         composable(ManiScreen.Add.name) {
             AddTransactionComponent {
