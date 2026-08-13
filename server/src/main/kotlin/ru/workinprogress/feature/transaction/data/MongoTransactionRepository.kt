@@ -46,6 +46,10 @@ class MongoTransactionRepository(
 
     override suspend fun delete(id: String): Boolean = db.deleteById(id)
 
+    override suspend fun deleteByUser(userId: String) {
+        db.deleteMany(Filters.eq(TransactionDb::userId.name, userId))
+    }
+
     private fun mapToDb(
         transaction: Transaction,
         id: ObjectId = ObjectId(),

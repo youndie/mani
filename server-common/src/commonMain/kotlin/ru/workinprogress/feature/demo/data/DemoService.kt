@@ -25,9 +25,15 @@ class DemoService(
     private val categoryRepository: CategoryRepository,
     private val transactionRepository: TransactionRepository,
     private val authService: AuthService,
+    private val cleaner: DemoSandboxCleaner,
 ) {
     /** @return токены к заведённой песочнице либо `null`, если хранилище отказало */
     suspend fun createSandbox(): Tokens? {
+        // Отказ уборки не должен стоить посетителю входа: мусор подождёт следующего вызова,
+        // а пустой экран вместо витрины — нет. Логгера в общей части нет ни у одной сборки,
+        // поэтому отказ именно проглатывается, а не пишется в никуда.
+        runCatching { cleaner.sweep() }
+
         val credentials = freeCredentials() ?: return null
         val userId = userRepository.save(credentials) ?: return null
 
@@ -53,7 +59,12 @@ class DemoService(
     private suspend fun freeCredentials(): LoginParams? =
         (1..CREDENTIALS_ATTEMPTS)
             .asSequence()
-            .map { LoginParams(name = "demo-${randomHex(NAME_BYTES)}", password = randomHex(PASSWORD_BYTES)) }
+            .map {
+                LoginParams(
+                    name = DEMO_USERNAME_PREFIX + randomHex(NAME_BYTES),
+                    password = randomHex(PASSWORD_BYTES),
+                )
+            }
             .firstOrNull { userRepository.findByUsername(it.name) == null }
 
     private fun randomHex(bytes: Int): String =

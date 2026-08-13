@@ -5,6 +5,8 @@ import com.mongodb.client.model.Filters
 import com.mongodb.client.model.Updates
 import com.mongodb.kotlin.client.coroutine.MongoDatabase
 import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.toList
 import org.bson.types.ObjectId
 import org.slf4j.LoggerFactory
 import ru.workinprogress.feature.auth.LoginParams
@@ -53,6 +55,18 @@ class MongoUserRepository(
 
     override suspend fun findByUsername(userName: String): User? =
         db.find<UserDb>(Filters.eq("username", userName)).firstOrNull()?.fromDb()
+
+    // Префикс приходит константой из общего кода, не от пользователя, поэтому экранировать в
+    // регулярном выражении нечего.
+    override suspend fun findByUsernamePrefix(prefix: String): List<User> =
+        db
+            .find<UserDb>(Filters.regex("username", "^$prefix"))
+            .map { it.fromDb() }
+            .toList()
+
+    override suspend fun delete(userId: String) {
+        db.deleteOne(Filters.eq("_id", ObjectId(userId)))
+    }
 
     private companion object {
         val logger = LoggerFactory.getLogger(MongoUserRepository::class.java)

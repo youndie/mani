@@ -46,6 +46,10 @@ class MongknTransactionRepository(
     override suspend fun delete(id: String): Boolean =
         db.deleteOne(filter<TransactionDb> { "_id" eq id }).deletedCount > 0
 
+    override suspend fun deleteByUser(userId: String) {
+        db.deleteMany(filter<TransactionDb> { TransactionDb::userId eq userId })
+    }
+
     private fun mapToDb(
         transaction: Transaction,
         id: String,
