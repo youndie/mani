@@ -5,6 +5,7 @@ package ru.workinprogress.feature.transaction.ui.component
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
@@ -512,22 +513,6 @@ internal fun TransactionComponentImpl(
 
 
         Column(modifier = Modifier.widthIn(max = 640.dp).align(Alignment.CenterHorizontally)) {
-            AnimatedVisibility(state.amount.isNotBlank() && state.date.value != null) {
-                CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.secondary) {
-                    Text(
-                        state.futureInformation,
-                        modifier = Modifier.padding(
-                            start = 32.dp,
-                            top = 12.dp,
-                            bottom = 4.dp,
-                            end = 32.dp
-                        ).testTag("futureInformation"),
-                        style = MaterialTheme.typography.labelMedium
-                    )
-                }
-            }
-
-
             Spacer(modifier = Modifier.height(16.dp))
 
             val keyboardController = LocalSoftwareKeyboardController.current
@@ -542,23 +527,52 @@ internal fun TransactionComponentImpl(
                 minLines = 2,
                 label = { Text("Comment") })
 
+            Text(
+                "shown in the feed",
+                modifier = Modifier.padding(start = 28.dp, top = 6.dp),
+                style = MaterialTheme.typography.labelSmall.copy(fontFamily = LocalManiFonts.current.mono),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+
             Spacer(modifier = Modifier.height(24.dp))
 
-            state.errorMessage?.let {
-                Text(
-                    it,
-                    modifier = Modifier.padding(horizontal = 48.dp).testTag("errorMessage"),
-                    style = MaterialTheme.typography.labelMedium
-                )
-                Spacer(Modifier.height(24.dp))
-            }
+            // Итог и кнопка — одной полосой: сколько раз повторится и во что обойдётся, читается
+            // прямо над тем действием, которое это подтверждает.
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(MaterialTheme.colorScheme.surfaceContainer)
+                    .padding(horizontal = 24.dp, vertical = 20.dp),
+                verticalArrangement = spacedBy(12.dp),
+            ) {
+                AnimatedVisibility(state.amount.isNotBlank() && state.date.value != null) {
+                    CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.secondary) {
+                        Text(
+                            state.futureInformation,
+                            modifier = Modifier.testTag("futureInformation"),
+                            style = MaterialTheme.typography.labelMedium.copy(
+                                fontFamily = LocalManiFonts.current.mono
+                            ),
+                        )
+                    }
+                }
 
-            LoadingButton(
-                Modifier.align(Alignment.CenterHorizontally).testTag("submit"),
-                loading = state.loading,
-                enabled = state.valid,
-                if (state.edit) "Save" else "Create"
-            ) { onAction(SubmitClicked) }
+                state.errorMessage?.let {
+                    Text(
+                        it,
+                        modifier = Modifier.testTag("errorMessage"),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
+
+                LoadingButton(
+                    Modifier.fillMaxWidth().testTag("submit"),
+                    loading = state.loading,
+                    enabled = state.valid,
+                    if (state.edit) "Save" else "Create"
+                ) { onAction(SubmitClicked) }
+            }
 
             Spacer(Modifier.height(24.dp))
         }
