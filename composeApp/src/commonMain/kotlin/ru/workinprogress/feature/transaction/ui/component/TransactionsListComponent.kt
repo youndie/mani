@@ -45,6 +45,7 @@ import ru.workinprogress.feature.transaction.ui.model.buildColoredAmount
 import androidx.compose.ui.unit.sp
 import ru.workinprogress.mani.components.MainAppBarState
 import ru.workinprogress.mani.theme.LocalManiFonts
+import ru.workinprogress.mani.today
 
 
 @Composable
@@ -257,13 +258,23 @@ fun LazyListScope.transactionsDay(
                 verticalAlignment = Alignment.Bottom,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
+                // Сегодняшний день назван словом и выделен цветом: в ленте будущих трат это
+                // единственная точка отсчёта, и искать её по дате — лишняя работа.
+                val isToday = date == today()
+
                 Text(
-                    date.format(dayHeaderFormat).uppercase().takeIf { !loadingMode } ?: "           ",
+                    date.format(dayHeaderFormat).uppercase()
+                        .let { if (isToday) "TODAY · $it" else it }
+                        .takeIf { !loadingMode } ?: "           ",
                     style = MaterialTheme.typography.labelSmall.copy(
                         fontWeight = FontWeight.W500,
                         letterSpacing = 1.3.sp
                     ),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = if (isToday) {
+                        MaterialTheme.colorScheme.primary
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
                 )
 
                 // Баланс на конец дня: без него лента и линия графика говорят о разном, и

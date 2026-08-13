@@ -3,6 +3,8 @@ package ru.workinprogress.feature.main.ui
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -12,6 +14,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Path
@@ -63,13 +66,28 @@ fun ForecastHero(
                 Caption("no zero crossing in the next three months")
             }
 
+            // На широком экране баланс — отдельный факт справа от даты, как в макете: места
+            // хватает, и два числа в одной строке подписи там читались бы как одно.
             is ForecastUiState.RunsOut -> {
                 Eyebrow("Money runs out")
-                Headline(state.runsOutOn, expanded, Modifier.testTag("forecastDate"))
-                Caption(
-                    "in ${state.daysLeft} days · balance today ",
-                    highlight = state.balanceToday,
-                )
+
+                if (expanded) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.Bottom,
+                    ) {
+                        Headline(state.runsOutOn, expanded = true, Modifier.testTag("forecastDate"))
+                        BalanceFact(state.balanceToday)
+                    }
+                    Caption("in ${state.daysLeft} days")
+                } else {
+                    Headline(state.runsOutOn, expanded = false, Modifier.testTag("forecastDate"))
+                    Caption(
+                        "in ${state.daysLeft} days · balance today ",
+                        highlight = state.balanceToday,
+                    )
+                }
             }
         }
     }
@@ -119,6 +137,23 @@ internal fun EmptyForecastPlaceholder(modifier: Modifier = Modifier) {
     }
 }
 
+/** Баланс на сегодня справа от даты: своя подпись и своё число, набранное как число. */
+@Composable
+private fun BalanceFact(balance: String) {
+    Column(horizontalAlignment = Alignment.End) {
+        Eyebrow("Balance today")
+        Text(
+            balance,
+            style = MaterialTheme.typography.headlineSmall.copy(
+                fontFamily = LocalManiFonts.current.mono,
+                fontWeight = FontWeight.W500,
+            ),
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.padding(top = 2.dp).testTag("forecastBalanceToday"),
+        )
+    }
+}
+
 /** Подпись над героем. Моноширинный и разрядка — служебная строка, а не текст. */
 @Composable
 private fun Eyebrow(text: String) {
@@ -146,7 +181,7 @@ private fun Headline(
         modifier = modifier.padding(top = 6.dp),
         style =
             // На широком экране места больше, и дата — единственное, ради чего туда смотрят.
-            (if (expanded) MaterialTheme.typography.displayMedium else MaterialTheme.typography.displaySmall).copy(
+            (if (expanded) MaterialTheme.typography.displayLarge else MaterialTheme.typography.displaySmall).copy(
                 fontWeight = FontWeight.W600,
                 letterSpacing = (-0.9).sp,
             ),

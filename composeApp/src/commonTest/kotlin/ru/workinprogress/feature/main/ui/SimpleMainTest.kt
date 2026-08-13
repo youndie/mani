@@ -3,6 +3,7 @@ package ru.workinprogress.feature.main.ui
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.runComposeUiTest
 import com.ionspin.kotlin.bignum.decimal.toBigDecimal
 import kotlinx.collections.immutable.persistentListOf
@@ -14,6 +15,7 @@ import ru.workinprogress.feature.currency.Currency
 import ru.workinprogress.feature.transaction.Category
 import ru.workinprogress.feature.transaction.Transaction
 import ru.workinprogress.feature.transaction.ui.model.TransactionUiItem
+import ru.workinprogress.mani.today
 import kotlin.test.Test
 
 class SimpleMainTest {
@@ -54,6 +56,27 @@ class SimpleMainTest {
             onNodeWithTag("futureInfo").assertIsDisplayed()
             onNodeWithTag("filters").assertIsDisplayed()
             onNodeWithTag("transactions").assertIsDisplayed()
+        }
+    }
+
+    /**
+     * Сегодняшний день в ленте назван словом: это точка отсчёта, и искать её по дате — работа,
+     * которую экран должен делать сам.
+     */
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun todayHeaderIsNamedTest() {
+        val todayItem = rent.copy(date = today())
+
+        runComposeUiTest {
+            setContent {
+                MainContent(
+                    transactions = persistentMapOf(today() to persistentListOf(todayItem)),
+                    forecast = ForecastUiState.RunsOut("12 October", 60, "4895 $"),
+                    chart = {},
+                )
+            }
+            onNodeWithText("TODAY \u00B7", substring = true).assertIsDisplayed()
         }
     }
 

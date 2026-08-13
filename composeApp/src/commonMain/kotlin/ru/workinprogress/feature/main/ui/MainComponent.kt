@@ -342,11 +342,12 @@ internal fun MainContent(
             }
         } else {
             Row(
-                modifier = Modifier.fillMaxHeight().padding(start = 24.dp)
+                modifier = Modifier.fillMaxHeight().padding(start = 32.dp)
             ) {
                 // Ширина ограничена: график тянется по ширине родителя, и без потолка левая
-                // колонка забирала всю строку, а списку не оставалось места.
-                Column(modifier = Modifier.widthIn(max = 780.dp).padding(top = 8.dp, end = 40.dp)) {
+                // колонка забирала всю строку, а списку не оставалось места. 780 и отступ 40 —
+                // из макета.
+                Column(modifier = Modifier.padding(top = 8.dp, end = 40.dp).widthIn(max = 780.dp)) {
                     ForecastAndChart(forecast, expanded = true, showingCacheFrom = showingCacheFrom, chart = chart)
                 }
                 LazyColumn(

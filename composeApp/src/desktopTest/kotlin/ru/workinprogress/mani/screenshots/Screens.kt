@@ -140,6 +140,45 @@ fun HomeForecastScreenshot() {
     }
 }
 
+/** Главная на ноутбуке: слева прогноз, справа лента — как в R4. */
+@ViddikScreenshot(name = "home forecast wide", group = "screens", width = WIDE_WIDTH, height = WIDE_HEIGHT)
+@Composable
+fun HomeForecastWideScreenshot() {
+    Harness {
+        MainContent(
+            transactions = mapOf(
+                demoDay to persistentListOf(item("Rent", 1450, false, Transaction.Period.Month)),
+                LocalDate(2026, 8, 17) to
+                    persistentListOf(item("Groceries", 145, false, Transaction.Period.Week)),
+            ).toImmutableMap(),
+            filtersState = FiltersState(
+                upcoming = true,
+                categories = persistentSetOf(Category("1", "Home"), Category("2", "Food")),
+                loading = false,
+            ),
+            forecast = ForecastUiState.RunsOut("12 October", 60, "4 895 $"),
+            dayBalances = mapOf(
+                demoDay to "3 445 $",
+                LocalDate(2026, 8, 17) to "3 300 $",
+            ).toImmutableMap(),
+            chart = { expanded ->
+                ChartComponent(
+                    ChartUi(
+                        days = (0..90)
+                            .associate {
+                                LocalDate(2026, 7, 15).plus(it, DateTimeUnit.DAY) to
+                                    (4895 - it * 55).toBigDecimal()
+                            }.toImmutableMap(),
+                        currency = Currency.Usd,
+                        todayIndexProvider = { 30 },
+                    ),
+                    expanded = expanded,
+                )
+            },
+        )
+    }
+}
+
 @ViddikScreenshot(name = "home empty", group = "screens", width = WIDTH, height = HEIGHT)
 @Composable
 fun HomeEmptyScreenshot() {
