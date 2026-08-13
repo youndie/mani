@@ -34,29 +34,26 @@ import ru.workinprogress.mani.theme.LocalManiFonts
 fun ForecastHero(
     state: ForecastUiState,
     modifier: Modifier = Modifier,
+    expanded: Boolean = false,
 ) {
-    Column(
-        modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surfaceContainerLow)
-            .padding(start = 24.dp, end = 24.dp, top = 20.dp, bottom = 16.dp)
-            .testTag("futureInfo"),
-    ) {
+    // Фон рисует полоса вокруг: на широком экране герой и график лежат в одной карточке, и
+    // собственный фон компонента её бы расслоил.
+    Column(modifier.fillMaxWidth().testTag("futureInfo")) {
         when (state) {
             ForecastUiState.Loading -> ForecastShimmer()
 
             ForecastUiState.Empty ->
-                Headline("Nothing to forecast yet", modifier = Modifier.testTag("forecastEmpty"))
+                Headline("Nothing to forecast yet", expanded, Modifier.testTag("forecastEmpty"))
 
             is ForecastUiState.Steady -> {
                 Eyebrow("Balance today")
-                Headline(state.balanceToday, modifier = Modifier.testTag("forecastBalance"))
+                Headline(state.balanceToday, expanded, Modifier.testTag("forecastBalance"))
                 Caption("no zero crossing in the next three months")
             }
 
             is ForecastUiState.RunsOut -> {
                 Eyebrow("Money runs out")
-                Headline(state.runsOutOn, modifier = Modifier.testTag("forecastDate"))
+                Headline(state.runsOutOn, expanded, Modifier.testTag("forecastDate"))
                 Caption(
                     "in ${state.daysLeft} days · balance today ",
                     highlight = state.balanceToday,
@@ -85,13 +82,15 @@ private fun Eyebrow(text: String) {
 @Composable
 private fun Headline(
     text: String,
+    expanded: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     Text(
         text,
         modifier = modifier.padding(top = 6.dp),
         style =
-            MaterialTheme.typography.displaySmall.copy(
+            // На широком экране места больше, и дата — единственное, ради чего туда смотрят.
+            (if (expanded) MaterialTheme.typography.displayMedium else MaterialTheme.typography.displaySmall).copy(
                 fontWeight = FontWeight.W600,
                 letterSpacing = (-0.9).sp,
             ),

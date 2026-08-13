@@ -87,7 +87,39 @@ fun formatMoneyAbsolute(
 fun formatMoney(
     amount: BigDecimal,
     currency: Currency,
-) = "${amount.toPlainString()} ${currency.symbol}"
+) = "${groupThousands(amount.toPlainString())} ${currency.symbol}"
+
+/** Неразрывный: «4 895» не должно разъезжаться по двум строкам. */
+private const val GROUP_SEPARATOR = '\u00A0'
+private const val GROUP_SIZE = 3
+
+/**
+ * Разряды через пробел: «4895 $» читается хуже, чем «4 895 $», а на шести знаках — заметно хуже.
+ *
+ * Группируется только целая часть; знак и дробная остаются как есть. `java.text` в общем коде
+ * недоступен, поэтому вручную.
+ */
+internal fun groupThousands(plain: String): String {
+    val negative = plain.startsWith('-')
+    val body = plain.removePrefix("-")
+    val integer = body.substringBefore('.')
+    val fraction = body.substringAfter('.', "")
+
+    val grouped = integer
+        .reversed()
+        .chunked(GROUP_SIZE)
+        .joinToString(GROUP_SEPARATOR.toString())
+        .reversed()
+
+    return buildString {
+        if (negative) append('-')
+        append(grouped)
+        if (fraction.isNotEmpty()) {
+            append('.')
+            append(fraction)
+        }
+    }
+}
 
 fun formatMoneyAbsolute(
     amount: String,

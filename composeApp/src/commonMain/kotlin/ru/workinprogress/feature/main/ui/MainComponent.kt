@@ -20,6 +20,8 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -268,12 +270,8 @@ internal fun MainContent(
     onTransactionSelected: (TransactionUiItem) -> Unit = {},
     onUpcomingToggle: (Boolean) -> Unit = {},
     onCategorySelected: (Category?) -> Unit = {},
-    chart: @Composable (() -> Unit) = remember { @Composable { ChartComponent() } }
+    chart: @Composable ((Boolean) -> Unit) = remember { @Composable { expanded: Boolean -> ChartComponent(expanded = expanded) } }
 ) {
-    val futureInfo = remember(forecast) {
-        @Composable { ForecastHero(forecast) }
-    }
-
     val filters = remember(filtersState) {
         @Composable {
             FiltersChips(
@@ -296,18 +294,10 @@ internal fun MainContent(
                 } + DefaultFabButtonPadding + DefaultFabButtonPadding + DefaultFabButtonSize)) {
                 item {
                     val handle = LocalPinnableContainer.current?.pin()
-                    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
-                        chart()
-                    }
+                    ForecastAndChart(forecast, expanded = false, chart = chart)
                 }
 
                 item {
-                    futureInfo()
-                }
-
-                item {
-                    Spacer(Modifier.height(8.dp))
-                    HorizontalDivider(thickness = 1.dp)
                     Spacer(Modifier.height(8.dp))
                 }
 
@@ -340,11 +330,10 @@ internal fun MainContent(
             Row(
                 modifier = Modifier.fillMaxHeight().padding(start = 24.dp)
             ) {
-                // Ширина колонки ограничена: график теперь тянется по ширине родителя, и без
-                // потолка левая колонка забирала всю строку, а списку не оставалось места.
-                Column(modifier = Modifier.widthIn(max = 520.dp).padding(top = 48.dp)) {
-                    chart()
-                    futureInfo()
+                // Ширина ограничена: график тянется по ширине родителя, и без потолка левая
+                // колонка забирала всю строку, а списку не оставалось места.
+                Column(modifier = Modifier.widthIn(max = 780.dp).padding(top = 8.dp, end = 40.dp)) {
+                    ForecastAndChart(forecast, expanded = true, chart = chart)
                 }
                 LazyColumn(
                     modifier = lazyColumnModifier, contentPadding = PaddingValues(16.dp)
@@ -476,3 +465,34 @@ fun connectToAppBarState(
 
 private val DefaultFabButtonPadding = 16.dp
 private val DefaultFabButtonSize = 56.dp
+/**
+ * Герой и график одним блоком: сначала ответ, потом его обоснование.
+ *
+ * Обычная функция, а не запомненная лямбда: `remember { @Composable { … } }` прячет от
+ * компилятора границы композиции, и разбираться, почему что-то не там, становится негде.
+ */
+@Composable
+private fun ForecastAndChart(
+    forecast: ForecastUiState,
+    expanded: Boolean,
+    chart: @Composable (Boolean) -> Unit,
+) {
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .background(
+                MaterialTheme.colorScheme.surfaceContainerLow,
+                if (expanded) RoundedCornerShape(16.dp) else RectangleShape,
+            )
+            .padding(
+                start = if (expanded) 28.dp else 24.dp,
+                end = if (expanded) 28.dp else 24.dp,
+                top = if (expanded) 28.dp else 20.dp,
+                bottom = 20.dp,
+            )
+    ) {
+        ForecastHero(forecast, expanded = expanded)
+        Spacer(Modifier.height(18.dp))
+        chart(expanded)
+    }
+}

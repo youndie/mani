@@ -25,8 +25,8 @@ import ru.workinprogress.feature.transaction.ui.model.formatMoney
 import ru.workinprogress.utilz.bigdecimal.BigDecimalSerializable
 import kotlin.math.absoluteValue
 
-private const val CHART_MAX_HEIGHT = 320
-private const val CHART_MAX_WIDTH = 496
+private const val CHART_HEIGHT_COMPACT = 220
+private const val CHART_HEIGHT_EXPANDED = 320
 
 @Composable
 fun ChartImpl(
@@ -35,6 +35,7 @@ fun ChartImpl(
     todayIndexProvider: () -> Int,
     loading: Boolean,
     currency: Currency,
+    expanded: Boolean = false,
 ) {
     val color = MaterialTheme.colorScheme.primary
     val secondary = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
@@ -68,15 +69,13 @@ fun ChartImpl(
             CardDefaults
                 .cardColors()
                 .copy(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
-        // Ширина берётся от родителя, а не задаётся числом: карточка в 496 dp на телефоне
-        // обрезалась, а в окне ноутбука оставляла мёртвые поля по бокам. Высота ограничена
-        // сверху, чтобы на широком экране график не превращался в полосу во весь экран.
+        // Ширину задаёт родитель, высоту — раскладка. Пропорция здесь была неуместна: при
+        // ограниченной сверху высоте `aspectRatio` возвращает размер, нарушающий ограничения,
+        // и карточка наезжала на соседей. Фиксированная высота предсказуема.
         modifier =
             Modifier
                 .fillMaxWidth()
-                .widthIn(max = CHART_MAX_WIDTH.dp)
-                .heightIn(max = CHART_MAX_HEIGHT.dp)
-                .aspectRatio(3 / 2f)
+                .height((if (expanded) CHART_HEIGHT_EXPANDED else CHART_HEIGHT_COMPACT).dp)
                 .border(2.dp, Color.Transparent, RoundedCornerShape(12.dp)),
         elevation = CardDefaults.elevatedCardElevation(2.dp),
     ) {

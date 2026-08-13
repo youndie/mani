@@ -157,14 +157,14 @@ class TransactionViewModelTest : KoinTest {
         viewModel.onPeriodChanged(Transaction.Period.Day)
 
         assertEquals(
-            "+100 \$ from 01/02/2000. In 3 month's repeat 91 times, total: +9100 \$",
+            "+100 \$ from 01/02/2000. In 3 month's repeat 91 times, total: +9\u00A0100 \$",
             viewModel.observe.value.futureInformation.toString()
         )
 
         viewModel.onDateUntilSelected(LocalDate(2000, 2, 2))
 
         assertEquals(
-            "+100 \$ from 01/02/2000 to 02/02/2000 repeat 31 times, total: +3100 \$",
+            "+100 \$ from 01/02/2000 to 02/02/2000 repeat 31 times, total: +3\u00A0100 \$",
             viewModel.observe.value.futureInformation.toString()
         )
     }
@@ -182,7 +182,7 @@ class TransactionViewModelTest : KoinTest {
         viewModel.onPeriodChanged(Transaction.Period.Month)
 
         assertEquals(
-            "+100 \$ from 01/02/2000. In 1 year's repeat 12 times, total: +1200 \$",
+            "+100 \$ from 01/02/2000. In 1 year's repeat 12 times, total: +1\u00A0200 \$",
             viewModel.observe.value.futureInformation.toString()
         )
     }
