@@ -44,8 +44,14 @@ data class TransactionUiItem(
     }
 }
 
-val PositiveColor = Color(0xFF089000)
-val NegativeColor = Color.Red
+/**
+ * Знак суммы — акцентами палитры, а не чистыми «светофорными» цветами.
+ *
+ * Чистый красный на тёмном фоне кричит громче, чем стоит трата, и выбивается из всей остальной
+ * палитры; зелёный из той же пары к ней вообще не относится. Оттенки взяты из макета.
+ */
+val PositiveColor = Color(0xFFD6C68D)
+val NegativeColor = Color(0xFFFFB4AB)
 
 fun buildColoredAmount(
     amount: String,

@@ -17,8 +17,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.ionspin.kotlin.bignum.decimal.BigDecimal
 import com.valentinilk.shimmer.shimmer
 import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.ImmutableMap
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.format
 import androidx.compose.material3.HorizontalDivider
@@ -32,12 +34,13 @@ import org.koin.compose.module.rememberKoinModules
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
+import ru.workinprogress.feature.currency.Currency
 import ru.workinprogress.feature.main.ui.TransactionDeleteDialog
 import ru.workinprogress.feature.main.ui.connectToAppBarState
-import ru.workinprogress.feature.main.ui.transactionItems
 import ru.workinprogress.feature.transaction.ui.TransactionsViewModel
 import ru.workinprogress.feature.transaction.ui.model.TransactionListUiState
 import ru.workinprogress.feature.transaction.ui.model.TransactionUiItem
+import ru.workinprogress.feature.transaction.ui.model.buildColoredAmount
 import androidx.compose.ui.unit.sp
 import ru.workinprogress.mani.components.MainAppBarState
 import ru.workinprogress.mani.theme.LocalManiFonts
@@ -107,14 +110,119 @@ fun TransactionsListContent(
                 )
             }
 
-            transactionItems(
+            transactionMonths(
                 transactions = state.data,
                 dayBalances = state.dayBalances,
                 selectedTransactions = state.selectedTransactions,
                 loading = state.loading,
                 contextMode = contextMode,
-                onTransactionClicked = onTransactionSelected,
-            ) { onTransactionClicked(it) }
+                onSelected = onTransactionSelected,
+                onClick = onTransactionClicked,
+            )
+        }
+    }
+}
+
+/**
+ * То же, что [transactionItems], но с разделителем на смене месяца — как в макете истории.
+ *
+ * Итог месяца считается по тем же строкам, что показаны ниже: заголовок и лента не могут
+ * разойтись, потому что берут одни и те же данные. Полосы месяца, в котором мы стоим, нет —
+ * его итог уже в сводке наверху.
+ */
+private fun LazyListScope.transactionMonths(
+    transactions: ImmutableMap<LocalDate, ImmutableList<TransactionUiItem>>,
+    dayBalances: ImmutableMap<LocalDate, String>,
+    selectedTransactions: ImmutableList<TransactionUiItem>,
+    loading: Boolean,
+    contextMode: Boolean,
+    onSelected: (TransactionUiItem) -> Unit,
+    onClick: (TransactionUiItem) -> Unit,
+) {
+    val totals = transactions.entries
+        .groupBy { it.key.monthKey }
+        .mapValues { (_, days) -> days.flatMap { it.value }.signedSum() }
+
+    var previousMonth: Int? = null
+
+    transactions.forEach { (date, list) ->
+        val month = date.monthKey
+        if (previousMonth != null && previousMonth != month) {
+            item(key = "month-$month") {
+                MonthSeparator(
+                    title = date.format(monthSeparatorFormat),
+                    total = totals[month],
+                    currency = list.firstOrNull()?.currency,
+                    loading = loading,
+                )
+            }
+        }
+        previousMonth = month
+
+        transactionsDay(
+            dayBalance = dayBalances[date],
+            date = date,
+            list = list,
+            selectedTransactions = selectedTransactions,
+            contextMode = contextMode,
+            loadingMode = loading,
+            onSelected = onSelected,
+            onClick = onClick,
+        )
+    }
+}
+
+/** Год в ключе обязателен: без него январь двух разных лет — один месяц. */
+private val LocalDate.monthKey get() = year * 12 + monthNumber
+
+private fun List<TransactionUiItem>.signedSum(): BigDecimal =
+    fold(BigDecimal.ZERO) { sum, item ->
+        if (item.income) sum + item.amount else sum - item.amount
+    }
+
+/** «July 2026» — год нужен: история уходит вглубь дальше, чем на двенадцать месяцев. */
+private val monthSeparatorFormat = LocalDate.Format {
+    monthName(MonthNames.ENGLISH_FULL)
+    char(' ')
+    year()
+}
+
+@Composable
+private fun MonthSeparator(
+    title: String,
+    total: BigDecimal?,
+    currency: Currency?,
+    loading: Boolean,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 20.dp, end = 20.dp, top = 22.dp, bottom = 8.dp)
+            .testTag("monthSeparator"),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Text(
+            title.uppercase(),
+            style = MaterialTheme.typography.labelSmall.copy(
+                fontWeight = FontWeight.W500,
+                letterSpacing = 1.5.sp,
+            ),
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+
+        HorizontalDivider(
+            modifier = Modifier.weight(1f),
+            color = MaterialTheme.colorScheme.outlineVariant,
+        )
+
+        if (total != null && currency != null && !loading) {
+            Text(
+                buildColoredAmount(total, currency),
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontFamily = LocalManiFonts.current.mono,
+                ),
+            )
         }
     }
 }

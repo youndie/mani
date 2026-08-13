@@ -215,4 +215,8 @@ tasks.register<Test>("screenshotTest") {
     systemProperty("viddik.snapshotsDir", "src/desktopTest/snapshots")
     // Свой шрифт и выключенное сглаживание — чтобы снимок с macOS сходился на Linux.
     systemProperty("viddik.consistentRendering", "true")
+    // По умолчанию viddik прощает 0.5% пикселей — на экране 393×852 это 1670 точек, то есть
+    // целая надпись. Смена цвета сумм прошла мимо сверки именно так. Здесь сверяем строже:
+    // снимки пишутся и проверяются на одной машине с отключённым сглаживанием, разброса нет.
+    systemProperty("viddik.tolerancePercent", "0.01")
 }

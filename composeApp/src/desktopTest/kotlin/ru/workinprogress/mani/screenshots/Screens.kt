@@ -8,6 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.ionspin.kotlin.bignum.decimal.toBigDecimal
 import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.persistentSetOf
 import kotlinx.collections.immutable.toImmutableMap
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.DateTimeUnit
@@ -15,6 +16,7 @@ import kotlinx.datetime.plus
 import ru.workinprogress.feature.chart.ui.ChartComponent
 import ru.workinprogress.feature.chart.ui.model.ChartUi
 import ru.workinprogress.feature.currency.Currency
+import ru.workinprogress.feature.main.ui.FiltersState
 import ru.workinprogress.feature.main.ui.ForecastUiState
 import ru.workinprogress.feature.main.ui.MainContent
 import ru.workinprogress.feature.transaction.Category
@@ -89,6 +91,13 @@ fun HomeForecastScreenshot() {
                 LocalDate(2026, 8, 17) to
                     persistentListOf(item("Groceries", 145, false, Transaction.Period.Week)),
             ).toImmutableMap(),
+            // Фильтры не в состоянии загрузки: иначе на снимке две пустые заглушки вместо чипов,
+            // и сверять с макетом нечего.
+            filtersState = FiltersState(
+                upcoming = true,
+                categories = persistentSetOf(Category("1", "Home"), Category("2", "Food")),
+                loading = false,
+            ),
             forecast = ForecastUiState.RunsOut("12 October", 60, "4 895 $"),
             dayBalances = mapOf(
                 demoDay to "3 445 $",
@@ -143,15 +152,22 @@ fun HistoryScreenshot() {
     Harness {
         TransactionsListContent(
             state = TransactionListUiState(
+                // Два месяца подряд — иначе разделитель месяца снимком не проверить.
                 data = mapOf(
                     LocalDate(2026, 8, 6) to
                         persistentListOf(item("Groceries", 145, false, Transaction.Period.Week)),
                     LocalDate(2026, 8, 5) to
                         persistentListOf(item("Rent", 1450, false, Transaction.Period.Month)),
+                    LocalDate(2026, 7, 30) to
+                        persistentListOf(item("Salary", 2400, true, Transaction.Period.Month)),
+                    LocalDate(2026, 7, 28) to
+                        persistentListOf(item("Course", 350, false, Transaction.Period.Month)),
                 ).toImmutableMap(),
                 dayBalances = mapOf(
                     LocalDate(2026, 8, 6) to "4 980 $",
                     LocalDate(2026, 8, 5) to "5 125 $",
+                    LocalDate(2026, 7, 30) to "6 575 $",
+                    LocalDate(2026, 7, 28) to "4 175 $",
                 ).toImmutableMap(),
                 monthTitle = "August so far",
                 monthChange = "+1 110 $",
