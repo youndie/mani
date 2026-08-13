@@ -50,9 +50,14 @@ data class ManiFonts(
     val mono: FontFamily,
 )
 
+/**
+ * По умолчанию — системные гарнитуры, а не исключение: `@Preview` и тесты компонентов рисуются
+ * без [ru.workinprogress.mani.theme.AppTheme], и падать там не за что. Внутри темы значение
+ * всегда подменяется настоящей парой.
+ */
 val LocalManiFonts =
-    staticCompositionLocalOf<ManiFonts> {
-        error("ManiFonts не предоставлены — компонент вне AppTheme")
+    staticCompositionLocalOf {
+        ManiFonts(sans = FontFamily.Default, mono = FontFamily.Monospace)
     }
 
 /**

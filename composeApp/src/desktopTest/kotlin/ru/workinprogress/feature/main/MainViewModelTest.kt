@@ -35,6 +35,7 @@ import ru.workinprogress.feature.transaction.domain.GetTransactionsUseCase
 import ru.workinprogress.feature.transaction.domain.TransactionRepository
 import ru.workinprogress.mani.today
 import kotlin.test.*
+import ru.workinprogress.feature.main.ui.ForecastUiState
 
 
 class MainViewModelTest : KoinTest {
@@ -211,157 +212,89 @@ class MainViewModelTest : KoinTest {
     }
 
     @Test
-    fun testFutureInfoSimple() {
+    fun forecastIsSteadyWhenBalanceNeverCrossesZero() {
         val start = LocalDate(2000, 1, 1)
         val transactions =
             listOf(Transaction("0", 100.0.toBigDecimal(), true, start, null, Transaction.Period.OneTime, ""))
-        val today = start.plus(1, DateTimeUnit.DAY)
 
-        val futureInformation = MainViewModel.buildFutureInformation(
+        val forecast = MainViewModel.buildForecast(
             transactions.simulate(start, defaultPeriodAppend(start)),
             Currency.Usd,
-            today
+            start.plus(1, DateTimeUnit.DAY)
+        )
+
+        assertEquals(ForecastUiState.Steady("100 $"), forecast)
+    }
+
+    @Test
+    fun forecastShowsTheDayMoneyRunsOut() {
+        val start = LocalDate(2000, 1, 1)
+        val runsOut = LocalDate(2000, 1, 20)
+
+        val transactions = listOf(
+            Transaction("0", 100.0.toBigDecimal(), true, start, null, Transaction.Period.OneTime, ""),
+            Transaction("1", 300.0.toBigDecimal(), false, runsOut, null, Transaction.Period.OneTime, "")
+        )
+
+        val forecast = MainViewModel.buildForecast(
+            transactions.simulate(start, defaultPeriodAppend(start)),
+            Currency.Usd,
+            start.plus(1, DateTimeUnit.DAY)
         )
 
         assertEquals(
-            "balance: +100 \$\n" +
-                    "today balance change: 0 \$\n" +
-                    "in month: +100 \$, in next month: 0 \$\n" +
-                    "no zero events", futureInformation.toString()
+            ForecastUiState.RunsOut(runsOutOn = "20 January", daysLeft = 18, balanceToday = "100 $"),
+            forecast
         )
     }
 
+    @Test
+    fun forecastIsEmptyWithoutRules() {
+        val forecast = MainViewModel.buildForecast(emptyMap(), Currency.Usd, LocalDate(2000, 1, 1))
+
+        assertEquals(ForecastUiState.Empty, forecast)
+    }
 
     @Test
-    fun testFutureInfoTodayBalanceChange() {
+    fun crossingAlreadyBehindIsNotAForecast() {
         val start = LocalDate(2000, 1, 1)
 
         val transactions = listOf(
             Transaction("0", 100.0.toBigDecimal(), true, start, null, Transaction.Period.OneTime, ""),
             Transaction(
-                "0",
-                50.0.toBigDecimal(),
-                true,
-                start.plus(1, DateTimeUnit.DAY),
-                null,
-                Transaction.Period.OneTime,
-                ""
+                "1", 300.0.toBigDecimal(), false,
+                start.plus(2, DateTimeUnit.DAY), null, Transaction.Period.OneTime, ""
             )
         )
-        val today = start.plus(1, DateTimeUnit.DAY)
 
-        val futureInformation = MainViewModel.buildFutureInformation(
+        // «Деньги кончатся вчера» — не прогноз, а бессмыслица: показываем баланс.
+        val forecast = MainViewModel.buildForecast(
             transactions.simulate(start, defaultPeriodAppend(start)),
             Currency.Usd,
-            today
+            start.plus(10, DateTimeUnit.DAY)
         )
 
-        assertEquals(
-            "balance: +150 \$\n" +
-                    "today balance change: +50 \$\n" +
-                    "in month: +150 \$, in next month: 0 \$\n" +
-                    "no zero events", futureInformation.toString()
-        )
+        assertEquals(ForecastUiState.Steady("-200 $"), forecast)
     }
 
     @Test
-    fun testFutureInfoNegative() {
-        val start = LocalDate(2000, 1, 1)
+    fun runsOutDateIsTheCrossingDayNotTheRuleStart() {
+        val ruleStart = LocalDate(2000, 1, 1)
+
         val transactions = listOf(
-            Transaction("0", 100.0.toBigDecimal(), true, start, null, Transaction.Period.OneTime, ""),
-            Transaction(
-                "0",
-                200.0.toBigDecimal(),
-                false,
-                start.plus(5, DateTimeUnit.DAY),
-                null,
-                Transaction.Period.OneTime,
-                ""
-            )
-
+            Transaction("0", 300.0.toBigDecimal(), true, ruleStart, null, Transaction.Period.OneTime, ""),
+            Transaction("1", 100.0.toBigDecimal(), false, ruleStart, null, Transaction.Period.Week, "")
         )
-        val today = start.plus(1, DateTimeUnit.DAY)
 
-        val futureInformation = MainViewModel.buildFutureInformation(
-            transactions.simulate(start, defaultPeriodAppend(start)),
+        val forecast = MainViewModel.buildForecast(
+            transactions.simulate(ruleStart, defaultPeriodAppend(ruleStart)),
             Currency.Usd,
-            today
+            ruleStart.plus(1, DateTimeUnit.DAY)
         )
 
-        assertEquals(
-            "balance: +100 \$\n" +
-                    "today balance change: 0 \$\n" +
-                    "next transaction 06 Jan 2000: −200 \$\n" +
-                    "in month: −100 \$, in next month: 0 \$\n" +
-                    "balance will become negative: 06 Jan 2000", futureInformation.toString()
-        )
+        // Правило заведено 1 января, а знак меняется 22-го — показывать надо второе.
+        assertEquals("22 January", (forecast as ForecastUiState.RunsOut).runsOutOn)
     }
-
-    @Test
-    fun testFutureInfoPositive() {
-        val start = LocalDate(2000, 1, 1)
-        val transactions = listOf(
-            Transaction("0", 100.0.toBigDecimal(), false, start, null, Transaction.Period.OneTime, ""),
-            Transaction(
-                "0",
-                200.0.toBigDecimal(),
-                true,
-                start.plus(5, DateTimeUnit.DAY),
-                null,
-                Transaction.Period.OneTime,
-                ""
-            )
-
-        )
-        val today = start.plus(1, DateTimeUnit.DAY)
-
-        val futureInformation = MainViewModel.buildFutureInformation(
-            transactions.simulate(start, defaultPeriodAppend(start)),
-            Currency.Usd,
-            today
-        )
-        assertEquals(
-            "balance: −100 \$\n" +
-                    "today balance change: 0 \$\n" +
-                    "next transaction 06 Jan 2000: +200 \$\n" +
-                    "in month: +100 \$, in next month: 0 \$\n" +
-                    "balance will become positive: 06 Jan 2000", futureInformation.toString()
-        )
-    }
-
-    @Test
-    fun testFutureInfoNextMonth() {
-        val start = LocalDate(2000, 1, 1)
-        val transactions = listOf(
-            Transaction("0", 100.0.toBigDecimal(), true, start, null, Transaction.Period.OneTime, ""),
-            Transaction(
-                "0",
-                200.0.toBigDecimal(),
-                false,
-                start.plus(1, DateTimeUnit.MONTH),
-                null,
-                Transaction.Period.OneTime,
-                ""
-            )
-
-        )
-        val today = start.plus(1, DateTimeUnit.DAY)
-
-        val futureInformation = MainViewModel.buildFutureInformation(
-            transactions.simulate(start, defaultPeriodAppend(start)),
-            Currency.Usd,
-            today
-        )
-
-        assertEquals(
-            "balance: +100 \$\n" +
-                    "today balance change: 0 \$\n" +
-                    "next transaction 01 Feb 2000: −200 \$\n" +
-                    "in month: +100 \$, in next month: −200 \$\n" +
-                    "balance will become negative: 01 Feb 2000", futureInformation.toString()
-        )
-    }
-
 
     @AfterTest
     fun tearDown() {

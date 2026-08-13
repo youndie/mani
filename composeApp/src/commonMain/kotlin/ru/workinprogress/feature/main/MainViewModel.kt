@@ -19,12 +19,14 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.format
 import kotlinx.datetime.format.MonthNames
 import kotlinx.datetime.format.char
+import kotlinx.datetime.daysUntil
 import kotlinx.datetime.plus
 import ru.workinprogress.feature.auth.domain.LogoutUseCase
 import ru.workinprogress.feature.categories.domain.GetCategoriesUseCase
 import ru.workinprogress.feature.currency.Currency
 import ru.workinprogress.feature.currency.GetCurrentCurrencyUseCase
 import ru.workinprogress.feature.main.ui.FiltersState
+import ru.workinprogress.feature.main.ui.ForecastUiState
 import ru.workinprogress.feature.main.ui.MainUiState
 import ru.workinprogress.feature.transaction.*
 import ru.workinprogress.feature.transaction.domain.DeleteTransactionsUseCase
@@ -32,7 +34,7 @@ import ru.workinprogress.feature.transaction.domain.GetTransactionsUseCase
 import ru.workinprogress.feature.transaction.ui.model.NegativeColor
 import ru.workinprogress.feature.transaction.ui.model.PositiveColor
 import ru.workinprogress.feature.transaction.ui.model.TransactionUiItem
-import ru.workinprogress.feature.transaction.ui.model.buildColoredAmount
+import ru.workinprogress.feature.transaction.ui.model.formatMoney
 import ru.workinprogress.mani.emptyImmutableMap
 import ru.workinprogress.mani.today
 import ru.workinprogress.useCase.UseCase
@@ -121,7 +123,7 @@ class MainViewModel(
 								}
 							}
 							.associate { it.key to it.value }.toImmutableMap(),
-						futureInformation = buildFutureInformation(simulationResult, currency)
+						forecast = buildForecast(simulationResult, currency)
 					)
 				}.flowOn(dispatcher).collectLatest { result: MainUiState ->
 					state.update { result }
@@ -235,101 +237,44 @@ class MainViewModel(
 							it.key.year == monthDate.year
 				}.flatMap { it.value }.sumOf { it.amountSigned }
 
-		internal fun buildFutureInformation(
+		/**
+		 * Собирает героя экрана: дату, когда деньги кончатся, и баланс на сегодня.
+		 *
+		 * Дни считаются от **ключа** карты, а не от `transaction.date`: симуляция раскладывает по
+		 * дням один и тот же объект, и его `date` — это день заведения правила.
+		 */
+		internal fun buildForecast(
 			simulationResult: Map<LocalDate, List<Transaction>>,
 			currency: Currency,
 			today: LocalDate = today(),
-		) = buildAnnotatedString {
+		): ForecastUiState {
+			if (simulationResult.values.all { it.isEmpty() }) return ForecastUiState.Empty
 
-			val localDateFormat = LocalDate.Format {
-				dayOfMonth()
-				char(' ')
-				monthName(MonthNames.ENGLISH_ABBREVIATED)
-				char(' ')
-				year()
-			}
-			val filteredTransactions =
-				simulationResult.filterValues { transactions -> transactions.isNotEmpty() }
-					.filterKeys { today <= it }
-
-			val todayAmount = simulationResult.entries
+			val balanceToday = simulationResult.entries
 				.runningFold(BigDecimal.ZERO) { acc, entry ->
 					if (entry.key > today) acc
 					else acc + entry.value.sumOf { it.amountSigned }
 				}.last()
 
-			// День берётся из ключа, а не из `transaction.date`: симуляция раскладывает по дням
-			// один и тот же объект, и его `date` — день заведения правила. Иначе «следующая
-			// транзакция» показывала дату из прошлого.
-			val nextEntry = simulationResult.entries.filter { entry ->
-				entry.key > today
-			}.firstOrNull { entry ->
-				entry.value.isNotEmpty()
-			}
-			val nextTransaction = nextEntry?.value?.firstOrNull()
+			val balanceText = formatMoney(balanceToday, currency)
+			val negativeDate = simulationResult.findZeroEvents().second
 
-			append("balance: ")
-			append(buildColoredAmount(todayAmount, currency))
-			append("\n")
-			append(
-				"today balance change: "
+			// Дата в прошлом — не прогноз: баланс уже в минусе, и обещать «деньги кончатся» про
+			// вчера бессмысленно.
+			val runsOut = negativeDate?.takeIf { it > today }
+				?: return ForecastUiState.Steady(balanceText)
+
+			return ForecastUiState.RunsOut(
+				runsOutOn = runsOut.format(dayMonthFormat),
+				daysLeft = today.daysUntil(runsOut),
+				balanceToday = balanceText,
 			)
-			append(buildColoredAmount(filteredTransactions.filter { it.key == today }.entries.flatMap { it.value }
-				.sumOf { it.amountSigned }, currency))
-			append("\n")
+		}
 
-			nextTransaction?.let {
-				append("next transaction ${nextEntry?.key?.format(localDateFormat)}: ")
-				append(buildColoredAmount(nextTransaction.amountSigned, currency))
-				append("\n")
-			}
-
-			append(
-				"in month: "
-			)
-			append(
-				buildColoredAmount(
-					simulationResult.sumByMonth(today),
-					currency
-				)
-			)
-			append(
-				", in next month: "
-			)
-			append(
-				buildColoredAmount(
-					simulationResult.sumByMonth(today.plus(1, DateTimeUnit.MONTH)), currency
-				)
-			)
-			append("\n")
-
-			val (positiveDate, negativeDate) = simulationResult.findZeroEvents()
-
-			when {
-				(todayAmount > 0 && negativeDate != null) -> {
-					append("balance will become ")
-
-					withStyle(style = SpanStyle(color = NegativeColor)) {
-						append("negative: ")
-					}
-
-					append(negativeDate.format(localDateFormat))
-				}
-
-				(todayAmount < 0 && positiveDate != null) -> {
-					append("balance will become ")
-
-					withStyle(style = SpanStyle(color = PositiveColor)) {
-						append("positive: ")
-					}
-
-					append(positiveDate.format(localDateFormat))
-				}
-
-				else -> {
-					append("no zero events")
-				}
-			}
+		private val dayMonthFormat = LocalDate.Format {
+			dayOfMonth()
+			char(' ')
+			monthName(MonthNames.ENGLISH_FULL)
 		}
 	}
 }

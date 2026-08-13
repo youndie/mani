@@ -144,7 +144,7 @@ fun MainComponent(
         state.value.transactions,
         state.value.selectedTransactions,
         state.value.filtersState,
-        state.value.futureInformation,
+        state.value.forecast,
         state.value.loading,
         appBarState.contextMode,
         { onTransactionClicked(it.id) },
@@ -259,7 +259,7 @@ internal fun MainContent(
     transactions: ImmutableMap<LocalDate, ImmutableList<TransactionUiItem>> = persistentMapOf(),
     selectedTransactions: ImmutableList<TransactionUiItem> = persistentListOf(),
     filtersState: FiltersState = FiltersState(),
-    futureInformation: AnnotatedString = AnnotatedString(""),
+    forecast: ForecastUiState = ForecastUiState.Loading,
     loading: Boolean = false,
     contextMode: Boolean = false,
     onTransactionClicked: (TransactionUiItem) -> Unit = {},
@@ -268,30 +268,8 @@ internal fun MainContent(
     onCategorySelected: (Category?) -> Unit = {},
     chart: @Composable (() -> Unit) = remember { @Composable { ChartComponent() } }
 ) {
-    val futureInfo = remember(futureInformation) {
-        @Composable {
-            Column(
-                Modifier
-                    .padding(
-                        start = 24.dp,
-                        top = 12.dp,
-                        bottom = 16.dp,
-                        end = 24.dp
-                    ).testTag("futureInfo"),
-                verticalArrangement = Arrangement.spacedBy(2.dp)
-            ) {
-                if (loading) {
-                    FutureInfoShimmer()
-                } else {
-                    CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.secondary) {
-                        Text(
-                            futureInformation,
-                            style = MaterialTheme.typography.labelMedium
-                        )
-                    }
-                }
-            }
-        }
+    val futureInfo = remember(forecast) {
+        @Composable { ForecastHero(forecast) }
     }
 
     val filters = remember(filtersState) {
@@ -487,18 +465,6 @@ fun connectToAppBarState(
     }
 }
 
-@Composable
-private fun ColumnScope.FutureInfoShimmer() {
-    val shimmer = rememberShimmer(ShimmerBounds.Window)
-    val modifier = Modifier.shimmer(shimmer).background(
-        MaterialTheme.colorScheme.surfaceContainerHigh, shape = MaterialTheme.shapes.extraSmall
-    ).testTag("futureInfoShimmer")
-
-    Text("    ", modifier, style = MaterialTheme.typography.labelMedium)
-    Text("               ", modifier, style = MaterialTheme.typography.labelMedium)
-    Text("                      ", modifier, style = MaterialTheme.typography.labelMedium)
-    Text("            ", modifier, style = MaterialTheme.typography.labelMedium)
-}
 
 private val DefaultFabButtonPadding = 16.dp
 private val DefaultFabButtonSize = 56.dp

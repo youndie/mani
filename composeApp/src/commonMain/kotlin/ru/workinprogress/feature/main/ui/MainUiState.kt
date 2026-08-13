@@ -1,6 +1,5 @@
 package ru.workinprogress.feature.main.ui
 
-import androidx.compose.ui.text.AnnotatedString
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.ImmutableMap
 import kotlinx.collections.immutable.toImmutableList
@@ -15,7 +14,7 @@ data class MainUiState(
     val selectedTransactions: ImmutableList<TransactionUiItem> = emptyList<TransactionUiItem>().toImmutableList(),
     val showDeleteDialog: Boolean = false,
     val showProfile: Boolean = false,
-    val futureInformation: AnnotatedString = AnnotatedString(""),
+    val forecast: ForecastUiState = ForecastUiState.Loading,
     val loading: Boolean = false,
     val filtersState: FiltersState = FiltersState(),
 )

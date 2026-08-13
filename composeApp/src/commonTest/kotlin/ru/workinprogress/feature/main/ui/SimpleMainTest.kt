@@ -4,7 +4,6 @@ import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.runComposeUiTest
-import androidx.compose.ui.text.AnnotatedString
 import com.ionspin.kotlin.bignum.decimal.toBigDecimal
 import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.datetime.LocalDate
@@ -20,7 +19,7 @@ class SimpleMainTest {
         runComposeUiTest {
             setContent {
                 MainContent(
-                    futureInformation = AnnotatedString("future info"),
+                    forecast = ForecastUiState.RunsOut("12 October", 60, "4895 $"),
                     chart = {
                         ChartComponent(
                             ChartUi(
