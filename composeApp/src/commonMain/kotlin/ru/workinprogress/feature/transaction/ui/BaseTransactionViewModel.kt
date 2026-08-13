@@ -15,12 +15,15 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.daysUntil
 import ru.workinprogress.feature.categories.domain.AddCategoryUseCase
 import ru.workinprogress.feature.categories.domain.DeleteCategoryUseCase
 import ru.workinprogress.feature.categories.domain.ObserveCategoriesUseCase
 import ru.workinprogress.feature.transaction.*
 import ru.workinprogress.feature.transaction.ui.component.formatted
 import ru.workinprogress.feature.transaction.ui.component.model.TransactionAction
+import ru.workinprogress.feature.transaction.domain.ObserveTransactionsUseCase
+import ru.workinprogress.feature.transaction.ui.model.RunsOutShift
 import ru.workinprogress.feature.transaction.ui.model.TransactionUiState
 import ru.workinprogress.feature.transaction.ui.model.buildColoredAmount
 import ru.workinprogress.mani.orToday
@@ -32,13 +35,26 @@ abstract class BaseTransactionViewModel(
     private val addCategoryUseCase: AddCategoryUseCase,
     private val observeCategoriesUseCase: ObserveCategoriesUseCase,
     private val deleteCategoryUseCase: DeleteCategoryUseCase,
+    private val observeTransactionsUseCase: ObserveTransactionsUseCase,
     protected val dispatcher: CoroutineDispatcher = Dispatchers.Default,
 ) : ViewModel() {
 
     protected open val state = MutableStateFlow(TransactionUiState())
     val observe get() = state.asStateFlow()
 
+    /** Остальные правила — фон, относительно которого считается сдвиг дня обнуления. */
+    private var others: List<Transaction> = emptyList()
+
     abstract fun onSubmitClicked()
+
+    protected fun observeTransactions() {
+        viewModelScope.launch {
+            observeTransactionsUseCase.observe.collectLatest { transactions ->
+                others = transactions
+                state.update { it.addFutureInformation() }
+            }
+        }
+    }
 
     protected fun observeCategories() {
         viewModelScope.launch {
@@ -154,7 +170,50 @@ abstract class BaseTransactionViewModel(
         }
     }
 
-    private fun TransactionUiState.addFutureInformation() = copy(futureInformation = buildFutureInformation(this))
+    private fun TransactionUiState.addFutureInformation() =
+        copy(futureInformation = buildFutureInformation(this), runsOutShift = buildRunsOutShift(this))
+
+    /**
+     * На сколько это правило приближает день, когда деньги кончатся.
+     *
+     * Считается двумя одинаковыми прогонами по одному и тому же окну — с правилом и без него;
+     * иначе сравнивались бы разные горизонты, и разница получалась бы из окна, а не из правила.
+     * Само правило из фона убирается по идентификатору: при правке существующего оно иначе
+     * посчиталось бы дважды.
+     */
+    private fun buildRunsOutShift(state: TransactionUiState): RunsOutShift? {
+        if (state.amount.toDoubleOrNull() == null || state.date.value == null) return null
+
+        val draft = state.tempTransaction
+        val background = others.filterNot { it.id == draft.id }
+        if (background.isEmpty()) return null
+
+        val window = (background + draft).defaultPeriod()
+        val today = today()
+        val before = background.simulate(window).findZeroEvents().second?.takeIf { it > today }
+        val after = (background + draft).simulate(window).findZeroEvents().second?.takeIf { it > today }
+
+        return when {
+            before == null && after == null -> null
+            before == null -> RunsOutShift("money starts running out · ${after?.formatted}", worse = true)
+            after == null -> RunsOutShift("money no longer runs out in sight", worse = false)
+            else -> {
+                val days = before.daysUntil(after)
+                when {
+                    days == 0 -> null
+                    days < 0 -> RunsOutShift(
+                        "money runs out ${-days} days earlier · ${after.formatted}",
+                        worse = true,
+                    )
+
+                    else -> RunsOutShift(
+                        "money runs out $days days later · ${after.formatted}",
+                        worse = false,
+                    )
+                }
+            }
+        }
+    }
 
     private fun buildFutureInformation(
         state: TransactionUiState,

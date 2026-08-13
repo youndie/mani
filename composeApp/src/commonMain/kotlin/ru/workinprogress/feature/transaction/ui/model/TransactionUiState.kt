@@ -37,6 +37,9 @@ data class TransactionUiState(
 
 	val futureInformation: AnnotatedString = AnnotatedString(""),
 
+	/** Насколько это правило сдвигает день, когда деньги кончатся. `null` — если не сдвигает. */
+	val runsOutShift: RunsOutShift? = null,
+
 	val currency: Currency = Currency("", "", ""),
 ) {
 	val periodsExpanded get() = periods != defaultPeriods
@@ -82,13 +85,25 @@ data class TransactionUiState(
 			)
 		} ?: TransactionUiState()
 
+		/** Четвёрка из макета: разовая трата, две недели, месяц и год. Остальное — под «More». */
 		private val defaultPeriods = listOf(
-			Transaction.Period.OneTime, Transaction.Period.TwoWeek, Transaction.Period.Month
+			Transaction.Period.OneTime,
+			Transaction.Period.TwoWeek,
+			Transaction.Period.Month,
+			Transaction.Period.Year,
 		).toImmutableList()
 
 		private val defaultCategories = persistentSetOf<Category>(Category.default)
 	}
 }
+
+/**
+ * Сдвиг дня обнуления от этого правила.
+ *
+ * [worse] отделяет «деньги кончатся раньше» от «позже»: это две разные новости, и красным
+ * помечать надо только первую.
+ */
+data class RunsOutShift(val text: String, val worse: Boolean)
 
 @Serializable
 data class DateDataUiState(val value: LocalDate? = null, val showDatePicker: Boolean = false)

@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.AnnotatedString
 import com.ionspin.kotlin.bignum.decimal.toBigDecimal
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentSetOf
@@ -25,6 +26,8 @@ import ru.workinprogress.feature.transaction.ui.component.TransactionComponentIm
 import ru.workinprogress.feature.transaction.ui.component.TransactionsListContent
 import ru.workinprogress.feature.transaction.ui.model.TransactionListUiState
 import ru.workinprogress.feature.transaction.ui.model.TransactionUiItem
+import ru.workinprogress.feature.transaction.ui.model.DateDataUiState
+import ru.workinprogress.feature.transaction.ui.model.RunsOutShift
 import ru.workinprogress.feature.transaction.ui.model.TransactionUiState
 import ru.workinprogress.feature.welcome.WelcomeContent
 import ru.workinprogress.feature.welcome.WelcomeUiState
@@ -140,7 +143,17 @@ fun HomeEmptyScreenshot() {
 fun RuleFormScreenshot() {
     Harness {
         TransactionComponentImpl(
-            state = TransactionUiState(amount = "340", currency = Currency.Usd),
+            // Ровно тот случай, что нарисован в макете: 340 в месяц с 20 августа, без конца.
+            state = TransactionUiState(
+                amount = "340",
+                currency = Currency.Usd,
+                period = Transaction.Period.Month,
+                date = DateDataUiState(LocalDate(2026, 8, 20)),
+                futureInformation = AnnotatedString(
+                    "\u2212340 $ from 20 Aug 2026. In 1 year's repeat 12 times, total: \u22124\u00A0080 $"
+                ),
+                runsOutShift = RunsOutShift("money runs out 12 days earlier \u00B7 19 Nov 2026", worse = true),
+            ),
             onAction = {},
         ) {}
     }

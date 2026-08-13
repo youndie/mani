@@ -17,6 +17,7 @@ val transactionsModule = module {
     single { Dispatchers.Default }.bind<CoroutineDispatcher>()
     singleOf(::DeleteTransactionsUseCase)
     singleOf(::GetTransactionsUseCase)
+    singleOf(::ObserveTransactionsUseCase)
     singleOf(::GetTransactionUseCase)
     singleOf(::AddTransactionUseCase)
     singleOf(::UpdateTransactionUseCase)

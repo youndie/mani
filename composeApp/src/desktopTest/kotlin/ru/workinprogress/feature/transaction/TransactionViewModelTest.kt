@@ -20,6 +20,7 @@ import ru.workinprogress.feature.category.FakeCategoriesDataSource
 import ru.workinprogress.feature.currency.currencyModule
 import ru.workinprogress.feature.transaction.data.FakeTransactionsRepository
 import ru.workinprogress.feature.transaction.domain.AddTransactionUseCase
+import ru.workinprogress.feature.transaction.domain.ObserveTransactionsUseCase
 import ru.workinprogress.feature.transaction.domain.TransactionRepository
 import ru.workinprogress.feature.transaction.ui.AddTransactionViewModel
 import ru.workinprogress.mani.today
@@ -70,9 +71,10 @@ class TransactionViewModelTest : KoinTest {
                     singleOf(::FakeCategoriesDataSource).bind<DataSource<Category>>()
 
                     factory {
-                        AddTransactionViewModel(get(), get(), get(), get(), get(), Dispatchers.Unconfined)
+                        AddTransactionViewModel(get(), get(), get(), get(), get(), get(), Dispatchers.Unconfined)
                     }
                     singleOf(::AddTransactionUseCase)
+                    singleOf(::ObserveTransactionsUseCase)
                 })
         }
 
@@ -103,6 +105,56 @@ class TransactionViewModelTest : KoinTest {
 
         assertNotNull(result)
         assertEquals(result.date, today())
+    }
+
+    /**
+     * Сдвиг дня обнуления — главное последствие правила, и считаться он должен относительно уже
+     * заведённых. Здесь фон уже уходит в минус на пятый день, а новое правило роняет баланс на
+     * второй: строка обязана сказать «на три дня раньше».
+     */
+    @Test
+    fun runsOutShiftTest() = runTest {
+        val repository = get<TransactionRepository>()
+        repository.load()
+        repository.create(
+            Transaction(
+                id = "big",
+                amount = 2000.0.toBigDecimal(),
+                income = false,
+                date = today().plus(5, DateTimeUnit.DAY),
+                until = null,
+                period = Transaction.Period.OneTime,
+                comment = "",
+            )
+        )
+
+        val viewModel: AddTransactionViewModel = get()
+        runCurrent()
+
+        viewModel.onAmountChanged("1200")
+        viewModel.onDateSelected(today().plus(2, DateTimeUnit.DAY))
+        runCurrent()
+
+        val shift = viewModel.observe.value.runsOutShift
+        assertNotNull(shift)
+        assertTrue(shift.worse)
+        assertTrue(shift.text.startsWith("money runs out 3 days earlier"), shift.text)
+    }
+
+    /** Доход день обнуления не приближает — и красной строкой такое помечать нечего. */
+    @Test
+    fun runsOutShiftAbsentForIncomeTest() = runTest {
+        get<TransactionRepository>().load()
+
+        val viewModel: AddTransactionViewModel = get()
+        runCurrent()
+
+        viewModel.onIncomeChanged(true)
+        viewModel.onAmountChanged("100")
+        viewModel.onDateSelected(today().plus(2, DateTimeUnit.DAY))
+        runCurrent()
+
+        assertNull(viewModel.observe.value.runsOutShift)
     }
 
     @Test

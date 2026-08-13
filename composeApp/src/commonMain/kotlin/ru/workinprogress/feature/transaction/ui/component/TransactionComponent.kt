@@ -19,6 +19,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.*
@@ -27,14 +28,19 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.input.ImeAction
@@ -77,6 +83,7 @@ import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 import ru.workinprogress.mani.theme.LocalManiFonts
 import ru.workinprogress.feature.transaction.ui.model.buildColoredAmount
+import ru.workinprogress.feature.transaction.ui.model.NegativeColor
 import androidx.compose.ui.text.buildAnnotatedString
 
 
@@ -97,7 +104,7 @@ fun EditTransactionComponent(transactionRoute: TransactionRoute, onNavigateBack:
         listOf(module {
             viewModel { parameters ->
                 EditTransactionViewModel(
-                    transactionId = parameters.get(), get(), get(), get(), get(), get(), get()
+                    transactionId = parameters.get(), get(), get(), get(), get(), get(), get(), get()
                 )
             }.bind<BaseTransactionViewModel>()
         })
@@ -134,6 +141,19 @@ internal fun <T> ChipsSelector(
                         selected = selected == item,
                         label = {
                             Text(labelValue(item))
+                        },
+                        // Галочка у выбранного: заливка на тёмном фоне различима не всегда, и
+                        // выбор приходилось искать глазами.
+                        leadingIcon = if (selected == item) {
+                            {
+                                Icon(
+                                    Icons.Filled.Check,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(InputChipDefaults.IconSize),
+                                )
+                            }
+                        } else {
+                            null
                         },
                         elevation = InputChipDefaults.inputChipElevation(elevation = if (item == markToDelete.value) 8.dp else 0.dp),
                         trailingIcon = {
@@ -180,11 +200,38 @@ internal fun <T> ChipsSelector(
         }
 
         if (showCreateNew) {
-            AssistChip(onClick = onCreateNew, label = { Text("New") }, leadingIcon = {
-                Icon(
-                    Icons.Filled.Add, contentDescription = "add", Modifier.size(AssistChipDefaults.IconSize)
-                )
-            })
+            // Пунктирная рамка, как в макете: «New» — это не ещё одна категория в ряду, а место,
+            // где её можно завести. Сплошная рамка ставила его вровень с остальными.
+            val outline = MaterialTheme.colorScheme.outline
+
+            // Рисовать по границам модификатора нельзя: у чипа они включают область нажатия в
+            // 48dp, и рамка получалась выше самого чипа. Отступ считается от его собственной
+            // высоты.
+            val chipHeight = with(LocalDensity.current) { AssistChipDefaults.Height.toPx() }
+
+            AssistChip(
+                onClick = onCreateNew,
+                label = { Text("New") },
+                border = null,
+                modifier = Modifier.drawBehind {
+                    val inset = ((size.height - chipHeight) / 2f).coerceAtLeast(0f)
+                    drawRoundRect(
+                        color = outline,
+                        topLeft = Offset(0f, inset),
+                        size = Size(size.width, size.height - inset * 2),
+                        cornerRadius = CornerRadius(8.dp.toPx()),
+                        style = Stroke(
+                            width = 1.dp.toPx(),
+                            pathEffect = PathEffect.dashPathEffect(floatArrayOf(6f, 6f)),
+                        ),
+                    )
+                },
+                leadingIcon = {
+                    Icon(
+                        Icons.Filled.Add, contentDescription = "add", Modifier.size(AssistChipDefaults.IconSize)
+                    )
+                },
+            )
         }
 
         if (!expanded) {
@@ -621,6 +668,24 @@ internal fun TransactionComponentImpl(
                             ),
                         )
                     }
+                }
+
+                // Главное последствие правила — не его собственная сумма, а то, на сколько оно
+                // сдвигает день, когда деньги кончатся. Без этой строки цену решения приходилось
+                // узнавать, сохранив его и вернувшись на главный экран.
+                state.runsOutShift?.let { shift ->
+                    Text(
+                        shift.text,
+                        modifier = Modifier.testTag("runsOutShift"),
+                        style = MaterialTheme.typography.labelMedium.copy(
+                            fontFamily = LocalManiFonts.current.mono
+                        ),
+                        color = if (shift.worse) {
+                            NegativeColor
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
+                    )
                 }
 
                 state.errorMessage?.let {
