@@ -249,6 +249,29 @@ class MainViewModelTest : KoinTest {
     }
 
     @Test
+    fun dayBalancesAccumulateAcrossDays() {
+        val start = LocalDate(2000, 1, 1)
+
+        val transactions = listOf(
+            Transaction("0", 100.0.toBigDecimal(), true, start, null, Transaction.Period.OneTime, ""),
+            Transaction(
+                "1", 30.0.toBigDecimal(), false,
+                start.plus(2, DateTimeUnit.DAY), null, Transaction.Period.OneTime, ""
+            )
+        )
+
+        val balances = MainViewModel.buildDayBalances(
+            transactions.simulate(start, defaultPeriodAppend(start)),
+            Currency.Usd
+        )
+
+        assertEquals("100 $", balances[start])
+        // День без движений держит вчерашний остаток, иначе лента рвётся.
+        assertEquals("100 $", balances[start.plus(1, DateTimeUnit.DAY)])
+        assertEquals("70 $", balances[start.plus(2, DateTimeUnit.DAY)])
+    }
+
+    @Test
     fun forecastIsEmptyWithoutRules() {
         val forecast = MainViewModel.buildForecast(emptyMap(), Currency.Usd, LocalDate(2000, 1, 1))
 

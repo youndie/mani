@@ -145,6 +145,7 @@ fun MainComponent(
         state.value.selectedTransactions,
         state.value.filtersState,
         state.value.forecast,
+        state.value.dayBalances,
         state.value.loading,
         appBarState.contextMode,
         { onTransactionClicked(it.id) },
@@ -260,6 +261,7 @@ internal fun MainContent(
     selectedTransactions: ImmutableList<TransactionUiItem> = persistentListOf(),
     filtersState: FiltersState = FiltersState(),
     forecast: ForecastUiState = ForecastUiState.Loading,
+    dayBalances: ImmutableMap<LocalDate, String> = persistentMapOf(),
     loading: Boolean = false,
     contextMode: Boolean = false,
     onTransactionClicked: (TransactionUiItem) -> Unit = {},
@@ -330,7 +332,8 @@ internal fun MainContent(
                     loading,
                     contextMode,
                     onTransactionClicked,
-                    onTransactionSelected
+                    onTransactionSelected,
+                    dayBalances,
                 )
             }
         } else {
@@ -357,7 +360,8 @@ internal fun MainContent(
                         loading,
                         contextMode,
                         onTransactionClicked,
-                        onTransactionSelected
+                        onTransactionSelected,
+                        dayBalances,
                     )
 
                     item {
@@ -376,6 +380,7 @@ private fun LazyListScope.transactionItemsOrEmpty(
     contextMode: Boolean,
     onTransactionClicked: (TransactionUiItem) -> Unit,
     onTransactionSelected: (TransactionUiItem) -> Unit,
+    dayBalances: ImmutableMap<LocalDate, String>,
 ) {
     if (!loading && transactions.isEmpty()) {
         item {
@@ -388,7 +393,8 @@ private fun LazyListScope.transactionItemsOrEmpty(
             loading = loading,
             contextMode = contextMode,
             onTransactionClicked = onTransactionClicked,
-            onTransactionSelected = onTransactionSelected
+            onTransactionSelected = onTransactionSelected,
+            dayBalances = dayBalances,
         )
     }
 
@@ -396,6 +402,7 @@ private fun LazyListScope.transactionItemsOrEmpty(
 
 fun LazyListScope.transactionItems(
     transactions: ImmutableMap<LocalDate, ImmutableList<TransactionUiItem>>,
+    dayBalances: ImmutableMap<LocalDate, String> = persistentMapOf(),
     selectedTransactions: ImmutableList<TransactionUiItem>,
     loading: Boolean,
     contextMode: Boolean,
@@ -405,6 +412,7 @@ fun LazyListScope.transactionItems(
     transactions.forEach { day ->
         val (date, list) = day
         transactionsDay(
+            dayBalance = dayBalances[date],
             date = date,
             list = list,
             selectedTransactions = selectedTransactions,

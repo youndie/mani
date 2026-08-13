@@ -21,6 +21,10 @@ import com.valentinilk.shimmer.shimmer
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.format
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
+import kotlinx.datetime.format.DayOfWeekNames
 import kotlinx.datetime.format.MonthNames
 import kotlinx.datetime.format.char
 import org.jetbrains.compose.ui.tooling.preview.Preview
@@ -88,6 +92,7 @@ fun TransactionsListComponent(
 
 @OptIn(ExperimentalFoundationApi::class)
 fun LazyListScope.transactionsDay(
+    dayBalance: String? = null,
     date: LocalDate,
     list: ImmutableList<TransactionUiItem>,
     selectedTransactions: ImmutableList<TransactionUiItem>,
@@ -104,22 +109,40 @@ fun LazyListScope.transactionsDay(
         }
 
         Column(
-            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp).then(loadingModifier),
-            horizontalAlignment = Alignment.CenterHorizontally
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(MaterialTheme.colorScheme.surface)
+                .then(loadingModifier)
         ) {
-            Box(
-                Modifier
-                    .background(
-                        MaterialTheme.colorScheme.surfaceContainer,
-                        RoundedCornerShape(4.dp)
-                    )
-                    .padding(vertical = 4.dp, horizontal = 6.dp)
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, top = 14.dp, bottom = 6.dp),
+                verticalAlignment = Alignment.Bottom,
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    date.format(localDateFormat).takeIf { !loadingMode } ?: "           ",
-                    style = MaterialTheme.typography.labelSmall
+                    date.format(dayHeaderFormat).uppercase().takeIf { !loadingMode } ?: "           ",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = FontWeight.W500,
+                        letterSpacing = 1.3.sp
+                    ),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+
+                // Баланс на конец дня: без него лента и линия графика говорят о разном, и
+                // сверить их глазами нельзя.
+                dayBalance?.takeIf { !loadingMode }?.let {
+                    Text(
+                        it,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
+
+            HorizontalDivider(
+                modifier = Modifier.padding(horizontal = 20.dp),
+                color = MaterialTheme.colorScheme.outlineVariant
+            )
         }
     }
     transactionsListItems(
@@ -153,11 +176,12 @@ private fun LazyListScope.transactionsListItems(
     }
 }
 
-private val localDateFormat = LocalDate.Format {
+/** «Sat 15 Aug»: день недели помогает читать ленту как расписание, год в ней лишний. */
+private val dayHeaderFormat = LocalDate.Format {
+    dayOfWeek(DayOfWeekNames.ENGLISH_ABBREVIATED)
+    char(' ')
     dayOfMonth()
     char(' ')
-    monthName(MonthNames.ENGLISH_FULL)
-    char(' ')
-    year()
+    monthName(MonthNames.ENGLISH_ABBREVIATED)
 }
 

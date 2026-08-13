@@ -21,6 +21,15 @@ import com.valentinilk.shimmer.shimmer
 import org.jetbrains.compose.resources.stringResource
 import ru.workinprogress.feature.transaction.ui.model.TransactionUiItem
 import ru.workinprogress.feature.transaction.ui.model.stringResource
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material3.Icon
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.unit.dp
+import ru.workinprogress.feature.transaction.Transaction
 import ru.workinprogress.mani.theme.LocalManiFonts
 
 @OptIn(ExperimentalFoundationApi::class)
@@ -72,11 +81,32 @@ fun TransactionItem(
                 onLongClickLabel = "Long Click Label",
             ),
         colors = ListItemDefaults.colors(containerColor = containerColor),
-        supportingContent = {
-            Text(
-                stringResource(transaction.period.stringResource).takeIf { loadingMode.not() }.orEmpty(),
-                loadingModifier
-            )
+        // Подпись есть только у повторяющегося правила: разовая трата ничем не повторяется, и
+        // строка «One time» под каждой такой записью — шум. Значок повторения отличает правило
+        // от единичного вхождения быстрее, чем чтение текста.
+        supportingContent = if (transaction.period == Transaction.Period.OneTime && !loadingMode) {
+            null
+        } else {
+            {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(5.dp)
+                ) {
+                    if (!loadingMode) {
+                        Icon(
+                            Icons.Default.Refresh,
+                            contentDescription = null,
+                            modifier = Modifier.size(13.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Text(
+                        stringResource(transaction.period.stringResource).takeIf { loadingMode.not() }.orEmpty(),
+                        loadingModifier,
+                        fontFamily = LocalManiFonts.current.mono
+                    )
+                }
+            }
         },
         trailingContent = {
             // Суммы моноширинным: в списке они стоят колонкой, и разная ширина знака её ломает.

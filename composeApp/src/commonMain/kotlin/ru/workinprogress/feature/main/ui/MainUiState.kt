@@ -2,6 +2,7 @@ package ru.workinprogress.feature.main.ui
 
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.ImmutableMap
+import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.collections.immutable.toImmutableMap
 import kotlinx.datetime.LocalDate
@@ -15,6 +16,8 @@ data class MainUiState(
     val showDeleteDialog: Boolean = false,
     val showProfile: Boolean = false,
     val forecast: ForecastUiState = ForecastUiState.Loading,
+    /** Баланс на конец каждого дня — считается по всей симуляции, а не по отфильтрованной ленте. */
+    val dayBalances: ImmutableMap<LocalDate, String> = persistentMapOf(),
     val loading: Boolean = false,
     val filtersState: FiltersState = FiltersState(),
 )

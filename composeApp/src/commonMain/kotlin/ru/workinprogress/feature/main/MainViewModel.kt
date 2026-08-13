@@ -6,6 +6,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ionspin.kotlin.bignum.decimal.BigDecimal
+import kotlinx.collections.immutable.ImmutableMap
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.collections.immutable.toImmutableMap
 import kotlinx.collections.immutable.toImmutableSet
@@ -123,7 +124,8 @@ class MainViewModel(
 								}
 							}
 							.associate { it.key to it.value }.toImmutableMap(),
-						forecast = buildForecast(simulationResult, currency)
+						forecast = buildForecast(simulationResult, currency),
+						dayBalances = buildDayBalances(simulationResult, currency)
 					)
 				}.flowOn(dispatcher).collectLatest { result: MainUiState ->
 					state.update { result }
@@ -269,6 +271,26 @@ class MainViewModel(
 				daysLeft = today.daysUntil(runsOut),
 				balanceToday = balanceText,
 			)
+		}
+
+		/**
+		 * Баланс на конец каждого дня.
+		 *
+		 * Считается по **всей** симуляции, а не по видимой ленте: фильтр по категории — это способ
+		 * посмотреть, а не другая реальность, и баланс от него меняться не должен. Иначе лента и
+		 * линия графика показывали бы разные числа для одного дня.
+		 */
+		internal fun buildDayBalances(
+			simulationResult: Map<LocalDate, List<Transaction>>,
+			currency: Currency,
+		): ImmutableMap<LocalDate, String> {
+			var running = BigDecimal.ZERO
+
+			return simulationResult
+				.mapValues { (_, transactions) ->
+					running += transactions.sumOf { it.amountSigned }
+					formatMoney(running, currency)
+				}.toImmutableMap()
 		}
 
 		private val dayMonthFormat = LocalDate.Format {
