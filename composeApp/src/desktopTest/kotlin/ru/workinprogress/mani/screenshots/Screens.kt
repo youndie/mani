@@ -1,0 +1,137 @@
+package ru.workinprogress.mani.screenshots
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import com.ionspin.kotlin.bignum.decimal.toBigDecimal
+import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.toImmutableMap
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.plus
+import ru.workinprogress.feature.chart.ui.ChartComponent
+import ru.workinprogress.feature.chart.ui.model.ChartUi
+import ru.workinprogress.feature.currency.Currency
+import ru.workinprogress.feature.main.ui.ForecastUiState
+import ru.workinprogress.feature.main.ui.MainContent
+import ru.workinprogress.feature.transaction.Category
+import ru.workinprogress.feature.transaction.Transaction
+import ru.workinprogress.feature.transaction.ui.component.TransactionComponentImpl
+import ru.workinprogress.feature.transaction.ui.model.TransactionUiItem
+import ru.workinprogress.feature.transaction.ui.model.TransactionUiState
+import ru.workinprogress.feature.welcome.WelcomeContent
+import ru.workinprogress.feature.welcome.WelcomeUiState
+import ru.workinprogress.mani.theme.AppTheme
+import ru.workinprogress.viddik.annotations.ViddikScreenshot
+
+/**
+ * Снимки экранов для сверки с макетом.
+ *
+ * Имена латиницей: viddik заменяет не-ASCII на подчёркивания, и кириллические имена схлопнулись
+ * бы в почти одинаковые файлы, затирая друг друга.
+ *
+ * Экраны берутся в **stateless**-виде, без внедрения зависимостей: иначе снимок зависел бы от
+ * сети и от того, что лежит в базе, и сверять его с макетом было бы нечем.
+ */
+private const val WIDTH = 393
+private const val HEIGHT = 852
+
+@Composable
+private fun Harness(content: @Composable () -> Unit) {
+    AppTheme(darkTheme = true) {
+        Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surface)) {
+            content()
+        }
+    }
+}
+
+private val demoDay = LocalDate(2026, 8, 16)
+
+private fun item(
+    comment: String,
+    amount: Int,
+    income: Boolean,
+    period: Transaction.Period,
+) = TransactionUiItem(
+    Transaction(
+        id = comment,
+        amount = amount.toBigDecimal(),
+        income = income,
+        date = demoDay,
+        until = null,
+        period = period,
+        comment = comment,
+        category = Category("1", "Home"),
+    ),
+    Currency.Usd,
+)
+
+@ViddikScreenshot(name = "welcome", group = "screens", width = WIDTH, height = HEIGHT)
+@Composable
+fun WelcomeScreenshot() {
+    Harness {
+        WelcomeContent(WelcomeUiState(server = "ktor · kotlin/native · 1.4.2"))
+    }
+}
+
+@ViddikScreenshot(name = "home forecast", group = "screens", width = WIDTH, height = HEIGHT)
+@Composable
+fun HomeForecastScreenshot() {
+    Harness {
+        MainContent(
+            transactions = mapOf(
+                demoDay to persistentListOf(item("Rent", 1450, false, Transaction.Period.Month)),
+                LocalDate(2026, 8, 17) to
+                    persistentListOf(item("Groceries", 145, false, Transaction.Period.Week)),
+            ).toImmutableMap(),
+            forecast = ForecastUiState.RunsOut("12 October", 60, "4 895 $"),
+            dayBalances = mapOf(
+                demoDay to "3 445 $",
+                LocalDate(2026, 8, 17) to "3 300 $",
+            ).toImmutableMap(),
+            // График подставляется готовым состоянием: по умолчанию `MainContent` поднимает его
+            // через Koin, а снимок не должен зависеть ни от графа, ни от сети.
+            chart = { expanded ->
+                ChartComponent(
+                    ChartUi(
+                        days = (0..90)
+                            .associate {
+                                LocalDate(2026, 7, 15).plus(it, DateTimeUnit.DAY) to
+                                    (4895 - it * 55).toBigDecimal()
+                            }.toImmutableMap(),
+                        currency = Currency.Usd,
+                        todayIndexProvider = { 30 },
+                    ),
+                    expanded = expanded,
+                )
+            },
+        )
+    }
+}
+
+@ViddikScreenshot(name = "home empty", group = "screens", width = WIDTH, height = HEIGHT)
+@Composable
+fun HomeEmptyScreenshot() {
+    Harness {
+        MainContent(
+            forecast = ForecastUiState.Empty,
+            onAddFirstRule = {},
+            onFillWithDemoData = {},
+        )
+    }
+}
+
+@ViddikScreenshot(name = "rule form", group = "screens", width = WIDTH, height = HEIGHT)
+@Composable
+fun RuleFormScreenshot() {
+    Harness {
+        TransactionComponentImpl(
+            state = TransactionUiState(amount = "340", currency = Currency.Usd),
+            onAction = {},
+        ) {}
+    }
+}
+

@@ -12,6 +12,7 @@ plugins {
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.pluginSerialization)
+    alias(libs.plugins.ksp)
 }
 
 composeCompiler {
@@ -84,6 +85,14 @@ kotlin {
                 implementation(libs.ktor.client.mock)
                 implementation(libs.kotlin.test)
                 implementation(libs.koin.test)
+
+                // Скриншот-тесты: viddik рисует Compose в настоящем Skiko-окне и пишет PNG.
+                // Иначе сверять экраны с макетом нечем — приложение headless не запускается.
+                implementation(libs.viddik.annotations)
+                implementation(libs.viddik.testingCore)
+                runtimeOnly(libs.junitJupiter.engine)
+                // Без launcher'а задача падает с «Failed to load JUnit Platform».
+                runtimeOnly(libs.junitPlatform.launcher)
             }
         }
 
@@ -174,4 +183,34 @@ compose.desktop {
             packageVersion = "1.0.0"
         }
     }
+}
+
+// Процессор viddik кладёт сюда реестр компонентов и сам класс тестов.
+kotlin.sourceSets.named("desktopTest") {
+    kotlin.srcDir("build/generated/ksp/desktop/desktopTest/kotlin")
+}
+
+dependencies {
+    add("kspDesktopTest", libs.viddik.processor)
+}
+
+// Скриншоты живут отдельной задачей, а не в `desktopTest`: голдены, записанные на macOS,
+// отличаются попиксельно от Linux, и `build` из-за этого не должен краснеть.
+tasks.register<Test>("screenshotTest") {
+    val testCompilation =
+        kotlin.targets
+            .getByName("desktop")
+            .compilations
+            .getByName("test")
+
+    description = "Сверяет записанные скриншоты экранов с макетом."
+    group = LifecycleBasePlugin.VERIFICATION_GROUP
+    dependsOn(tasks.named("desktopTestClasses"))
+    testClassesDirs = testCompilation.output.classesDirs
+    classpath = files(testCompilation.output.allOutputs, testCompilation.runtimeDependencyFiles)
+    useJUnitPlatform()
+    filter { includeTestsMatching("*GeneratedViddikTests*") }
+    systemProperty("viddik.snapshotsDir", "src/desktopTest/snapshots")
+    // Свой шрифт и выключенное сглаживание — чтобы снимок с macOS сходился на Linux.
+    systemProperty("viddik.consistentRendering", "true")
 }

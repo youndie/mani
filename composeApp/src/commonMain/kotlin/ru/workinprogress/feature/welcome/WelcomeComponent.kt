@@ -56,6 +56,24 @@ fun WelcomeComponent(
         if (state.success) onSuccess()
     }
 
+    WelcomeContent(
+        state = state,
+        onTryDemoClicked = viewModel::onTryDemoClicked,
+        onSignInClicked = onSignInClicked,
+        onSignupClicked = onSignupClicked,
+    )
+}
+
+/**
+ * Экран без внедрения зависимостей — так его можно снять скриншот-тестом и сверить с макетом.
+ */
+@Composable
+fun WelcomeContent(
+    state: WelcomeUiState,
+    onTryDemoClicked: () -> Unit = {},
+    onSignInClicked: () -> Unit = {},
+    onSignupClicked: () -> Unit = {},
+) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -99,7 +117,7 @@ fun WelcomeComponent(
                 loading = state.loading,
                 buttonText = "Try the demo",
                 modifier = Modifier.testTag("tryDemo"),
-                onButtonClicked = viewModel::onTryDemoClicked,
+                onButtonClicked = onTryDemoClicked,
             )
 
             Text(
