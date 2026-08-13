@@ -28,6 +28,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import kotlinx.datetime.format.DayOfWeekNames
 import kotlinx.datetime.format.MonthNames
+import kotlinx.datetime.format.Padding
 import kotlinx.datetime.format.char
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.koin.compose.module.rememberKoinModules
@@ -317,7 +318,8 @@ private fun LazyListScope.transactionsListItems(
 private val dayHeaderFormat = LocalDate.Format {
     dayOfWeek(DayOfWeekNames.ENGLISH_ABBREVIATED)
     char(' ')
-    dayOfMonth()
+    // Без ведущего нуля: «6 Aug», а не «06 Aug» — это дата, а не машинный код.
+    dayOfMonth(Padding.NONE)
     char(' ')
     monthName(MonthNames.ENGLISH_ABBREVIATED)
 }

@@ -66,13 +66,14 @@ private fun item(
     amount: Int,
     income: Boolean,
     period: Transaction.Period,
+    until: LocalDate? = null,
 ) = TransactionUiItem(
     Transaction(
         id = comment,
         amount = amount.toBigDecimal(),
         income = income,
         date = demoDay,
-        until = null,
+        until = until,
         period = period,
         comment = comment,
         category = Category("1", "Home"),
@@ -186,8 +187,11 @@ fun HistoryScreenshot() {
                         persistentListOf(item("Rent", 1450, false, Transaction.Period.Month)),
                     LocalDate(2026, 7, 30) to
                         persistentListOf(item("Salary", 2400, true, Transaction.Period.Month)),
+                    // У «Course» есть конец — в ленте он дописывается к строке повторения.
                     LocalDate(2026, 7, 28) to
-                        persistentListOf(item("Course", 350, false, Transaction.Period.Month)),
+                        persistentListOf(
+                            item("Course", 350, false, Transaction.Period.Month, LocalDate(2027, 3, 28))
+                        ),
                 ).toImmutableMap(),
                 dayBalances = mapOf(
                     LocalDate(2026, 8, 6) to "4 980 $",

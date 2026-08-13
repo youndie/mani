@@ -23,7 +23,14 @@ data class TransactionUiItem(
     val currency: Currency,
     val category: Category,
 ) {
-    val amountText get() = buildColoredAmount(amount, currency, income)
+    /**
+     * Сумма для ленты: цветом выделяется только доход.
+     *
+     * В макете расход набран обычным цветом текста, и не случайно — трат в списке большинство,
+     * и красными они превращают ленту в сплошное предупреждение. Красный оставлен там, где он
+     * что-то значит: в форме и в предупреждении о дне обнуления.
+     */
+    val amountText get() = buildColoredAmount(amount, currency, income, negativeColor = Color.Unspecified)
 
     companion object {
         operator fun invoke(
@@ -71,10 +78,11 @@ fun buildColoredAmount(
     currency: Currency,
     sign: Boolean = amount > 0,
     useSign: Boolean = true,
+    negativeColor: Color = NegativeColor,
 ): AnnotatedString =
     buildAnnotatedString {
         if (amount != BigDecimal.ZERO) {
-            withStyle(style = SpanStyle(color = if (sign) PositiveColor else NegativeColor)) {
+            withStyle(style = SpanStyle(color = if (sign) PositiveColor else negativeColor)) {
                 if (useSign) {
                     append(if (sign) "+" else "−")
                 }
