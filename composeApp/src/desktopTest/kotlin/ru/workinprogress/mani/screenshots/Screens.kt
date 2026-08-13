@@ -20,6 +20,8 @@ import ru.workinprogress.feature.main.ui.MainContent
 import ru.workinprogress.feature.transaction.Category
 import ru.workinprogress.feature.transaction.Transaction
 import ru.workinprogress.feature.transaction.ui.component.TransactionComponentImpl
+import ru.workinprogress.feature.transaction.ui.component.TransactionsListContent
+import ru.workinprogress.feature.transaction.ui.model.TransactionListUiState
 import ru.workinprogress.feature.transaction.ui.model.TransactionUiItem
 import ru.workinprogress.feature.transaction.ui.model.TransactionUiState
 import ru.workinprogress.feature.welcome.WelcomeContent
@@ -135,3 +137,26 @@ fun RuleFormScreenshot() {
     }
 }
 
+@ViddikScreenshot(name = "history", group = "screens", width = WIDTH, height = HEIGHT)
+@Composable
+fun HistoryScreenshot() {
+    Harness {
+        TransactionsListContent(
+            state = TransactionListUiState(
+                data = mapOf(
+                    LocalDate(2026, 8, 6) to
+                        persistentListOf(item("Groceries", 145, false, Transaction.Period.Week)),
+                    LocalDate(2026, 8, 5) to
+                        persistentListOf(item("Rent", 1450, false, Transaction.Period.Month)),
+                ).toImmutableMap(),
+                dayBalances = mapOf(
+                    LocalDate(2026, 8, 6) to "4 980 $",
+                    LocalDate(2026, 8, 5) to "5 125 $",
+                ).toImmutableMap(),
+                monthTitle = "August so far",
+                monthChange = "+1 110 $",
+                balanceToday = "4 980 $",
+            ),
+        )
+    }
+}

@@ -38,7 +38,9 @@ import ru.workinprogress.feature.main.ui.transactionItems
 import ru.workinprogress.feature.transaction.ui.TransactionsViewModel
 import ru.workinprogress.feature.transaction.ui.model.TransactionListUiState
 import ru.workinprogress.feature.transaction.ui.model.TransactionUiItem
+import androidx.compose.ui.unit.sp
 import ru.workinprogress.mani.components.MainAppBarState
+import ru.workinprogress.mani.theme.LocalManiFonts
 
 
 @Composable
@@ -70,6 +72,20 @@ fun TransactionsListComponent(
         viewModel::onContextMenuClosed
     )
 
+    TransactionsListContent(state, modifier, appBarState.contextMode, viewModel::onTransactionSelected) {
+        onTransactionClicked(it.id)
+    }
+}
+
+/** История без внедрения зависимостей — чтобы её можно было снять скриншот-тестом. */
+@Composable
+fun TransactionsListContent(
+    state: TransactionListUiState,
+    modifier: Modifier = Modifier,
+    contextMode: Boolean = false,
+    onTransactionSelected: (TransactionUiItem) -> Unit = {},
+    onTransactionClicked: (TransactionUiItem) -> Unit = {},
+) {
     if (!state.loading && state.data.isEmpty()) {
         TrasactionsEmpty()
     } else {
@@ -79,13 +95,26 @@ fun TransactionsListComponent(
             modifier = modifier.widthIn(max = 640.dp),
             contentPadding = PaddingValues(vertical = 16.dp),
         ) {
+            // Сводка месяца — то же, что в макете: сколько накопилось с начала месяца и сколько
+            // денег сейчас. Без неё история — просто перечень, из которого итог надо считать
+            // глазами.
+            item {
+                MonthSummary(
+                    title = state.monthTitle,
+                    change = state.monthChange,
+                    balance = state.balanceToday,
+                    loading = state.loading,
+                )
+            }
+
             transactionItems(
                 transactions = state.data,
+                dayBalances = state.dayBalances,
                 selectedTransactions = state.selectedTransactions,
                 loading = state.loading,
-                contextMode = appBarState.contextMode,
-                onTransactionClicked = viewModel::onTransactionSelected,
-            ) { onTransactionClicked(it.id) }
+                contextMode = contextMode,
+                onTransactionClicked = onTransactionSelected,
+            ) { onTransactionClicked(it) }
         }
     }
 }
@@ -185,3 +214,43 @@ private val dayHeaderFormat = LocalDate.Format {
     monthName(MonthNames.ENGLISH_ABBREVIATED)
 }
 
+/** Полоса над историей: «August so far» слева, баланс справа. */
+@Composable
+private fun MonthSummary(
+    title: String,
+    change: String,
+    balance: String,
+    loading: Boolean,
+) {
+    if (loading) return
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp, vertical = 16.dp)
+            .testTag("monthSummary"),
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Fact(title, change)
+        Fact("Balance", balance)
+    }
+}
+
+@Composable
+private fun Fact(
+    label: String,
+    value: String,
+) {
+    Column {
+        Text(
+            label.uppercase(),
+            style = MaterialTheme.typography.labelSmall.copy(letterSpacing = 1.2.sp),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Text(
+            value,
+            style = MaterialTheme.typography.titleMedium.copy(fontFamily = LocalManiFonts.current.mono),
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+    }
+}

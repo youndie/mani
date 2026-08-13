@@ -10,7 +10,15 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import ru.workinprogress.feature.currency.Currency
 import ru.workinprogress.feature.currency.GetCurrentCurrencyUseCase
+import kotlinx.datetime.format
+import kotlinx.datetime.format.MonthNames
+import kotlinx.datetime.format.char
+import ru.workinprogress.feature.main.MainViewModel
 import ru.workinprogress.feature.main.MainViewModel.Companion.loadingItems
+import ru.workinprogress.feature.transaction.amountSigned
+import ru.workinprogress.feature.transaction.ui.model.buildColoredAmount
+import ru.workinprogress.feature.transaction.ui.model.formatMoney
+import ru.workinprogress.utilz.bigdecimal.sumOf
 import ru.workinprogress.feature.transaction.Transaction
 import ru.workinprogress.feature.transaction.domain.DeleteTransactionsUseCase
 import ru.workinprogress.feature.transaction.domain.GetTransactionsUseCase
@@ -49,7 +57,9 @@ class TransactionsViewModel(
                     state.update { state -> state.copy(loading = false, data = emptyImmutableMap()) }
 
                     result.data.mapLatest { transactions ->
-                        transactions.run { simulate() }
+                        val simulated = transactions.simulate()
+
+                        simulated
                             .filterValues { transactions -> transactions.isNotEmpty() }
                             .filterKeys {
                                 today() > it
@@ -63,9 +73,32 @@ class TransactionsViewModel(
                             .sortedByDescending { it.key }
                             .associate {
                                 it.key to it.value
-                            }.toImmutableMap()
-                    }.flowOn(Dispatchers.Default).collectLatest {
-                        state.value = TransactionListUiState(data = it)
+                            }.toImmutableMap() to simulated
+                    }.flowOn(Dispatchers.Default).collectLatest { (byDays, simulated) ->
+                        state.value =
+                            TransactionListUiState(
+                                data = byDays,
+                                dayBalances = MainViewModel.buildDayBalances(simulated, currency),
+                                monthTitle = today().format(monthFormat) + " so far",
+                                monthChange =
+                                    buildColoredAmount(
+                                        simulated
+                                            .filterKeys { it.year == today().year && it.month == today().month }
+                                            .values
+                                            .flatten()
+                                            .sumOf { it.amountSigned },
+                                        currency,
+                                    ).text,
+                                balanceToday =
+                                    formatMoney(
+                                        simulated
+                                            .filterKeys { it <= today() }
+                                            .values
+                                            .flatten()
+                                            .sumOf { it.amountSigned },
+                                        currency,
+                                    ),
+                            )
                     }
                 }
             }
@@ -121,4 +154,8 @@ class TransactionsViewModel(
             deleteTransactionsUseCase(selected)
         }
     }
+}
+
+private val monthFormat = kotlinx.datetime.LocalDate.Format {
+    monthName(MonthNames.ENGLISH_FULL)
 }
