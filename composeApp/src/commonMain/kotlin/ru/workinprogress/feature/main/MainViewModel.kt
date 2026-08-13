@@ -46,7 +46,7 @@ import ru.workinprogress.feature.transaction.ui.model.TransactionUiItem
 import ru.workinprogress.feature.transaction.ui.model.formatMoney
 import ru.workinprogress.feature.transaction.ui.model.formatMoneyAbsolute
 import ru.workinprogress.feature.main.ui.ServerUnreachableUiState
-import ru.workinprogress.mani.currentServerConfig
+import ru.workinprogress.mani.data.serverConfig
 import ru.workinprogress.mani.data.ServerException
 import ru.workinprogress.mani.emptyImmutableMap
 import ru.workinprogress.mani.today
@@ -308,7 +308,7 @@ class MainViewModel(
 		 */
 		internal fun describe(throwable: Throwable, at: LocalTime = nowLocalTime()): String {
 			val status = (throwable as? ServerException)?.status?.let { "HTTP $it" } ?: "no response"
-			return "$status · ${currentServerConfig.host} · ${at.format(timeFormat)}"
+			return "$status · ${serverConfig.host} · ${at.format(timeFormat)}"
 		}
 
 		private fun nowLocalTime() =

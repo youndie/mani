@@ -18,7 +18,7 @@ import ru.workinprogress.feature.auth.AuthResource
 import ru.workinprogress.feature.auth.RefreshParams
 import ru.workinprogress.feature.auth.Tokens
 import ru.workinprogress.feature.auth.data.TokenRepository
-import ru.workinprogress.mani.currentServerConfig
+import ru.workinprogress.mani.data.serverConfig
 
 
 val networkModule = module {
@@ -43,7 +43,7 @@ val networkModule = module {
             }
             install(Auth) {
                 bearer {
-                    realm = currentServerConfig.host
+                    realm = serverConfig.host
 
                     loadTokens {
                         get<TokenRepository>().getToken()
@@ -80,9 +80,9 @@ val networkModule = module {
             defaultRequest {
                 contentType(Json)
                 url {
-                    protocol = if (currentServerConfig.scheme == "http") URLProtocol.HTTP else URLProtocol.HTTPS
-                    host = currentServerConfig.host
-                    currentServerConfig.port?.toIntOrNull()?.let {
+                    protocol = if (serverConfig.scheme == "http") URLProtocol.HTTP else URLProtocol.HTTPS
+                    host = serverConfig.host
+                    serverConfig.port?.toIntOrNull()?.let {
                         port = it
                     }
                 }
