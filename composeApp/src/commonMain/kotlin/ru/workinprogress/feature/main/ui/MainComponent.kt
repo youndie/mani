@@ -309,19 +309,23 @@ internal fun MainContent(
                     Spacer(Modifier.height(8.dp))
                 }
 
-                item {
-                    CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.secondary) {
-                        Text(
-                            "Transactions", modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp).then(
-                                if (loading) {
-                                    Modifier.shimmer()
-                                } else {
-                                    Modifier
-                                }
-                            ), style = MaterialTheme.typography.titleMedium
-                        )
+                // Заголовок ленты и фильтры — только когда есть что фильтровать: на первом
+                // запуске они стояли над пустотой двумя серыми заглушками.
+                if (loading || transactions.isNotEmpty()) {
+                    item {
+                        CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.secondary) {
+                            Text(
+                                "Transactions", modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp).then(
+                                    if (loading) {
+                                        Modifier.shimmer()
+                                    } else {
+                                        Modifier
+                                    }
+                                ), style = MaterialTheme.typography.titleMedium
+                            )
+                        }
+                        filters()
                     }
-                    filters()
                 }
 
                 transactionItemsOrEmpty(
@@ -349,8 +353,10 @@ internal fun MainContent(
                     modifier = lazyColumnModifier, contentPadding = PaddingValues(16.dp)
                 ) {
 
-                    item {
-                        filters()
+                    if (loading || transactions.isNotEmpty()) {
+                        item {
+                            filters()
+                        }
                     }
 
                     transactionItemsOrEmpty(
@@ -390,6 +396,7 @@ private fun LazyListScope.transactionItemsOrEmpty(
             TrasactionsEmpty(
                 onAddFirstRule = onAddFirstRule,
                 onFillWithDemoData = onFillWithDemoData,
+                title = null,
             )
         }
     } else {
@@ -522,10 +529,13 @@ private fun ForecastAndChart(
 
         ForecastHero(forecast, expanded = expanded)
 
-        // Пустой график в пустом состоянии — карточка, которая ничего не показывает и занимает
-        // треть экрана. Рисовать нечего, пока нет ни одного правила.
-        if (forecast != ForecastUiState.Empty) {
-            Spacer(Modifier.height(18.dp))
+        Spacer(Modifier.height(18.dp))
+
+        // Настоящий график здесь рисовать нечем, пока нет ни одного правила, — на его месте
+        // пунктирная рамка вместо пустоты.
+        if (forecast == ForecastUiState.Empty) {
+            EmptyForecastPlaceholder()
+        } else {
             chart(expanded)
         }
     }

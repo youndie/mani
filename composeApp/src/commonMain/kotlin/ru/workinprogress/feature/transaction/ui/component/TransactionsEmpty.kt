@@ -10,8 +10,8 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -33,19 +33,24 @@ import ru.workinprogress.mani.theme.LocalManiFonts
 fun TrasactionsEmpty(
     onAddFirstRule: (() -> Unit)? = null,
     onFillWithDemoData: (() -> Unit)? = null,
+    title: String? = "Add what comes in and what goes out",
 ) {
     Column(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 32.dp).testTag("transactionsEmpty"),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        Text(
-            "Add what comes in and what goes out",
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onSurface,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.widthIn(max = 420.dp),
-        )
+        // На главном экране заголовок уже стоит в герое, и повторять его здесь незачем;
+        // в истории героя нет, и без заголовка остался бы висеть один абзац.
+        title?.let {
+            Text(
+                it,
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.widthIn(max = 420.dp),
+            )
+        }
 
         Text(
             "mani keeps rules, not receipts. Enter a salary and a rent once, " +
@@ -57,14 +62,22 @@ fun TrasactionsEmpty(
         )
 
         onAddFirstRule?.let {
-            Button(onClick = it, modifier = Modifier.testTag("addFirstRule")) {
+            Button(
+                onClick = it,
+                modifier = Modifier.fillMaxWidth().widthIn(max = 420.dp).testTag("addFirstRule"),
+            ) {
                 Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
                 Text("Add your first rule")
             }
         }
 
         onFillWithDemoData?.let {
-            TextButton(onClick = it, modifier = Modifier.testTag("fillWithDemoData")) {
+            // Обведённой кнопкой, а не ссылкой: это второй равноправный путь на первый экран, и
+            // текстовой ссылкой он читался как примечание.
+            OutlinedButton(
+                onClick = it,
+                modifier = Modifier.fillMaxWidth().widthIn(max = 420.dp).testTag("fillWithDemoData"),
+            ) {
                 Text("Fill it with demo data")
             }
 
