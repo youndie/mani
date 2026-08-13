@@ -16,6 +16,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
@@ -80,7 +81,17 @@ fun ForecastHero(
                         Headline(state.runsOutOn, expanded = true, Modifier.testTag("forecastDate"))
                         BalanceFact(state.balanceToday)
                     }
-                    Caption("in ${state.daysLeft} days")
+                    // На широком экране в подписи есть место для второго факта — насколько
+                    // глубоко уходит минус. На узком он не помещается и там опущен.
+                    if (state.lowestPoint != null && state.lowestOn != null) {
+                        Caption(
+                            "in ${state.daysLeft} days · lowest point ",
+                            highlight = "${state.lowestPoint} on ${state.lowestOn}",
+                            highlightColor = MaterialTheme.colorScheme.error,
+                        )
+                    } else {
+                        Caption("in ${state.daysLeft} days")
+                    }
                 } else {
                     Headline(state.runsOutOn, expanded = false, Modifier.testTag("forecastDate"))
                     Caption(
@@ -195,8 +206,9 @@ private fun Headline(
 private fun Caption(
     text: String,
     highlight: String? = null,
+    highlightColor: Color? = null,
 ) {
-    val accent = MaterialTheme.colorScheme.onSurface
+    val accent = highlightColor ?: MaterialTheme.colorScheme.onSurface
 
     Text(
         buildAnnotatedString {

@@ -245,7 +245,14 @@ class MainViewModelTest : KoinTest {
         )
 
         assertEquals(
-            ForecastUiState.RunsOut(runsOutOn = "20 January", daysLeft = 18, balanceToday = "100 $"),
+            ForecastUiState.RunsOut(
+                runsOutOn = "20 January",
+                daysLeft = 18,
+                balanceToday = "100 $",
+                // Дно совпадает с днём обнуления: после него в этих данных ничего не происходит.
+                lowestPoint = "\u2212200 $",
+                lowestOn = "20 January",
+            ),
             forecast
         )
     }

@@ -38,6 +38,7 @@ import ru.workinprogress.feature.transaction.ui.model.NegativeColor
 import ru.workinprogress.feature.transaction.ui.model.PositiveColor
 import ru.workinprogress.feature.transaction.ui.model.TransactionUiItem
 import ru.workinprogress.feature.transaction.ui.model.formatMoney
+import ru.workinprogress.feature.transaction.ui.model.formatMoneyAbsolute
 import ru.workinprogress.mani.emptyImmutableMap
 import ru.workinprogress.mani.today
 import ru.workinprogress.useCase.UseCase
@@ -281,10 +282,23 @@ class MainViewModel(
 			val runsOut = negativeDate?.takeIf { it > today }
 				?: return ForecastUiState.Steady(balanceText)
 
+			// Самая низкая точка — то, насколько глубоко уходит минус, а не только когда он
+			// начнётся: «кончатся 12 октября» и «в минусе на 4 000» — разные новости.
+			val lowest = simulationResult.entries
+				.runningFold(BigDecimal.ZERO to today) { acc, entry ->
+					(acc.first + entry.value.sumOf { it.amountSigned }) to entry.key
+				}
+				.filter { it.second > today }
+				.minByOrNull { it.first }
+				// Только если она в минусе: «низшая точка 100 $» — не новость, а шум.
+				?.takeIf { it.first.signum() < 0 }
+
 			return ForecastUiState.RunsOut(
 				runsOutOn = runsOut.format(dayMonthFormat),
 				daysLeft = today.daysUntil(runsOut),
 				balanceToday = balanceText,
+				lowestPoint = lowest?.first?.let { "\u2212" + formatMoneyAbsolute(it, currency) },
+				lowestOn = lowest?.second?.format(dayMonthFormat),
 			)
 		}
 

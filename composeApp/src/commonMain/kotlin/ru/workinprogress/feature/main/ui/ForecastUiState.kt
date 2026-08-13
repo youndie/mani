@@ -29,6 +29,9 @@ sealed interface ForecastUiState {
         val runsOutOn: String,
         val daysLeft: Int,
         val balanceToday: String,
+        /** Самая низкая точка внутри горизонта и её день — «−705 $» и «1 Jan». */
+        val lowestPoint: String? = null,
+        val lowestOn: String? = null,
     ) : ForecastUiState
 
     /**

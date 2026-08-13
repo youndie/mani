@@ -18,6 +18,7 @@ import androidx.compose.runtime.setValue
 import kotlinx.coroutines.delay
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.unit.dp
 import com.ionspin.kotlin.bignum.decimal.toBigDecimal
@@ -51,6 +52,34 @@ fun ChartImpl(
 ) {
     val color = MaterialTheme.colorScheme.primary
     val secondary = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+    val error = MaterialTheme.colorScheme.error
+
+    // Часть линии после нуля — красная, как в макете: день, когда деньги кончились, должен быть
+    // виден на самой линии, а не только в заголовке.
+    //
+    // Сделано градиентом, а не вторым слоем поверх: заливка натягивается на границы самой линии,
+    // и доля считается по индексам данных — подгонять её к внутренним отступам чужого графика
+    // не нужно, а значит нечему и разъехаться.
+    val lineBrush =
+        remember(values, color, error) {
+            val crossing = values.indexOfFirst { it.signum() < 0 }
+            val fraction = crossing.takeIf { it > 0 && values.size > 1 }
+                ?.let { it.toFloat() / (values.size - 1) }
+                ?.coerceIn(0.02f, 0.98f)
+
+            if (fraction == null) {
+                SolidColor(color)
+            } else {
+                // Две остановки в одной точке Skia молча схлопывает, и вся линия остаётся
+                // первого цвета — проверено снимком. Поэтому переход шириной в тысячную доли.
+                Brush.horizontalGradient(
+                    0f to color,
+                    (fraction - 0.001f) to color,
+                    (fraction + 0.001f) to error,
+                    1f to error,
+                )
+            }
+        }
 
     // Разворот проигрывается один раз за жизнь экрана. Дальше данные меняются от фильтров и
     // правок, и каждый раз перерисовывать линию с нуля — не показ, а мигание.
@@ -62,12 +91,12 @@ fun ChartImpl(
     }
 
     val data =
-        remember(values) {
+        remember(values, lineBrush) {
             listOf(
                 Line(
                     label = "Transactions",
                     values = values.map { it.doubleValue(false) },
-                    color = SolidColor(color),
+                    color = lineBrush,
                     firstGradientFillColor = color.copy(alpha = .5f),
                     secondGradientFillColor = Color.Transparent,
                     strokeAnimationSpec =

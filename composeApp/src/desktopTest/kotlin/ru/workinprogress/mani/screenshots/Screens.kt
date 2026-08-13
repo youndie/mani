@@ -156,7 +156,15 @@ fun HomeForecastWideScreenshot() {
                 categories = persistentSetOf(Category("1", "Home"), Category("2", "Food")),
                 loading = false,
             ),
-            forecast = ForecastUiState.RunsOut("12 October", 60, "4 895 $"),
+            // Дно и его день — из тех же данных, что рисует график ниже: он уходит в минус
+            // на 55 в последний день горизонта.
+            forecast = ForecastUiState.RunsOut(
+                runsOutOn = "12 October",
+                daysLeft = 60,
+                balanceToday = "4 895 $",
+                lowestPoint = "\u221255 $",
+                lowestOn = "13 October",
+            ),
             dayBalances = mapOf(
                 demoDay to "3 445 $",
                 LocalDate(2026, 8, 17) to "3 300 $",
