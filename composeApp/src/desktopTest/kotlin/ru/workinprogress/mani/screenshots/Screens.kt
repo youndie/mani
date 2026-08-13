@@ -46,6 +46,10 @@ import ru.workinprogress.viddik.annotations.ViddikScreenshot
 private const val WIDTH = 393
 private const val HEIGHT = 852
 
+/** Размер из макета R10 — экран ноутбука. */
+private const val WIDE_WIDTH = 1280
+private const val WIDE_HEIGHT = 820
+
 @Composable
 private fun Harness(content: @Composable () -> Unit) {
     AppTheme(darkTheme = true) {
@@ -79,6 +83,15 @@ private fun item(
 @ViddikScreenshot(name = "welcome", group = "screens", width = WIDTH, height = HEIGHT)
 @Composable
 fun WelcomeScreenshot() {
+    Harness {
+        WelcomeContent(WelcomeUiState(server = "ktor · kotlin/native · 1.4.2"))
+    }
+}
+
+/** Витрина на ноутбуке — разворот из макета, а не растянутая узкая колонка. */
+@ViddikScreenshot(name = "welcome wide", group = "screens", width = WIDE_WIDTH, height = WIDE_HEIGHT)
+@Composable
+fun WelcomeWideScreenshot() {
     Harness {
         WelcomeContent(WelcomeUiState(server = "ktor · kotlin/native · 1.4.2"))
     }
