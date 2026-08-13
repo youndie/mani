@@ -13,6 +13,8 @@ import ru.workinprogress.feature.auth.domain.DemoUseCase
 import ru.workinprogress.feature.auth.domain.StartDemoUseCase
 import ru.workinprogress.feature.demo.domain.SeedDemoDataUseCase
 import ru.workinprogress.feature.demo.domain.SeedUseCase
+import ru.workinprogress.feature.health.domain.GetHealthUseCase
+import ru.workinprogress.feature.health.domain.HealthUseCase
 
 expect val authModulePlatform: Module
 
@@ -29,5 +31,7 @@ val authModule = module {
 
     // Засев своего аккаунта нужен пустому экрану, а он живёт вне экрана входа.
     singleOf(::SeedDemoDataUseCase).bind<SeedUseCase>()
+
+    singleOf(::GetHealthUseCase).bind<HealthUseCase>()
 }
 

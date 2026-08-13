@@ -8,6 +8,7 @@ import org.koin.dsl.module
 import ru.workinprogress.feature.auth.domain.AuthUseCase
 import ru.workinprogress.feature.auth.ui.AuthViewModel
 import ru.workinprogress.feature.main.MainViewModel
+import ru.workinprogress.feature.welcome.WelcomeViewModel
 import org.koin.test.verify.verify
 import ru.workinprogress.mani.appModules
 import kotlin.test.Test
@@ -30,6 +31,7 @@ class ClientKoinModuleTest {
             // Регистрируются в компонентах, но зависимости берут из графа приложения.
             viewModelOf(::MainViewModel)
             viewModelOf(::AuthViewModel)
+            viewModelOf(::WelcomeViewModel)
         }.verify(
             extraTypes = listOf(
                 HttpClientEngine::class,

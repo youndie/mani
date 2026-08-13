@@ -22,6 +22,7 @@ import ru.workinprogress.feature.currency.currencyRouting
 import ru.workinprogress.feature.demo.data.DemoSandboxCleaner
 import ru.workinprogress.feature.demo.data.DemoService
 import ru.workinprogress.feature.demo.demoRouting
+import ru.workinprogress.feature.health.healthRouting
 import ru.workinprogress.feature.transaction.transactionRouting
 import ru.workinprogress.feature.user.userRouting
 import ru.workinprogress.mani.config.JWTConfig
@@ -100,6 +101,7 @@ fun Routing.maniApiRouting() {
     authRouting()
     categoryRouting()
     demoRouting()
+    healthRouting()
     currencyRouting()
     transactionRouting()
     userRouting()

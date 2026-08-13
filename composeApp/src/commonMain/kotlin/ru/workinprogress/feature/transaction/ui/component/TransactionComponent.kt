@@ -62,6 +62,9 @@ import ru.workinprogress.mani.components.LoadingButton
 import ru.workinprogress.mani.navigation.TransactionRoute
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
+import ru.workinprogress.mani.theme.LocalManiFonts
+import ru.workinprogress.feature.transaction.ui.model.buildColoredAmount
+import androidx.compose.ui.text.buildAnnotatedString
 
 
 @Composable
@@ -358,11 +361,50 @@ internal fun TransactionComponentImpl(
                     visualTransformation = CurrencyVisualTransformation(state.currency),
                     label = { Text("Amount") })
 
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Checkbox(
-                        state.income, { onAction(IncomeChanged(it)) }, modifier = Modifier.testTag("income")
+                // Что получится из введённого, прямо под полем: сумма со знаком и как часто она
+                // повторится. Раньше проверить себя можно было только сохранив правило.
+                AnimatedVisibility(state.amount.isNotBlank()) {
+                    Text(
+                        run {
+                            val periodText = stringResource(state.period.stringResource)
+                            val amount = buildColoredAmount(
+                                state.amount,
+                                currency = state.currency,
+                                sign = state.income,
+                            )
+                            buildAnnotatedString {
+                                append(amount)
+                                append(" · ")
+                                append(periodText)
+                            }
+                        },
+                        style = MaterialTheme.typography.labelMedium.copy(
+                            fontFamily = LocalManiFonts.current.mono
+                        ),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(start = 4.dp, bottom = 4.dp).testTag("amountPreview"),
                     )
-                    Text("Income")
+                }
+
+                // Расход или доход — главное решение в форме, и чекбоксом оно не задаётся:
+                // выбор из двух равноправных вариантов читается переключателем, а включённый по
+                // умолчанию «Income» ещё и врал про частоту — расходы вносят чаще.
+                SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth().testTag("income")) {
+                    SegmentedButton(
+                        selected = !state.income,
+                        onClick = { onAction(IncomeChanged(false)) },
+                        shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
+                        modifier = Modifier.testTag("expense"),
+                    ) {
+                        Text("Expense")
+                    }
+                    SegmentedButton(
+                        selected = state.income,
+                        onClick = { onAction(IncomeChanged(true)) },
+                        shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
+                    ) {
+                        Text("Income")
+                    }
                 }
 
                 Column(

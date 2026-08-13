@@ -7,6 +7,7 @@ enum class ManiScreen {
     History,
     Add,
     Transaction,
+    Welcome,
     Login,
     Signup,
 }

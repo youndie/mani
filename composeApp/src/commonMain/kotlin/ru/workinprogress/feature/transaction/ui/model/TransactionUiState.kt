@@ -18,7 +18,8 @@ import ru.workinprogress.mani.today
 data class TransactionUiState(
 	val id: String = "temp",
 	val amount: String = "",
-	val income: Boolean = true,
+	/** Расход по умолчанию: их вносят чаще, чем доходы, и правило чаще заводят на трату. */
+	val income: Boolean = false,
 	val period: Transaction.Period = Transaction.Period.OneTime,
 	val comment: String = "",
 	val date: DateDataUiState = DateDataUiState(),
