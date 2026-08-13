@@ -349,6 +349,31 @@ internal fun TransactionComponentImpl(
                     .padding(start = 24.dp, end = 24.dp, top = 16.dp, bottom = 32.dp),
                 verticalArrangement = spacedBy(8.dp)
             ) {
+                // Порядок блоков — как в макете и как человек думает о правиле: сначала знак
+                // (трачу или получаю), потом сколько, потом как часто, потом с какого дня и по
+                // какой, и лишь в конце — необязательная категория.
+                //
+                // Расход или доход чекбоксом не задаётся: выбор из двух равноправных вариантов
+                // читается переключателем, а включённый по умолчанию «Income» ещё и врал про
+                // частоту — расходы вносят чаще.
+                SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth().testTag("income")) {
+                    SegmentedButton(
+                        selected = !state.income,
+                        onClick = { onAction(IncomeChanged(false)) },
+                        shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
+                        modifier = Modifier.testTag("expense"),
+                    ) {
+                        Text("Expense")
+                    }
+                    SegmentedButton(
+                        selected = state.income,
+                        onClick = { onAction(IncomeChanged(true)) },
+                        shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
+                    ) {
+                        Text("Income")
+                    }
+                }
+
                 OutlinedTextField(
                     state.amount,
                     { onAction(AmountChanged(it)) },
@@ -356,7 +381,8 @@ internal fun TransactionComponentImpl(
                         keyboardType = KeyboardType.Number, imeAction = ImeAction.Next
                     ),
                     keyboardActions = KeyboardActions(onNext = { onAction(ToggleDatePicker) }),
-                    modifier = Modifier.fillMaxWidth().focusRequester(focusRequester).testTag("amount"),
+                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp).focusRequester(focusRequester)
+                        .testTag("amount"),
                     maxLines = 1,
                     visualTransformation = CurrencyVisualTransformation(state.currency),
                     label = { Text("Amount") })
@@ -387,29 +413,71 @@ internal fun TransactionComponentImpl(
                     )
                 }
 
-                // Расход или доход — главное решение в форме, и чекбоксом оно не задаётся:
-                // выбор из двух равноправных вариантов читается переключателем, а включённый по
-                // умолчанию «Income» ещё и врал про частоту — расходы вносят чаще.
-                SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth().testTag("income")) {
-                    SegmentedButton(
-                        selected = !state.income,
-                        onClick = { onAction(IncomeChanged(false)) },
-                        shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
-                        modifier = Modifier.testTag("expense"),
-                    ) {
-                        Text("Expense")
+                // Повторяемость показывается сразу: это ядро продукта, и прятать её до выбора
+                // даты означало прятать то, чем mani отличается от списка трат.
+                Column(Modifier.padding(top = 8.dp).testTag("periodContainer")) {
+                    CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.secondary) {
+                        Text(
+                            "Repeats",
+                            style = MaterialTheme.typography.labelMedium,
+                            modifier = Modifier.padding(
+                                start = 16.dp, bottom = 4.dp
+                            )
+                        )
                     }
-                    SegmentedButton(
-                        selected = state.income,
-                        onClick = { onAction(IncomeChanged(true)) },
-                        shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
-                    ) {
-                        Text("Income")
+
+                    ChipsSelector(
+                        state.periods,
+                        state.period,
+                        state.periodsExpanded,
+                        { onAction(ExpandPeriodClicked) },
+                        { onAction(PeriodChanged(it)) }) { item ->
+                        stringResource(item.stringResource)
                     }
                 }
 
+                // Начало и конец — одна пара, поэтому в одной строке: «с какого дня и по какой»
+                // читается вместе. Для разовой траты второго поля нет, но место под него
+                // остаётся — строка не прыгает при смене повторяемости.
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                    horizontalArrangement = spacedBy(12.dp),
+                ) {
+                    Box(modifier = Modifier.weight(1f)) {
+                        TransactionDatePicker(
+                            label = "Starts",
+                            value = state.date.value?.formatted,
+                            modifier = Modifier.testTag("date"),
+                            datePickerState = datePickerState,
+                            showDialog = state.date.showDatePicker,
+                            onToggleDatePicker = { onAction(ToggleDatePicker) },
+                            onDateSelected = { onAction(DateSelected(it)) },
+                        )
+                    }
+
+                    if (state.period != Transaction.Period.OneTime) {
+                        Box(modifier = Modifier.weight(1f)) {
+                            TransactionDatePicker(
+                                modifier = Modifier.testTag("until"),
+                                label = "Until",
+                                value = state.until.value?.formatted,
+                                datePickerState = dateUntilPickerState,
+                                showDialog = state.until.showDatePicker,
+                                onToggleDatePicker = { onAction(ToggleUntilDatePicker) },
+                                onDateSelected = { onAction(DateUntilSelected(it)) },
+                            )
+                        }
+                    } else {
+                        Spacer(modifier = Modifier.weight(1f))
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                HorizontalDivider(modifier = Modifier.testTag("divider"), thickness = 1.dp)
+
                 Column(
-                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp, bottom = 8.dp).testTag("categoryContainer")
+                    modifier = Modifier.fillMaxWidth().padding(top = 12.dp).testTag("categoryContainer")
                 ) {
                     CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.secondary) {
                         Text(
@@ -437,57 +505,6 @@ internal fun TransactionComponentImpl(
                         onDelete = {
                             categoryToRemove.value = it
                         }) { it.name }
-                }
-
-                HorizontalDivider(modifier = Modifier.testTag("divider"), thickness = 1.dp)
-
-                Spacer(modifier = Modifier.height(4.dp))
-
-                TransactionDatePicker(
-                    label = "Date",
-                    value = state.date.value?.formatted,
-                    modifier = Modifier.testTag("date"),
-                    datePickerState = datePickerState,
-                    showDialog = state.date.showDatePicker,
-                    onToggleDatePicker = { onAction(ToggleDatePicker) },
-                    onDateSelected = { onAction(DateSelected(it)) },
-                )
-
-                // Повторяемость показывается сразу: это ядро продукта, и прятать её до выбора
-                // даты означало прятать то, чем mani отличается от списка трат.
-                run {
-                    Column(Modifier.testTag("periodContainer")) {
-                        CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.secondary) {
-                            Text(
-                                "Repeat",
-                                style = MaterialTheme.typography.labelMedium,
-                                modifier = Modifier.padding(
-                                    start = 16.dp, top = 16.dp, bottom = 4.dp
-                                )
-                            )
-                        }
-
-                        ChipsSelector(
-                            state.periods,
-                            state.period,
-                            state.periodsExpanded,
-                            { onAction(ExpandPeriodClicked) },
-                            { onAction(PeriodChanged(it)) }) { item ->
-                            stringResource(item.stringResource)
-                        }
-                    }
-
-                    AnimatedVisibility(state.period != Transaction.Period.OneTime) {
-                        TransactionDatePicker(
-                            modifier = Modifier.padding(top = 8.dp).testTag("until"),
-                            label = "Repeat until",
-                            value = state.until.value?.formatted,
-                            datePickerState = dateUntilPickerState,
-                            showDialog = state.until.showDatePicker,
-                            onToggleDatePicker = { onAction(ToggleUntilDatePicker) },
-                            onDateSelected = { onAction(DateUntilSelected(it)) },
-                        )
-                    }
                 }
             }
         }
