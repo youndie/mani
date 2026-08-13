@@ -119,7 +119,7 @@ class TransactionViewModelTest : KoinTest {
         assertEquals(Transaction.Period.OneTime, viewModel.observe.value.period)
 
         assertEquals(
-            viewModel.observe.value.futureInformation.toString(), "\u2212100 $ on 01/02/2000"
+            viewModel.observe.value.futureInformation.toString(), "\u2212100 $ on 2 Jan 2000"
         )
 
         viewModel.onPeriodChanged(Transaction.Period.TwoWeek)
@@ -129,7 +129,7 @@ class TransactionViewModelTest : KoinTest {
 
         assertEquals(
             viewModel.observe.value.futureInformation.toString(),
-            "\u2212100 $ from 01/02/2000. In 3 month's repeat 7 times, total: \u2212700 $"
+            "\u2212100 $ from 2 Jan 2000. In 3 month's repeat 7 times, total: \u2212700 $"
         )
 
         viewModel.onSubmitClicked()
@@ -158,14 +158,14 @@ class TransactionViewModelTest : KoinTest {
         viewModel.onPeriodChanged(Transaction.Period.Day)
 
         assertEquals(
-            "\u2212100 \$ from 01/02/2000. In 3 month's repeat 91 times, total: \u22129\u00A0100 \$",
+            "\u2212100 \$ from 2 Jan 2000. In 3 month's repeat 91 times, total: \u22129\u00A0100 \$",
             viewModel.observe.value.futureInformation.toString()
         )
 
         viewModel.onDateUntilSelected(LocalDate(2000, 2, 2))
 
         assertEquals(
-            "\u2212100 \$ from 01/02/2000 to 02/02/2000 repeat 31 times, total: \u22123\u00A0100 \$",
+            "\u2212100 \$ from 2 Jan 2000 to 2 Feb 2000 repeat 31 times, total: \u22123\u00A0100 \$",
             viewModel.observe.value.futureInformation.toString()
         )
     }
@@ -183,7 +183,7 @@ class TransactionViewModelTest : KoinTest {
         viewModel.onPeriodChanged(Transaction.Period.Month)
 
         assertEquals(
-            "\u2212100 \$ from 01/02/2000. In 1 year's repeat 12 times, total: \u22121\u00A0200 \$",
+            "\u2212100 \$ from 2 Jan 2000. In 1 year's repeat 12 times, total: \u22121\u00A0200 \$",
             viewModel.observe.value.futureInformation.toString()
         )
     }

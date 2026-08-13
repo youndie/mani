@@ -12,16 +12,26 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement.Absolute.spacedBy
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CornerSize
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalFocusManager
@@ -39,6 +49,8 @@ import kotlinx.coroutines.launch
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.format
+import kotlinx.datetime.format.MonthNames
+import kotlinx.datetime.format.Padding
 import kotlinx.datetime.format.char
 import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.stringResource
@@ -168,7 +180,7 @@ internal fun <T> ChipsSelector(
         }
 
         if (showCreateNew) {
-            AssistChip(onClick = onCreateNew, label = { Text("Add") }, leadingIcon = {
+            AssistChip(onClick = onCreateNew, label = { Text("New") }, leadingIcon = {
                 Icon(
                     Icons.Filled.Add, contentDescription = "add", Modifier.size(AssistChipDefaults.IconSize)
                 )
@@ -241,6 +253,111 @@ fun CategoryDeleteDialog(
 
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+/** Подпись над полем: моноширинная, в разрядку — служебная метка, а не текст. */
+@Composable
+private fun FieldLabel(text: String) {
+    Text(
+        text.uppercase(),
+        modifier = Modifier.padding(bottom = 6.dp),
+        style = MaterialTheme.typography.labelSmall.copy(
+            fontFamily = LocalManiFonts.current.mono,
+            fontWeight = FontWeight.W500,
+            letterSpacing = 1.4.sp,
+        ),
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+}
+
+/** Стрелка в переключателе: вниз — расход, вверх — доход. Галочка о направлении не говорит. */
+@Composable
+private fun DirectionIcon(icon: ImageVector) {
+    Icon(icon, contentDescription = null, modifier = Modifier.size(18.dp))
+}
+
+/**
+ * Сумма — самое крупное на экране, как в макете.
+ *
+ * Обычное поле с плавающей меткой уравнивало её с комментарием, хотя правило состоит прежде
+ * всего из числа. Подчёркивание рисуется на всю строку, а не под полем: справа на той же линии
+ * стоит расшифровка «−340 $ each month», и она часть той же записи.
+ */
+@Composable
+private fun AmountField(
+    state: TransactionUiState,
+    focusRequester: FocusRequester,
+    onAmountChanged: (String) -> Unit,
+    onNext: () -> Unit,
+) {
+    val underline = MaterialTheme.colorScheme.primary
+
+    Column {
+        FieldLabel("Amount")
+
+        Row(
+            modifier = Modifier.fillMaxWidth().drawBehind {
+                val y = size.height - 1.dp.toPx()
+                drawLine(underline, Offset(0f, y), Offset(size.width, y), strokeWidth = 2.dp.toPx())
+            },
+            verticalAlignment = Alignment.Bottom,
+        ) {
+            // Голое поле, а не `TextField`: у материального свои отступы, из-за которых число
+            // отъезжало вправо от собственной подписи, и своя подложка, которой в макете нет.
+            val amountStyle = MaterialTheme.typography.displaySmall.copy(
+                fontFamily = LocalManiFonts.current.mono,
+                fontWeight = FontWeight.W500,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+
+            BasicTextField(
+                state.amount,
+                onAmountChanged,
+                modifier = Modifier.weight(1f).padding(vertical = 8.dp)
+                    .focusRequester(focusRequester).testTag("amount"),
+                textStyle = amountStyle,
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Number, imeAction = ImeAction.Next
+                ),
+                keyboardActions = KeyboardActions(onNext = { onNext() }),
+                visualTransformation = CurrencyVisualTransformation(state.currency),
+                cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                decorationBox = { inner ->
+                    if (state.amount.isEmpty()) {
+                        Text("0", style = amountStyle, color = MaterialTheme.colorScheme.outline)
+                    }
+                    inner()
+                },
+            )
+
+            // Что получится из введённого: сумма со знаком и как часто она повторится. Раньше
+            // проверить себя можно было только сохранив правило.
+            if (state.amount.isNotBlank()) {
+                Text(
+                    run {
+                        val periodText = stringResource(state.period.stringResource)
+                        val amount = buildColoredAmount(
+                            state.amount,
+                            currency = state.currency,
+                            sign = state.income,
+                        )
+                        buildAnnotatedString {
+                            append(amount)
+                            append(" ")
+                            // «Every month» → «each month»: подпись читается фразой, а не меткой.
+                            append(periodText.replaceFirst("Every", "each").lowercase())
+                        }
+                    },
+                    style = MaterialTheme.typography.labelMedium.copy(
+                        fontFamily = LocalManiFonts.current.mono
+                    ),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = 12.dp, bottom = 14.dp).testTag("amountPreview"),
+                )
+            }
+        }
+    }
+}
+
 @Composable
 private fun TransactionComponentImpl(transactionId: String?, onNavigateBack: () -> Unit) {
     val viewModel = koinViewModel<BaseTransactionViewModel>(
@@ -338,175 +455,122 @@ internal fun TransactionComponentImpl(
     Column(
         modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(bottom = 24.dp),
     ) {
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors().copy(containerColor = MaterialTheme.colorScheme.surfaceContainer),
-            shape = MaterialTheme.shapes.medium.copy(
-                topStart = CornerSize(0.dp), topEnd = CornerSize(0.dp)
-            )
+        // Поля лежат на общем фоне экрана: в макете приподнята только нижняя полоса с итогом, а
+        // карточка вокруг всей формы делала из неё отдельный предмет внутри экрана.
+        Column(
+            modifier = Modifier.widthIn(max = 640.dp).align(Alignment.CenterHorizontally)
+                .padding(horizontal = 20.dp).padding(top = 8.dp),
+            verticalArrangement = spacedBy(20.dp)
         ) {
-            Column(
-                modifier = Modifier.widthIn(max = 640.dp).align(Alignment.CenterHorizontally)
-                    .padding(start = 24.dp, end = 24.dp, top = 16.dp, bottom = 32.dp),
-                verticalArrangement = spacedBy(8.dp)
-            ) {
-                // Порядок блоков — как в макете и как человек думает о правиле: сначала знак
-                // (трачу или получаю), потом сколько, потом как часто, потом с какого дня и по
-                // какой, и лишь в конце — необязательная категория.
-                //
-                // Расход или доход чекбоксом не задаётся: выбор из двух равноправных вариантов
-                // читается переключателем, а включённый по умолчанию «Income» ещё и врал про
-                // частоту — расходы вносят чаще.
-                SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth().testTag("income")) {
-                    SegmentedButton(
-                        selected = !state.income,
-                        onClick = { onAction(IncomeChanged(false)) },
-                        shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
-                        modifier = Modifier.testTag("expense"),
-                    ) {
-                        Text("Expense")
-                    }
-                    SegmentedButton(
-                        selected = state.income,
-                        onClick = { onAction(IncomeChanged(true)) },
-                        shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
-                    ) {
-                        Text("Income")
-                    }
+            // Порядок блоков — как в макете и как человек думает о правиле: сначала знак
+            // (трачу или получаю), потом сколько, потом как часто, потом с какого дня и по
+            // какой, и лишь в конце — необязательная категория.
+            //
+            // Расход или доход чекбоксом не задаётся: выбор из двух равноправных вариантов
+            // читается переключателем, а включённый по умолчанию «Income» ещё и врал про
+            // частоту — расходы вносят чаще.
+            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth().testTag("income")) {
+                SegmentedButton(
+                    selected = !state.income,
+                    onClick = { onAction(IncomeChanged(false)) },
+                    shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
+                    modifier = Modifier.testTag("expense"),
+                    icon = { DirectionIcon(Icons.Filled.KeyboardArrowDown) },
+                ) {
+                    Text("Expense")
                 }
+                SegmentedButton(
+                    selected = state.income,
+                    onClick = { onAction(IncomeChanged(true)) },
+                    shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
+                    icon = { DirectionIcon(Icons.Filled.KeyboardArrowUp) },
+                ) {
+                    Text("Income")
+                }
+            }
 
-                OutlinedTextField(
-                    state.amount,
-                    { onAction(AmountChanged(it)) },
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Number, imeAction = ImeAction.Next
-                    ),
-                    keyboardActions = KeyboardActions(onNext = { onAction(ToggleDatePicker) }),
-                    modifier = Modifier.fillMaxWidth().padding(top = 4.dp).focusRequester(focusRequester)
-                        .testTag("amount"),
-                    maxLines = 1,
-                    visualTransformation = CurrencyVisualTransformation(state.currency),
-                    label = { Text("Amount") })
+            AmountField(
+                state = state,
+                focusRequester = focusRequester,
+                onAmountChanged = { onAction(AmountChanged(it)) },
+                onNext = { onAction(ToggleDatePicker) },
+            )
 
-                // Что получится из введённого, прямо под полем: сумма со знаком и как часто она
-                // повторится. Раньше проверить себя можно было только сохранив правило.
-                AnimatedVisibility(state.amount.isNotBlank()) {
-                    Text(
-                        run {
-                            val periodText = stringResource(state.period.stringResource)
-                            val amount = buildColoredAmount(
-                                state.amount,
-                                currency = state.currency,
-                                sign = state.income,
-                            )
-                            buildAnnotatedString {
-                                append(amount)
-                                append(" ")
-                                // «Every month» → «each month»: подпись читается фразой, а не меткой.
-                                append(periodText.replaceFirst("Every", "each").lowercase())
-                            }
-                        },
-                        style = MaterialTheme.typography.labelMedium.copy(
-                            fontFamily = LocalManiFonts.current.mono
-                        ),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(start = 4.dp, bottom = 4.dp).testTag("amountPreview"),
+            // Повторяемость показывается сразу: это ядро продукта, и прятать её до выбора
+            // даты означало прятать то, чем mani отличается от списка трат.
+            Column(Modifier.testTag("periodContainer")) {
+                FieldLabel("Repeats")
+
+                ChipsSelector(
+                    state.periods,
+                    state.period,
+                    state.periodsExpanded,
+                    { onAction(ExpandPeriodClicked) },
+                    { onAction(PeriodChanged(it)) }) { item ->
+                    stringResource(item.stringResource)
+                }
+            }
+
+            // Начало и конец — одна пара, поэтому в одной строке: «с какого дня и по какой»
+            // читается вместе. Для разовой траты второго поля нет, но место под него
+            // остаётся — строка не прыгает при смене повторяемости.
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = spacedBy(12.dp),
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    FieldLabel("Starts")
+                    TransactionDatePicker(
+                        value = state.date.value?.formatted,
+                        placeholder = "pick a day",
+                        modifier = Modifier.testTag("date"),
+                        datePickerState = datePickerState,
+                        showDialog = state.date.showDatePicker,
+                        onToggleDatePicker = { onAction(ToggleDatePicker) },
+                        onDateSelected = { onAction(DateSelected(it)) },
                     )
                 }
 
-                // Повторяемость показывается сразу: это ядро продукта, и прятать её до выбора
-                // даты означало прятать то, чем mani отличается от списка трат.
-                Column(Modifier.padding(top = 8.dp).testTag("periodContainer")) {
-                    CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.secondary) {
-                        Text(
-                            "Repeats",
-                            style = MaterialTheme.typography.labelMedium,
-                            modifier = Modifier.padding(
-                                start = 16.dp, bottom = 4.dp
-                            )
-                        )
-                    }
-
-                    ChipsSelector(
-                        state.periods,
-                        state.period,
-                        state.periodsExpanded,
-                        { onAction(ExpandPeriodClicked) },
-                        { onAction(PeriodChanged(it)) }) { item ->
-                        stringResource(item.stringResource)
-                    }
-                }
-
-                // Начало и конец — одна пара, поэтому в одной строке: «с какого дня и по какой»
-                // читается вместе. Для разовой траты второго поля нет, но место под него
-                // остаётся — строка не прыгает при смене повторяемости.
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                    horizontalArrangement = spacedBy(12.dp),
-                ) {
-                    Box(modifier = Modifier.weight(1f)) {
+                if (state.period != Transaction.Period.OneTime) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        FieldLabel("Until")
                         TransactionDatePicker(
-                            label = "Starts",
-                            value = state.date.value?.formatted,
-                            modifier = Modifier.testTag("date"),
-                            datePickerState = datePickerState,
-                            showDialog = state.date.showDatePicker,
-                            onToggleDatePicker = { onAction(ToggleDatePicker) },
-                            onDateSelected = { onAction(DateSelected(it)) },
+                            modifier = Modifier.testTag("until"),
+                            value = state.until.value?.formatted,
+                            // Пустое «до» — это не пропущенное поле, а «повторять без конца».
+                            placeholder = "forever",
+                            datePickerState = dateUntilPickerState,
+                            showDialog = state.until.showDatePicker,
+                            onToggleDatePicker = { onAction(ToggleUntilDatePicker) },
+                            onDateSelected = { onAction(DateUntilSelected(it)) },
                         )
                     }
-
-                    if (state.period != Transaction.Period.OneTime) {
-                        Box(modifier = Modifier.weight(1f)) {
-                            TransactionDatePicker(
-                                modifier = Modifier.testTag("until"),
-                                label = "Until",
-                                value = state.until.value?.formatted,
-                                datePickerState = dateUntilPickerState,
-                                showDialog = state.until.showDatePicker,
-                                onToggleDatePicker = { onAction(ToggleUntilDatePicker) },
-                                onDateSelected = { onAction(DateUntilSelected(it)) },
-                            )
-                        }
-                    } else {
-                        Spacer(modifier = Modifier.weight(1f))
-                    }
+                } else {
+                    Spacer(modifier = Modifier.weight(1f))
                 }
+            }
 
-                Spacer(modifier = Modifier.height(8.dp))
+            Column(
+                modifier = Modifier.fillMaxWidth().testTag("categoryContainer")
+            ) {
+                FieldLabel("Category")
 
-                HorizontalDivider(modifier = Modifier.testTag("divider"), thickness = 1.dp)
-
-                Column(
-                    modifier = Modifier.fillMaxWidth().padding(top = 12.dp).testTag("categoryContainer")
-                ) {
-                    CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.secondary) {
-                        Text(
-                            "Category",
-                            style = MaterialTheme.typography.labelMedium,
-                            modifier = Modifier.padding(
-                                start = 16.dp, bottom = 4.dp
-                            )
-                        )
-                    }
-
-                    ChipsSelector(
-                        state.categories,
-                        state.category,
-                        state.categoriesExpanded,
-                        { onAction(ExpandCategoryClicked) },
-                        { onAction(CategoryChanged(it)) },
-                        showCreateNew = true,
-                        deleteEnabled = {
-                            it != Category.default
-                        },
-                        onCreateNew = {
-                            showCreateCategoryDialog.value = true
-                        },
-                        onDelete = {
-                            categoryToRemove.value = it
-                        }) { it.name }
-                }
+                ChipsSelector(
+                    state.categories,
+                    state.category,
+                    state.categoriesExpanded,
+                    { onAction(ExpandCategoryClicked) },
+                    { onAction(CategoryChanged(it)) },
+                    showCreateNew = true,
+                    deleteEnabled = {
+                        it != Category.default
+                    },
+                    onCreateNew = {
+                        showCreateCategoryDialog.value = true
+                    },
+                    onDelete = {
+                        categoryToRemove.value = it
+                    }) { it.name }
             }
         }
 
@@ -517,19 +581,21 @@ internal fun TransactionComponentImpl(
 
             val keyboardController = LocalSoftwareKeyboardController.current
 
+            // Однострочное поле без плавающей метки: комментарий — это одно короткое название
+            // вроде «Dining out», а не абзац, и подпись под полем объясняет, где оно всплывёт.
             OutlinedTextField(
                 state.comment,
                 { onAction(CommentChanged(it)) },
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp).testTag("comment"),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp).testTag("comment"),
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
                 keyboardActions = KeyboardActions(
                     onDone = { keyboardController?.hide() }),
-                minLines = 2,
-                label = { Text("Comment") })
+                singleLine = true,
+                placeholder = { Text("Dining out") })
 
             Text(
-                "shown in the feed",
-                modifier = Modifier.padding(start = 28.dp, top = 6.dp),
+                "comment — shown in the feed",
+                modifier = Modifier.padding(start = 22.dp, top = 6.dp),
                 style = MaterialTheme.typography.labelSmall.copy(fontFamily = LocalManiFonts.current.mono),
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -542,7 +608,7 @@ internal fun TransactionComponentImpl(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(MaterialTheme.colorScheme.surfaceContainer)
-                    .padding(horizontal = 24.dp, vertical = 20.dp),
+                    .padding(horizontal = 20.dp, vertical = 20.dp),
                 verticalArrangement = spacedBy(12.dp),
             ) {
                 AnimatedVisibility(state.amount.isNotBlank() && state.date.value != null) {
@@ -579,12 +645,13 @@ internal fun TransactionComponentImpl(
     }
 }
 
+/** «20 Aug 2026»: в макете дата написана словом — «08/20/2026» ещё и читается по-разному в мире. */
 val LocalDate.formatted
     get() = this.format(LocalDate.Format {
-        monthNumber()
-        char('/')
-        dayOfMonth()
-        char('/')
+        dayOfMonth(Padding.NONE)
+        char(' ')
+        monthName(MonthNames.ENGLISH_ABBREVIATED)
+        char(' ')
         year()
     })
 
