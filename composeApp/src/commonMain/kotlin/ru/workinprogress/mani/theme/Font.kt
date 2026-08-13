@@ -82,7 +82,9 @@ fun createTypography(
         parent.bodyLarge.copy(fontFamily = sans),
         parent.bodyMedium.copy(fontFamily = sans),
         parent.bodySmall.copy(fontFamily = sans),
-        parent.labelLarge.copy(fontFamily = sans),
+        // `labelLarge` — это надписи на кнопках и чипах. В макете они полужирные: кнопка должна
+        // читаться как кнопка, а не как строка текста внутри рамки.
+        parent.labelLarge.copy(fontFamily = sans, fontWeight = FontWeight.W600),
         parent.labelMedium.copy(fontFamily = mono),
         parent.labelSmall.copy(fontFamily = mono),
     )
