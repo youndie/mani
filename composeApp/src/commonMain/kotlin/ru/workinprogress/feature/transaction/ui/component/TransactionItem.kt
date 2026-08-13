@@ -21,6 +21,7 @@ import com.valentinilk.shimmer.shimmer
 import org.jetbrains.compose.resources.stringResource
 import ru.workinprogress.feature.transaction.ui.model.TransactionUiItem
 import ru.workinprogress.feature.transaction.ui.model.stringResource
+import ru.workinprogress.mani.theme.LocalManiFonts
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -78,9 +79,11 @@ fun TransactionItem(
             )
         },
         trailingContent = {
+            // Суммы моноширинным: в списке они стоят колонкой, и разная ширина знака её ломает.
             Text(
                 transaction.amountText.takeIf { !loadingMode } ?: AnnotatedString("     "),
-                loadingModifier
+                loadingModifier,
+                fontFamily = LocalManiFonts.current.mono
             )
         },
         headlineContent = {

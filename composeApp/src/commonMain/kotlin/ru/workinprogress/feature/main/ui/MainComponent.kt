@@ -359,7 +359,9 @@ internal fun MainContent(
             Row(
                 modifier = Modifier.fillMaxHeight().padding(start = 24.dp)
             ) {
-                Column(modifier = Modifier.padding(top = 48.dp)) {
+                // Ширина колонки ограничена: график теперь тянется по ширине родителя, и без
+                // потолка левая колонка забирала всю строку, а списку не оставалось места.
+                Column(modifier = Modifier.widthIn(max = 520.dp).padding(top = 48.dp)) {
                     chart()
                     futureInfo()
                 }

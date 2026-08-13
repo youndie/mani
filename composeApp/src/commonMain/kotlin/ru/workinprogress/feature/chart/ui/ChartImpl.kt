@@ -68,9 +68,14 @@ fun ChartImpl(
             CardDefaults
                 .cardColors()
                 .copy(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+        // Ширина берётся от родителя, а не задаётся числом: карточка в 496 dp на телефоне
+        // обрезалась, а в окне ноутбука оставляла мёртвые поля по бокам. Высота ограничена
+        // сверху, чтобы на широком экране график не превращался в полосу во весь экран.
         modifier =
             Modifier
-                .size(width = CHART_MAX_WIDTH.dp, height = CHART_MAX_HEIGHT.dp)
+                .fillMaxWidth()
+                .widthIn(max = CHART_MAX_WIDTH.dp)
+                .heightIn(max = CHART_MAX_HEIGHT.dp)
                 .aspectRatio(3 / 2f)
                 .border(2.dp, Color.Transparent, RoundedCornerShape(12.dp)),
         elevation = CardDefaults.elevatedCardElevation(2.dp),

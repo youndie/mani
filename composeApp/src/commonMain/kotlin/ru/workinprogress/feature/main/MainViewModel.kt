@@ -258,11 +258,15 @@ class MainViewModel(
 					else acc + entry.value.sumOf { it.amountSigned }
 				}.last()
 
-			val nextTransaction = simulationResult.entries.filter { entry ->
+			// День берётся из ключа, а не из `transaction.date`: симуляция раскладывает по дням
+			// один и тот же объект, и его `date` — день заведения правила. Иначе «следующая
+			// транзакция» показывала дату из прошлого.
+			val nextEntry = simulationResult.entries.filter { entry ->
 				entry.key > today
 			}.firstOrNull { entry ->
 				entry.value.isNotEmpty()
-			}?.value?.firstOrNull()
+			}
+			val nextTransaction = nextEntry?.value?.firstOrNull()
 
 			append("balance: ")
 			append(buildColoredAmount(todayAmount, currency))
@@ -275,7 +279,7 @@ class MainViewModel(
 			append("\n")
 
 			nextTransaction?.let {
-				append("next transaction ${nextTransaction.date.format(localDateFormat)}: ")
+				append("next transaction ${nextEntry?.key?.format(localDateFormat)}: ")
 				append(buildColoredAmount(nextTransaction.amountSigned, currency))
 				append("\n")
 			}

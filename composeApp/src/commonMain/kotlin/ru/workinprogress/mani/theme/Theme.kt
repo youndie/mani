@@ -6,6 +6,7 @@ import androidx.compose.material3.MaterialTheme.typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 
 private val lightScheme = lightColorScheme(
     primary = primaryLight,
@@ -242,10 +243,14 @@ fun AppTheme(
     dynamicColor: Boolean = true,
     content: @Composable() () -> Unit
 ) {
-    MaterialTheme(
-        colorScheme = if (darkTheme) darkScheme else lightScheme,
-        typography = createTypography(typography, fontFamily()),
-        content = content
-    )
+    val fonts = ManiFonts(sans = sansFamily(), mono = monoFamily())
+
+    CompositionLocalProvider(LocalManiFonts provides fonts) {
+        MaterialTheme(
+            colorScheme = if (darkTheme) darkScheme else lightScheme,
+            typography = createTypography(typography, fonts.sans, fonts.mono),
+            content = content
+        )
+    }
 }
 
