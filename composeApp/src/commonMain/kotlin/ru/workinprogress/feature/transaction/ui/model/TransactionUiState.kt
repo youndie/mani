@@ -42,7 +42,11 @@ data class TransactionUiState(
 	val periodsExpanded get() = periods != defaultPeriods
 	val categoriesExpanded get() = true
 
-	val valid get() = amount.toDoubleOrNull() != null
+	/**
+	 * Дата обязательна: правило без неё не разворачивается в календарь, а кнопка «Create»
+	 * при одной введённой сумме приглашала сохранить то, что сохранить нельзя.
+	 */
+	val valid get() = amount.toDoubleOrNull() != null && date.value != null
 	val tempTransaction get() = buildTransaction(this)
 
 	private fun buildTransaction(stateValue: TransactionUiState): Transaction {

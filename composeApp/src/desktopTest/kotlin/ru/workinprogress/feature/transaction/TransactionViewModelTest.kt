@@ -275,6 +275,10 @@ class TransactionViewModelTest : KoinTest {
         viewModel.onAmountChanged("100")
         viewModel.onCommentChanged("anotherTest")
 
+        // Одной суммы мало: правило без даты не разворачивается в календарь.
+        assertFalse(viewModel.observe.value.valid)
+
+        viewModel.onDateSelected(LocalDate(2000, 1, 2))
         assertTrue(viewModel.observe.value.valid)
 
         withError = true

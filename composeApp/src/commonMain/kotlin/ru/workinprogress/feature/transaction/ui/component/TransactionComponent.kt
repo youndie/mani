@@ -374,8 +374,9 @@ internal fun TransactionComponentImpl(
                             )
                             buildAnnotatedString {
                                 append(amount)
-                                append(" · ")
-                                append(periodText)
+                                append(" ")
+                                // «Every month» → «each month»: подпись читается фразой, а не меткой.
+                                append(periodText.replaceFirst("Every", "each").lowercase())
                             }
                         },
                         style = MaterialTheme.typography.labelMedium.copy(
@@ -452,7 +453,9 @@ internal fun TransactionComponentImpl(
                     onDateSelected = { onAction(DateSelected(it)) },
                 )
 
-                if (state.date.value != null) {
+                // Повторяемость показывается сразу: это ядро продукта, и прятать её до выбора
+                // даты означало прятать то, чем mani отличается от списка трат.
+                run {
                     Column(Modifier.testTag("periodContainer")) {
                         CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.secondary) {
                             Text(
