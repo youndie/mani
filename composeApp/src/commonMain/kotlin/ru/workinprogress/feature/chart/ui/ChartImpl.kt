@@ -60,10 +60,14 @@ fun ChartImpl(
     // Сделано градиентом, а не вторым слоем поверх: заливка натягивается на границы самой линии,
     // и доля считается по индексам данных — подгонять её к внутренним отступам чужого графика
     // не нужно, а значит нечему и разъехаться.
+    // Индекс дня, с которого баланс уходит в минус: по нему красится линия и ставится отметка.
+    val crossingIndex = remember(values) {
+        values.indexOfFirst { it.signum() < 0 }.takeIf { it > 0 && values.size > 1 }
+    }
+
     val lineBrush =
         remember(values, color, error) {
-            val crossing = values.indexOfFirst { it.signum() < 0 }
-            val fraction = crossing.takeIf { it > 0 && values.size > 1 }
+            val fraction = crossingIndex
                 ?.let { it.toFloat() / (values.size - 1) }
                 ?.coerceIn(0.02f, 0.98f)
 
@@ -144,6 +148,16 @@ fun ChartImpl(
                             ZeroLineProperties(
                                 enabled = true,
                                 color = SolidColor(secondary),
+                            ),
+                        // Пунктирная вертикаль в день обнуления и кружок на нулевой линии — та
+                        // самая отметка из макета.
+                        zeroCrossingProperties =
+                            ZeroCrossingProperties(
+                                enabled = true,
+                                index = crossingIndex,
+                                color = SolidColor(error),
+                                markerFill = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                underZeroFill = error.copy(alpha = .22f),
                             ),
                         dividerProperties = DividerProperties(enabled = false),
                         gridProperties =
