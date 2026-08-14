@@ -1,6 +1,8 @@
 package ru.workinprogress.feature.user.data
 
 import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.toList
 import ru.workinprogress.feature.auth.LoginParams
 import ru.workinprogress.feature.auth.data.hashing.HashingService
 import ru.workinprogress.feature.auth.data.hashing.SaltedHash
@@ -45,6 +47,20 @@ class MongknUserRepository(
 
     override suspend fun findByUsername(userName: String): User? =
         db.find { UserDb::username eq userName }.firstOrNull()?.toUser()
+
+    /**
+     * Фильтр собирается документом, а не через `eq`: нужен `$regex`, которого в scope-DSL нет.
+     * Префикс приходит константой из общего кода, поэтому экранировать в выражении нечего.
+     */
+    override suspend fun findByUsernamePrefix(prefix: String): List<User> =
+        db
+            .find(BsonDocument(UserDb::username.name to BsonDocument("\$regex" to BsonString("^$prefix"))))
+            .map { it.toUser() }
+            .toList()
+
+    override suspend fun delete(userId: String) {
+        db.deleteOne(byId(userId))
+    }
 }
 
 class MongknTokenRepository(

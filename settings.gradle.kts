@@ -25,8 +25,12 @@ dependencyResolutionManagement {
             }
         }
         mavenCentral()
-        // Desktop target has to add this repo
-        maven("https://jogamp.org/deployment/maven")
+        // Desktop target has to add this repo.
+        // Содержимое ограничено: репозиторий бывает недоступен, и без фильтра Gradle идёт в него
+        // за **любой** новой зависимостью, отключает по сетевой ошибке и роняет резолв целиком.
+        maven("https://jogamp.org/deployment/maven") {
+            content { includeGroupByRegex("org\\.jogamp.*") }
+        }
         maven("https://reposilite.kotlin.website/releases")
         // mongkn — драйвер MongoDB для Kotlin/Native. Публикуется в snapshots, релизной линии
         // у него пока нет; версия в каталоге зафиксирована, поэтому сборка воспроизводима.

@@ -49,10 +49,18 @@ class TransactionComponentTest : LifecycleOwner {
             }
 
             onNodeWithTag("amount").assertIsDisplayed().assertIsFocused()
+            // Доход/расход — переключатель из двух вариантов, а не чекбокс «Income»,
+            // включённый по умолчанию: расходы вносят чаще, и выбор здесь равноправный.
             onNodeWithTag("income").assertIsDisplayed()
+            onNodeWithTag("expense").assertIsDisplayed().assertIsSelected()
+            // Пока сумма не введена, показывать в подписи нечего.
+            onNodeWithTag("amountPreview").assertDoesNotExist()
             onNodeWithTag("categoryContainer").assertIsDisplayed()
-            onNodeWithTag("divider").assertIsDisplayed()
+            // Повторяемость и дата начала — на экране сразу, до ввода суммы: это ядро правила.
+            onNodeWithTag("periodContainer").assertIsDisplayed()
             onNodeWithTag("date").assertIsDisplayed()
+            // «До какого дня» показывается только у повторяющихся: у разовой траты его нет.
+            onNodeWithTag("until").assertDoesNotExist()
             onNodeWithTag("comment").assertIsDisplayed()
             onNodeWithTag("submit").assertIsDisplayed().assertIsNotEnabled()
         }

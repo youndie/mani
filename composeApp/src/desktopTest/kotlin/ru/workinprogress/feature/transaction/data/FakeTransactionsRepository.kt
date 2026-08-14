@@ -48,4 +48,8 @@ class FakeTransactionsRepository(
     override fun reset() {
         data.value = emptyList()
     }
+
+    @OptIn(kotlin.time.ExperimentalTime::class)
+    override val showingCacheFrom =
+        kotlinx.coroutines.flow.MutableStateFlow<kotlin.time.Instant?>(null)
 }

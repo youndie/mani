@@ -55,4 +55,7 @@ interface TransactionRepository {
     )
 
     suspend fun delete(id: String): Boolean
+
+    /** Все транзакции владельца разом. Нужно уборке песочниц. */
+    suspend fun deleteByUser(userId: String)
 }

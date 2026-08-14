@@ -2,6 +2,7 @@ package ru.workinprogress.feature.auth.ui.component
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -9,6 +10,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -24,6 +26,7 @@ import ru.workinprogress.feature.auth.domain.AuthUseCase
 import ru.workinprogress.feature.auth.domain.LoginUseCase
 import ru.workinprogress.feature.auth.ui.AuthViewModel
 import ru.workinprogress.feature.auth.ui.model.AuthComponentUiState
+import ru.workinprogress.mani.components.LoadingButton
 import ru.workinprogress.mani.components.MainAppBarState
 
 @Composable
@@ -88,6 +91,21 @@ fun LoginComponent(
             onUsernameChanged = viewModel::onUsernameChanged,
             onPasswordChanged = viewModel::onPasswordChanged,
             onButtonClicked = viewModel::onLoginClicked
+        )
+
+        // Главная дорожка витрины: посетителю нечего вводить, песочницу заводит сервер.
+        LoadingButton(
+            loading = state.value.demoLoading,
+            buttonText = "Try the demo",
+            modifier = Modifier.testTag("tryDemo"),
+            onButtonClicked = viewModel::onTryDemoClicked
+        )
+
+        Text(
+            "your own sandbox — no account, no password",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.secondary,
+            modifier = Modifier.padding(top = 4.dp)
         )
 
         TextButton(onSignupClicked) {

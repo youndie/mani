@@ -1,7 +1,12 @@
 package ru.workinprogress.mani.components
 
 import androidx.compose.animation.*
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
@@ -12,6 +17,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import ru.workinprogress.mani.theme.LocalManiFonts
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.IntOffset
 import kotlinx.collections.immutable.ImmutableSet
@@ -109,7 +117,35 @@ fun ManiAppBar(
         ) {
             TopAppBar(
                 modifier = Modifier,
-                title = { Text(if (appbarState.contextMode) appbarState.contextTitle.value else appbarState.title.value) },
+                title = {
+                    val text =
+                        if (appbarState.contextMode) appbarState.contextTitle.value else appbarState.title.value
+
+                    // На корневом экране заголовок — это словесный знак: точка и «mani»
+                    // моноширинным, как в макете. Там, где есть «назад», это уже название
+                    // места, куда человек зашёл, и набирается оно обычным текстом.
+                    if (!appbarState.showBack.value && !appbarState.contextMode) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            Box(
+                                Modifier
+                                    .size(9.dp)
+                                    .background(MaterialTheme.colorScheme.primary, CircleShape)
+                            )
+                            Text(
+                                text,
+                                style = MaterialTheme.typography.titleMedium.copy(
+                                    fontFamily = LocalManiFonts.current.mono,
+                                    fontWeight = FontWeight.W500,
+                                ),
+                            )
+                        }
+                    } else {
+                        Text(text)
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = if (appbarState.contextMode) {
                         MaterialTheme.colorScheme.surfaceContainerLow

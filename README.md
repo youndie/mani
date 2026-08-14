@@ -7,6 +7,10 @@
 ![Static Badge](https://img.shields.io/badge/Server(JVM)-red)
 ![Static Badge](https://img.shields.io/badge/Server(Kotlin%2FNative)-blueviolet)
 
+[![Tests](https://github.com/youndie/mani/actions/workflows/main.yml/badge.svg)](https://github.com/youndie/mani/actions/workflows/main.yml)
+[![Desktop](https://github.com/youndie/mani/actions/workflows/build_desktop.yml/badge.svg)](https://github.com/youndie/mani/actions/workflows/build_desktop.yml)
+[![Android](https://github.com/youndie/mani/actions/workflows/build_android.yml/badge.svg)](https://github.com/youndie/mani/actions/workflows/build_android.yml)
+
 A budget planner written end to end in Kotlin: [Compose Multiplatform](https://www.jetbrains.com/compose-multiplatform/)
 clients for Android, iOS, desktop and the browser, a [Ktor](https://ktor.io/) server that compiles
 both to the JVM and to a native Linux binary, and one shared module holding the API contract for
@@ -36,31 +40,30 @@ Live instance: **[mani.kotlin.website](https://mani.kotlin.website)**
 
 ## Running locally
 
-1. Point the clients at your machine in `shared/.../mani/Constants.kt`:
+No source edits required — the web client talks to whatever origin served it.
 
-   ```kotlin
-   val currentServerConfig: ServerConfig = ServerConfig(
-       name = "Local",
-       scheme = "http",
-       host = "<your-ip>",
-       development = true,
-       port = "8080"
-   )
-   ```
-
-2. Build the JVM server image:
+1. Build the JVM server image:
 
    ```bash
    ./gradlew publishImageToLocalRegistry
    ```
 
-3. Start it next to MongoDB:
+2. Start it next to MongoDB:
 
    ```bash
    docker compose up -d
    ```
 
-4. Open [http://localhost:8080/](http://localhost:8080/).
+3. Open [http://localhost:8080/](http://localhost:8080/) and press **Try the demo** — that
+   creates a sandbox account with a ready dataset, no sign-up.
+
+The desktop and mobile clients cannot read the page they came from, so they fall back to the
+address compiled into `shared/.../mani/Constants.kt`. Desktop takes an override from the
+environment:
+
+```bash
+MANI_SERVER=http://localhost:8080 ./gradlew :composeApp:run
+```
 
 ### Clients
 
@@ -69,7 +72,7 @@ Live instance: **[mani.kotlin.website](https://mani.kotlin.website)**
 ```
 
 ```bash
-./gradlew desktopRun            # desktop
+./gradlew :composeApp:run       # desktop
 ```
 
 ```bash
@@ -78,6 +81,30 @@ Live instance: **[mani.kotlin.website](https://mani.kotlin.website)**
 
 For iOS, open `iosApp/iosApp.xcodeproj` in Xcode, or use
 [Fleet](https://www.jetbrains.com/help/kotlin-multiplatform-dev/fleet.html).
+
+## Tests
+
+```bash
+./gradlew :shared:jvmTest :server-common:jvmTest :server:test :composeApp:desktopTest
+```
+
+The same set runs on every pull request.
+
+Screen layouts are checked separately, against recorded screenshots:
+
+```bash
+./gradlew :composeApp:screenshotTest
+```
+
+```bash
+VIDDIK_RECORD_MODE=true ./gradlew :composeApp:screenshotTest --rerun-tasks
+```
+
+**Record and verify these on Linux.** The goldens in `composeApp/src/desktopTest/snapshots` were
+recorded there, and the same code on macOS renders text differently enough to differ by 1–4% of
+the pixels — far past any tolerance worth keeping. That is also why this task is not part of the
+pull-request workflow: a golden that only reproduces on one operating system does not belong in a
+check that gates merges.
 
 ## Two server builds
 

@@ -20,6 +20,10 @@ coreSplashscreen = "1.2.0"
 deFlapdoodleEmbedMongo = "4.33.0"
 desugar_jdk_libs = "2.1.5"
 junit = "4.13.2"
+ksp = "2.3.11"
+viddik = "0.0.1.6"
+junitJupiter = "5.11.4"
+junitPlatform = "1.11.4"
 kotlin = "2.4.10"
 kotlinxCollectionsImmutable = "0.5.1"
 kotlinxDatetime = "0.7.1"
@@ -64,6 +68,11 @@ koin-test-junit4 = { module = "io.insert-koin:koin-test-junit4", version.ref = "
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 kotlin-test-junit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
+viddik-annotations = { module = "ru.workinprogress:viddik-annotations", version.ref = "viddik" }
+viddik-testingCore = { module = "ru.workinprogress:viddik-testing-core", version.ref = "viddik" }
+viddik-processor = { module = "ru.workinprogress:viddik-processor", version.ref = "viddik" }
+junitJupiter-engine = { module = "org.junit.jupiter:junit-jupiter-engine", version.ref = "junitJupiter" }
+junitPlatform-launcher = { module = "org.junit.platform:junit-platform-launcher", version.ref = "junitPlatform" }
 
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "androidx-activityCompose" }
 androidx-lifecycle-viewmodel = { group = "org.jetbrains.androidx.lifecycle", name = "lifecycle-viewmodel", version.ref = "androidx-lifecycle" }
@@ -132,6 +141,7 @@ multiplatform-settings = { module = "com.russhwolf:multiplatform-settings", vers
 multiplatform-settings-coroutines = { module = "com.russhwolf:multiplatform-settings-coroutines", version.ref = "multiplatformSettings" }
 multiplatform-settings-make-observable = { module = "com.russhwolf:multiplatform-settings-make-observable", version.ref = "multiplatformSettings" }
 multiplatform-settings-no-arg = { module = "com.russhwolf:multiplatform-settings-no-arg", version.ref = "multiplatformSettings" }
+multiplatform-settings-test = { module = "com.russhwolf:multiplatform-settings-test", version.ref = "multiplatformSettings" }
 multiplatform-settings-serialization = { module = "com.russhwolf:multiplatform-settings-serialization", version.ref = "multiplatformSettings" }
 navigation-compose = { module = "org.jetbrains.androidx.navigation:navigation-compose", version.ref = "navigationCompose" }
 slf4j-api = { module = "org.slf4j:slf4j-api", version.ref = "slf4jApi" }
@@ -144,6 +154,7 @@ androidx-compose-ui-tooling = { group = "androidx.compose.ui", name = "ui-toolin
 androidx-compose-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview", version.ref = "androidxCompose" }
 
 [plugins]
+ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 androidApplication = { id = "com.android.application", version.ref = "agp" }
 androidLibrary = { id = "com.android.library", version.ref = "agp" }
 androidKotlinMultiplatformLibrary = { id = "com.android.kotlin.multiplatform.library", version.ref = "agp" }

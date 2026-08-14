@@ -6,25 +6,36 @@ import androidx.compose.ui.text.withStyle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ionspin.kotlin.bignum.decimal.BigDecimal
+import kotlinx.collections.immutable.ImmutableMap
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.collections.immutable.toImmutableMap
 import kotlinx.collections.immutable.toImmutableSet
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.LocalTime
+import kotlinx.datetime.TimeZone
 import kotlinx.datetime.format
 import kotlinx.datetime.format.MonthNames
 import kotlinx.datetime.format.char
+import kotlinx.datetime.daysUntil
 import kotlinx.datetime.plus
+import kotlinx.datetime.toLocalDateTime
+import kotlin.time.Clock
+import kotlin.time.Duration.Companion.seconds
 import ru.workinprogress.feature.auth.domain.LogoutUseCase
 import ru.workinprogress.feature.categories.domain.GetCategoriesUseCase
 import ru.workinprogress.feature.currency.Currency
 import ru.workinprogress.feature.currency.GetCurrentCurrencyUseCase
+import ru.workinprogress.feature.demo.domain.SeedUseCase
 import ru.workinprogress.feature.main.ui.FiltersState
+import ru.workinprogress.feature.main.ui.ForecastUiState
 import ru.workinprogress.feature.main.ui.MainUiState
 import ru.workinprogress.feature.transaction.*
 import ru.workinprogress.feature.transaction.domain.DeleteTransactionsUseCase
@@ -32,7 +43,11 @@ import ru.workinprogress.feature.transaction.domain.GetTransactionsUseCase
 import ru.workinprogress.feature.transaction.ui.model.NegativeColor
 import ru.workinprogress.feature.transaction.ui.model.PositiveColor
 import ru.workinprogress.feature.transaction.ui.model.TransactionUiItem
-import ru.workinprogress.feature.transaction.ui.model.buildColoredAmount
+import ru.workinprogress.feature.transaction.ui.model.formatMoney
+import ru.workinprogress.feature.transaction.ui.model.formatMoneyAbsolute
+import ru.workinprogress.feature.main.ui.ServerUnreachableUiState
+import ru.workinprogress.mani.data.serverConfig
+import ru.workinprogress.mani.data.ServerException
 import ru.workinprogress.mani.emptyImmutableMap
 import ru.workinprogress.mani.today
 import ru.workinprogress.useCase.UseCase
@@ -45,6 +60,7 @@ class MainViewModel(
 	private val getCurrencyUseCase: GetCurrentCurrencyUseCase,
 	private val getCategoriesUseCase: GetCategoriesUseCase,
 	private val logoutUseCase: LogoutUseCase,
+	private val seedUseCase: SeedUseCase,
 	private val dispatcher: CoroutineDispatcher = Dispatchers.Default,
 ) : ViewModel() {
 
@@ -64,6 +80,9 @@ class MainViewModel(
 		}
 	}
 
+	private var retryJob: Job? = null
+	private var retryAttempt = 0
+
 	private suspend fun load() {
 		state.value = MainUiState(loading = true, transactions = loadingItems)
 
@@ -71,18 +90,23 @@ class MainViewModel(
 
 		when (result) {
 			is UseCase.Result.Error -> {
-				state.value = MainUiState(errorMessage = result.throwable.message)
+				// Показать нечего — ни свежего, ни сохранённого. Это не сообщение в углу, а
+				// состояние всего экрана, и у него должна быть причина и путь наружу.
+				state.value = MainUiState(unreachable = ServerUnreachableUiState(cause = describe(result.throwable)))
+				scheduleRetry()
 			}
 
 			is UseCase.Result.Success -> {
+				retryAttempt = 0
 				state.value = state.value.copy(loading = true, transactions = emptyImmutableMap())
 
 				combine(
 					result.data,
 					getCategoriesUseCase.get(),
 					filterUpcoming,
-					filterCategory
-				) { transactions, categories, upcoming, category ->
+					filterCategory,
+					transactionsUseCase.showingCacheFrom,
+				) { transactions, categories, upcoming, category, cacheFrom ->
 					val simulationResult = transactions.simulate()
 
 					MainUiState(
@@ -121,12 +145,46 @@ class MainViewModel(
 								}
 							}
 							.associate { it.key to it.value }.toImmutableMap(),
-						futureInformation = buildFutureInformation(simulationResult, currency)
+						forecast = buildForecast(simulationResult, currency),
+						dayBalances = buildDayBalances(simulationResult, currency),
+							showingCacheFrom = cacheFrom?.let(::formatTakenAt)
 					)
 				}.flowOn(dispatcher).collectLatest { result: MainUiState ->
 					state.update { result }
 				}
 			}
+		}
+	}
+
+	/** Повтор вручную: отсчёт сбрасывается, чтобы автоповтор не выстрелил поверх. */
+	fun onRetryClicked() {
+		retryJob?.cancel()
+		// Нажали руками — значит, ждать снова готовы: счётчик автоматических попыток обнуляется.
+		retryAttempt = 0
+		viewModelScope.launch { load() }
+	}
+
+	/**
+	 * Автоповтор с обратным отсчётом.
+	 *
+	 * Молча повторять нельзя: экран выглядел бы застывшим. Секунды на экране — обещание, что
+	 * приложение занято делом, а не ждёт, пока на него нажмут.
+	 */
+	private fun scheduleRetry() {
+		// Попытки не бесконечны: если сервера нет и через три захода, экран перестаёт дёргаться
+		// и ждёт человека. Бесконечный цикл к тому же держал бы приложение занятым в фоне.
+		if (retryAttempt >= MAX_RETRIES) return
+		retryAttempt++
+
+		retryJob?.cancel()
+		retryJob = viewModelScope.launch {
+			for (left in RETRY_SECONDS downTo 1) {
+				state.update { current ->
+					current.copy(unreachable = current.unreachable?.copy(retryInSeconds = left))
+				}
+				delay(1.seconds)
+			}
+			load()
 		}
 	}
 
@@ -181,6 +239,16 @@ class MainViewModel(
 	}
 
 
+	/** Заполнить пустой аккаунт данными сида — предложение с первого экрана. */
+	fun onFillWithDemoDataClicked() {
+		viewModelScope.launch {
+			val result = seedUseCase()
+			if (result is UseCase.Result.Error) {
+				state.update { it.copy(errorMessage = result.throwable.message) }
+			}
+		}
+	}
+
 	fun onProfileClicked() {
 		state.update { state ->
 			state.copy(showProfile = true)
@@ -228,6 +296,28 @@ class MainViewModel(
 		}
 
 
+		internal const val RETRY_SECONDS = 8
+		internal const val MAX_RETRIES = 3
+
+		/**
+		 * «HTTP 503 · mani.kotlin.website · 11:42:07».
+		 *
+		 * Код, адрес и время: по ним человек отличит «у меня нет сети» от «у них лежит сервер», а
+		 * в переписке это то, что имеет смысл переслать. Сообщение вида «Network Error» не
+		 * отличает ничего.
+		 */
+		internal fun describe(throwable: Throwable, at: LocalTime = nowLocalTime()): String {
+			val status = (throwable as? ServerException)?.status?.let { "HTTP $it" } ?: "no response"
+			return "$status · ${serverConfig.host} · ${at.format(timeFormat)}"
+		}
+
+		private fun nowLocalTime() =
+			Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).time
+
+		private val timeFormat = LocalTime.Format {
+			hour(); char(':'); minute(); char(':'); second()
+		}
+
 		private fun Map<LocalDate, List<Transaction>>.sumByMonth(monthDate: LocalDate) =
 			this
 				.filter {
@@ -235,98 +325,86 @@ class MainViewModel(
 							it.key.year == monthDate.year
 				}.flatMap { it.value }.sumOf { it.amountSigned }
 
-		internal fun buildFutureInformation(
+		/**
+		 * Собирает героя экрана: дату, когда деньги кончатся, и баланс на сегодня.
+		 *
+		 * Дни считаются от **ключа** карты, а не от `transaction.date`: симуляция раскладывает по
+		 * дням один и тот же объект, и его `date` — это день заведения правила.
+		 */
+		internal fun buildForecast(
 			simulationResult: Map<LocalDate, List<Transaction>>,
 			currency: Currency,
 			today: LocalDate = today(),
-		) = buildAnnotatedString {
+		): ForecastUiState {
+			if (simulationResult.values.all { it.isEmpty() }) return ForecastUiState.Empty
 
-			val localDateFormat = LocalDate.Format {
-				dayOfMonth()
-				char(' ')
-				monthName(MonthNames.ENGLISH_ABBREVIATED)
-				char(' ')
-				year()
-			}
-			val filteredTransactions =
-				simulationResult.filterValues { transactions -> transactions.isNotEmpty() }
-					.filterKeys { today <= it }
-
-			val todayAmount = simulationResult.entries
+			val balanceToday = simulationResult.entries
 				.runningFold(BigDecimal.ZERO) { acc, entry ->
 					if (entry.key > today) acc
 					else acc + entry.value.sumOf { it.amountSigned }
 				}.last()
 
-			val nextTransaction = simulationResult.entries.filter { entry ->
-				entry.key > today
-			}.firstOrNull { entry ->
-				entry.value.isNotEmpty()
-			}?.value?.firstOrNull()
+			val balanceText = formatMoney(balanceToday, currency)
+			val negativeDate = simulationResult.findZeroEvents().second
 
-			append("balance: ")
-			append(buildColoredAmount(todayAmount, currency))
-			append("\n")
-			append(
-				"today balance change: "
-			)
-			append(buildColoredAmount(filteredTransactions.filter { it.key == today }.entries.flatMap { it.value }
-				.sumOf { it.amountSigned }, currency))
-			append("\n")
+			// Дата в прошлом — не прогноз: баланс уже в минусе, и обещать «деньги кончатся» про
+			// вчера бессмысленно.
+			val runsOut = negativeDate?.takeIf { it > today }
+				?: return ForecastUiState.Steady(balanceText)
 
-			nextTransaction?.let {
-				append("next transaction ${nextTransaction.date.format(localDateFormat)}: ")
-				append(buildColoredAmount(nextTransaction.amountSigned, currency))
-				append("\n")
-			}
-
-			append(
-				"in month: "
-			)
-			append(
-				buildColoredAmount(
-					simulationResult.sumByMonth(today),
-					currency
-				)
-			)
-			append(
-				", in next month: "
-			)
-			append(
-				buildColoredAmount(
-					simulationResult.sumByMonth(today.plus(1, DateTimeUnit.MONTH)), currency
-				)
-			)
-			append("\n")
-
-			val (positiveDate, negativeDate) = simulationResult.findZeroEvents()
-
-			when {
-				(todayAmount > 0 && negativeDate != null) -> {
-					append("balance will become ")
-
-					withStyle(style = SpanStyle(color = NegativeColor)) {
-						append("negative: ")
-					}
-
-					append(negativeDate.format(localDateFormat))
+			// Самая низкая точка — то, насколько глубоко уходит минус, а не только когда он
+			// начнётся: «кончатся 12 октября» и «в минусе на 4 000» — разные новости.
+			val lowest = simulationResult.entries
+				.runningFold(BigDecimal.ZERO to today) { acc, entry ->
+					(acc.first + entry.value.sumOf { it.amountSigned }) to entry.key
 				}
+				.filter { it.second > today }
+				.minByOrNull { it.first }
+				// Только если она в минусе: «низшая точка 100 $» — не новость, а шум.
+				?.takeIf { it.first.signum() < 0 }
 
-				(todayAmount < 0 && positiveDate != null) -> {
-					append("balance will become ")
+			return ForecastUiState.RunsOut(
+				runsOutOn = runsOut.format(dayMonthFormat),
+				daysLeft = today.daysUntil(runsOut),
+				balanceToday = balanceText,
+				lowestPoint = lowest?.first?.let { "\u2212" + formatMoneyAbsolute(it, currency) },
+				lowestOn = lowest?.second?.format(dayMonthFormat),
+			)
+		}
 
-					withStyle(style = SpanStyle(color = PositiveColor)) {
-						append("positive: ")
-					}
+		/**
+		 * Баланс на конец каждого дня.
+		 *
+		 * Считается по **всей** симуляции, а не по видимой ленте: фильтр по категории — это способ
+		 * посмотреть, а не другая реальность, и баланс от него меняться не должен. Иначе лента и
+		 * линия графика показывали бы разные числа для одного дня.
+		 */
+		internal fun buildDayBalances(
+			simulationResult: Map<LocalDate, List<Transaction>>,
+			currency: Currency,
+		): ImmutableMap<LocalDate, String> {
+			var running = BigDecimal.ZERO
 
-					append(positiveDate.format(localDateFormat))
-				}
+			return simulationResult
+				.mapValues { (_, transactions) ->
+					running += transactions.sumOf { it.amountSigned }
+					formatMoney(running, currency)
+				}.toImmutableMap()
+		}
 
-				else -> {
-					append("no zero events")
-				}
-			}
+		private val dayMonthFormat = LocalDate.Format {
+			dayOfMonth()
+			char(' ')
+			monthName(MonthNames.ENGLISH_FULL)
 		}
 	}
 }
 
+/** «11:42» — время последнего удачного ответа, как в макете офлайна. */
+@OptIn(kotlin.time.ExperimentalTime::class)
+private fun formatTakenAt(at: kotlin.time.Instant): String =
+	at
+		.toLocalDateTime(kotlinx.datetime.TimeZone.currentSystemDefault())
+		.time
+		.toString()
+		.substringBeforeLast(':')

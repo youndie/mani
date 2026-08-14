@@ -1,9 +1,12 @@
 package ru.workinprogress.feature.transaction.domain
 
 import kotlinx.coroutines.flow.StateFlow
+import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
 import ru.workinprogress.feature.transaction.StateFlowRepository
 import ru.workinprogress.feature.transaction.Transaction
 
+@OptIn(ExperimentalTime::class)
 interface TransactionRepository : StateFlowRepository<Transaction> {
     override val dataStateFlow: StateFlow<List<Transaction>>
     override suspend fun load()
@@ -12,4 +15,12 @@ interface TransactionRepository : StateFlowRepository<Transaction> {
     override suspend fun update(params: Transaction): Boolean
     override suspend fun delete(transactionId: String): Boolean
     override fun reset()
+
+    /**
+     * Не `null` — сети не было, и показано последнее известное, снятое в это время.
+     *
+     * В интерфейсе, а не в реализации: экрану нужно об этом сказать, и знать про конкретный
+     * класс репозитория он для этого не должен.
+     */
+    val showingCacheFrom: StateFlow<Instant?>
 }

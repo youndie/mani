@@ -11,6 +11,7 @@ import ru.workinprogress.feature.categories.domain.DeleteCategoryUseCase
 import ru.workinprogress.feature.categories.domain.ObserveCategoriesUseCase
 import ru.workinprogress.feature.currency.GetCurrentCurrencyUseCase
 import ru.workinprogress.feature.transaction.domain.AddTransactionUseCase
+import ru.workinprogress.feature.transaction.domain.ObserveTransactionsUseCase
 import ru.workinprogress.feature.transaction.ui.model.TransactionUiState
 import ru.workinprogress.useCase.UseCase
 
@@ -20,8 +21,15 @@ class AddTransactionViewModel(
     observeCategoriesUseCase: ObserveCategoriesUseCase,
     deleteCategoryUseCase: DeleteCategoryUseCase,
     getCurrentCurrencyUseCase: GetCurrentCurrencyUseCase,
+    observeTransactionsUseCase: ObserveTransactionsUseCase,
     dispatcher: CoroutineDispatcher = Dispatchers.Default,
-) : BaseTransactionViewModel(addCategoryUseCase, observeCategoriesUseCase, deleteCategoryUseCase, dispatcher) {
+) : BaseTransactionViewModel(
+    addCategoryUseCase,
+    observeCategoriesUseCase,
+    deleteCategoryUseCase,
+    observeTransactionsUseCase,
+    dispatcher,
+) {
 
     init {
         viewModelScope.launch(dispatcher) {
@@ -33,6 +41,7 @@ class AddTransactionViewModel(
         }
 
         observeCategories()
+        observeTransactions()
     }
 
     override fun onSubmitClicked() {

@@ -10,9 +10,15 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import kotlinx.coroutines.delay
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.unit.dp
 import com.ionspin.kotlin.bignum.decimal.toBigDecimal
@@ -25,8 +31,15 @@ import ru.workinprogress.feature.transaction.ui.model.formatMoney
 import ru.workinprogress.utilz.bigdecimal.BigDecimalSerializable
 import kotlin.math.absoluteValue
 
-private const val CHART_MAX_HEIGHT = 320
-private const val CHART_MAX_WIDTH = 496
+/**
+ * Разворот линии. Был 1200 мс плюс 600 мс задержки заливки плюс каскад по 300 мс на серию —
+ * почти две секунды поверх многомегабайтной загрузки веб-сборки. Витрину открывают на десять
+ * секунд, и треть из них уходила на пустой прямоугольник.
+ */
+private const val ANIMATION_MS = 600
+
+private const val CHART_HEIGHT_COMPACT = 220
+private const val CHART_HEIGHT_EXPANDED = 320
 
 @Composable
 fun ChartImpl(
@@ -35,21 +48,60 @@ fun ChartImpl(
     todayIndexProvider: () -> Int,
     loading: Boolean,
     currency: Currency,
+    expanded: Boolean = false,
 ) {
     val color = MaterialTheme.colorScheme.primary
     val secondary = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+    val error = MaterialTheme.colorScheme.error
+
+    // Часть линии после нуля — красная, как в макете: день, когда деньги кончились, должен быть
+    // виден на самой линии, а не только в заголовке.
+    //
+    // Сделано градиентом, а не вторым слоем поверх: заливка натягивается на границы самой линии,
+    // и доля считается по индексам данных — подгонять её к внутренним отступам чужого графика
+    // не нужно, а значит нечему и разъехаться.
+    val lineBrush =
+        remember(values, color, error) {
+            val crossing = values.indexOfFirst { it.signum() < 0 }
+            val fraction = crossing.takeIf { it > 0 && values.size > 1 }
+                ?.let { it.toFloat() / (values.size - 1) }
+                ?.coerceIn(0.02f, 0.98f)
+
+            if (fraction == null) {
+                SolidColor(color)
+            } else {
+                // Две остановки в одной точке Skia молча схлопывает, и вся линия остаётся
+                // первого цвета — проверено снимком. Поэтому переход шириной в тысячную доли.
+                Brush.horizontalGradient(
+                    0f to color,
+                    (fraction - 0.001f) to color,
+                    (fraction + 0.001f) to error,
+                    1f to error,
+                )
+            }
+        }
+
+    // Разворот проигрывается один раз за жизнь экрана. Дальше данные меняются от фильтров и
+    // правок, и каждый раз перерисовывать линию с нуля — не показ, а мигание.
+    var alreadyShown by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        delay(ANIMATION_MS.toLong())
+        alreadyShown = true
+    }
 
     val data =
-        remember(values) {
+        remember(values, lineBrush) {
             listOf(
                 Line(
                     label = "Transactions",
                     values = values.map { it.doubleValue(false) },
-                    color = SolidColor(color),
+                    color = lineBrush,
                     firstGradientFillColor = color.copy(alpha = .5f),
                     secondGradientFillColor = Color.Transparent,
-                    strokeAnimationSpec = tween(1200, easing = EaseInOutCubic),
-                    gradientAnimationDelay = 600,
+                    strokeAnimationSpec =
+                        if (alreadyShown) tween(0) else tween(ANIMATION_MS, easing = EaseInOutCubic),
+                    gradientAnimationDelay = 0,
                     drawStyle = DrawStyle.Stroke(2.dp),
                     curvedEdges = false,
                     dotPointProperties =
@@ -68,10 +120,13 @@ fun ChartImpl(
             CardDefaults
                 .cardColors()
                 .copy(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+        // Ширину задаёт родитель, высоту — раскладка. Пропорция здесь была неуместна: при
+        // ограниченной сверху высоте `aspectRatio` возвращает размер, нарушающий ограничения,
+        // и карточка наезжала на соседей. Фиксированная высота предсказуема.
         modifier =
             Modifier
-                .size(width = CHART_MAX_WIDTH.dp, height = CHART_MAX_HEIGHT.dp)
-                .aspectRatio(3 / 2f)
+                .fillMaxWidth()
+                .height((if (expanded) CHART_HEIGHT_EXPANDED else CHART_HEIGHT_COMPACT).dp)
                 .border(2.dp, Color.Transparent, RoundedCornerShape(12.dp)),
         elevation = CardDefaults.elevatedCardElevation(2.dp),
     ) {
@@ -83,10 +138,8 @@ fun ChartImpl(
                     LineChart(
                         modifier = Modifier.fillMaxSize(),
                         data = data,
-                        animationMode =
-                            AnimationMode.Together(delayBuilder = {
-                                it * 300L
-                            }),
+                        // Серия здесь одна, и каскад по 300 мс на индекс только откладывал показ.
+                        animationMode = AnimationMode.Together(delayBuilder = { 0L }),
                         zeroLineProperties =
                             ZeroLineProperties(
                                 enabled = true,

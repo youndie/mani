@@ -20,6 +20,8 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -54,6 +56,7 @@ fun MainComponent(
     appBarState: MainAppBarState,
     snackbarHostState: SnackbarHostState,
     onTransactionClicked: (String) -> Unit,
+    onAddTransactionClicked: () -> Unit = {},
 ) {
     rememberKoinModules {
         listOf(module {
@@ -144,13 +147,20 @@ fun MainComponent(
         state.value.transactions,
         state.value.selectedTransactions,
         state.value.filtersState,
-        state.value.futureInformation,
+        state.value.forecast,
+        state.value.dayBalances,
+        state.value.showingCacheFrom,
         state.value.loading,
         appBarState.contextMode,
         { onTransactionClicked(it.id) },
         { viewModel.onTransactionSelected(it) },
         { viewModel.onUpcomingToggle(it) },
-        { viewModel.onCategorySelected(it) })
+        { viewModel.onCategorySelected(it) },
+        onAddFirstRule = onAddTransactionClicked,
+        onFillWithDemoData = viewModel::onFillWithDemoDataClicked,
+        unreachable = state.value.unreachable,
+        onRetry = viewModel::onRetryClicked,
+    )
 }
 
 @Composable
@@ -259,39 +269,26 @@ internal fun MainContent(
     transactions: ImmutableMap<LocalDate, ImmutableList<TransactionUiItem>> = persistentMapOf(),
     selectedTransactions: ImmutableList<TransactionUiItem> = persistentListOf(),
     filtersState: FiltersState = FiltersState(),
-    futureInformation: AnnotatedString = AnnotatedString(""),
+    forecast: ForecastUiState = ForecastUiState.Loading,
+    dayBalances: ImmutableMap<LocalDate, String> = persistentMapOf(),
+    showingCacheFrom: String? = null,
     loading: Boolean = false,
     contextMode: Boolean = false,
     onTransactionClicked: (TransactionUiItem) -> Unit = {},
     onTransactionSelected: (TransactionUiItem) -> Unit = {},
     onUpcomingToggle: (Boolean) -> Unit = {},
     onCategorySelected: (Category?) -> Unit = {},
-    chart: @Composable (() -> Unit) = remember { @Composable { ChartComponent() } }
+    onAddFirstRule: (() -> Unit)? = null,
+    onFillWithDemoData: (() -> Unit)? = null,
+    unreachable: ServerUnreachableUiState? = null,
+    onRetry: () -> Unit = {},
+    chart: @Composable ((Boolean) -> Unit) = remember { @Composable { expanded: Boolean -> ChartComponent(expanded = expanded) } }
 ) {
-    val futureInfo = remember(futureInformation) {
-        @Composable {
-            Column(
-                Modifier
-                    .padding(
-                        start = 24.dp,
-                        top = 12.dp,
-                        bottom = 16.dp,
-                        end = 24.dp
-                    ).testTag("futureInfo"),
-                verticalArrangement = Arrangement.spacedBy(2.dp)
-            ) {
-                if (loading) {
-                    FutureInfoShimmer()
-                } else {
-                    CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.secondary) {
-                        Text(
-                            futureInformation,
-                            style = MaterialTheme.typography.labelMedium
-                        )
-                    }
-                }
-            }
-        }
+    // Сервер не ответил и показать нечего — тогда весь экран об этом, а не лента-заглушка с
+    // сообщением в углу.
+    if (unreachable != null) {
+        ServerUnreachable(unreachable, onRetry = onRetry)
+        return
     }
 
     val filters = remember(filtersState) {
@@ -316,34 +313,30 @@ internal fun MainContent(
                 } + DefaultFabButtonPadding + DefaultFabButtonPadding + DefaultFabButtonSize)) {
                 item {
                     val handle = LocalPinnableContainer.current?.pin()
-                    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
-                        chart()
-                    }
-                }
-
-                item {
-                    futureInfo()
+                    ForecastAndChart(forecast, expanded = false, showingCacheFrom = showingCacheFrom, chart = chart)
                 }
 
                 item {
                     Spacer(Modifier.height(8.dp))
-                    HorizontalDivider(thickness = 1.dp)
-                    Spacer(Modifier.height(8.dp))
                 }
 
-                item {
-                    CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.secondary) {
-                        Text(
-                            "Transactions", modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp).then(
-                                if (loading) {
-                                    Modifier.shimmer()
-                                } else {
-                                    Modifier
-                                }
-                            ), style = MaterialTheme.typography.titleMedium
-                        )
+                // Заголовок ленты и фильтры — только когда есть что фильтровать: на первом
+                // запуске они стояли над пустотой двумя серыми заглушками.
+                if (loading || transactions.isNotEmpty()) {
+                    item {
+                        CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.secondary) {
+                            Text(
+                                "Transactions", modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp).then(
+                                    if (loading) {
+                                        Modifier.shimmer()
+                                    } else {
+                                        Modifier
+                                    }
+                                ), style = MaterialTheme.typography.titleMedium
+                            )
+                        }
+                        filters()
                     }
-                    filters()
                 }
 
                 transactionItemsOrEmpty(
@@ -352,23 +345,30 @@ internal fun MainContent(
                     loading,
                     contextMode,
                     onTransactionClicked,
-                    onTransactionSelected
+                    onTransactionSelected,
+                    dayBalances,
+                    onAddFirstRule,
+                    onFillWithDemoData,
                 )
             }
         } else {
             Row(
-                modifier = Modifier.fillMaxHeight().padding(start = 24.dp)
+                modifier = Modifier.fillMaxHeight().padding(start = 32.dp)
             ) {
-                Column(modifier = Modifier.padding(top = 48.dp)) {
-                    chart()
-                    futureInfo()
+                // Ширина ограничена: график тянется по ширине родителя, и без потолка левая
+                // колонка забирала всю строку, а списку не оставалось места. 780 и отступ 40 —
+                // из макета.
+                Column(modifier = Modifier.padding(top = 8.dp, end = 40.dp).widthIn(max = 780.dp)) {
+                    ForecastAndChart(forecast, expanded = true, showingCacheFrom = showingCacheFrom, chart = chart)
                 }
                 LazyColumn(
                     modifier = lazyColumnModifier, contentPadding = PaddingValues(16.dp)
                 ) {
 
-                    item {
-                        filters()
+                    if (loading || transactions.isNotEmpty()) {
+                        item {
+                            filters()
+                        }
                     }
 
                     transactionItemsOrEmpty(
@@ -377,7 +377,10 @@ internal fun MainContent(
                         loading,
                         contextMode,
                         onTransactionClicked,
-                        onTransactionSelected
+                        onTransactionSelected,
+                        dayBalances,
+                        onAddFirstRule,
+                        onFillWithDemoData,
                     )
 
                     item {
@@ -396,10 +399,17 @@ private fun LazyListScope.transactionItemsOrEmpty(
     contextMode: Boolean,
     onTransactionClicked: (TransactionUiItem) -> Unit,
     onTransactionSelected: (TransactionUiItem) -> Unit,
+    dayBalances: ImmutableMap<LocalDate, String>,
+    onAddFirstRule: (() -> Unit)?,
+    onFillWithDemoData: (() -> Unit)?,
 ) {
     if (!loading && transactions.isEmpty()) {
         item {
-            TrasactionsEmpty()
+            TrasactionsEmpty(
+                onAddFirstRule = onAddFirstRule,
+                onFillWithDemoData = onFillWithDemoData,
+                title = null,
+            )
         }
     } else {
         transactionItems(
@@ -408,7 +418,8 @@ private fun LazyListScope.transactionItemsOrEmpty(
             loading = loading,
             contextMode = contextMode,
             onTransactionClicked = onTransactionClicked,
-            onTransactionSelected = onTransactionSelected
+            onTransactionSelected = onTransactionSelected,
+            dayBalances = dayBalances,
         )
     }
 
@@ -416,6 +427,7 @@ private fun LazyListScope.transactionItemsOrEmpty(
 
 fun LazyListScope.transactionItems(
     transactions: ImmutableMap<LocalDate, ImmutableList<TransactionUiItem>>,
+    dayBalances: ImmutableMap<LocalDate, String> = persistentMapOf(),
     selectedTransactions: ImmutableList<TransactionUiItem>,
     loading: Boolean,
     contextMode: Boolean,
@@ -425,6 +437,7 @@ fun LazyListScope.transactionItems(
     transactions.forEach { day ->
         val (date, list) = day
         transactionsDay(
+            dayBalance = dayBalances[date],
             date = date,
             list = list,
             selectedTransactions = selectedTransactions,
@@ -485,18 +498,57 @@ fun connectToAppBarState(
     }
 }
 
-@Composable
-private fun ColumnScope.FutureInfoShimmer() {
-    val shimmer = rememberShimmer(ShimmerBounds.Window)
-    val modifier = Modifier.shimmer(shimmer).background(
-        MaterialTheme.colorScheme.surfaceContainerHigh, shape = MaterialTheme.shapes.extraSmall
-    ).testTag("futureInfoShimmer")
-
-    Text("    ", modifier, style = MaterialTheme.typography.labelMedium)
-    Text("               ", modifier, style = MaterialTheme.typography.labelMedium)
-    Text("                      ", modifier, style = MaterialTheme.typography.labelMedium)
-    Text("            ", modifier, style = MaterialTheme.typography.labelMedium)
-}
 
 private val DefaultFabButtonPadding = 16.dp
 private val DefaultFabButtonSize = 56.dp
+/**
+ * Герой и график одним блоком: сначала ответ, потом его обоснование.
+ *
+ * Обычная функция, а не запомненная лямбда: `remember { @Composable { … } }` прячет от
+ * компилятора границы композиции, и разбираться, почему что-то не там, становится негде.
+ */
+@Composable
+private fun ForecastAndChart(
+    forecast: ForecastUiState,
+    expanded: Boolean,
+    showingCacheFrom: String?,
+    chart: @Composable (Boolean) -> Unit,
+) {
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .background(
+                MaterialTheme.colorScheme.surfaceContainerLow,
+                if (expanded) RoundedCornerShape(16.dp) else RectangleShape,
+            )
+            .padding(
+                start = if (expanded) 28.dp else 24.dp,
+                end = if (expanded) 28.dp else 24.dp,
+                top = if (expanded) 28.dp else 20.dp,
+                bottom = 20.dp,
+            )
+    ) {
+        showingCacheFrom?.let { takenAt ->
+            // Данные не пропали и не устарели по смыслу — правила остаются верными без сети.
+            // Сказать, что они последние известные, честнее, чем показать пустой экран.
+            Text(
+                "No connection · showing data from $takenAt",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.padding(bottom = 12.dp).testTag("offlineBanner"),
+            )
+        }
+
+        ForecastHero(forecast, expanded = expanded)
+
+        Spacer(Modifier.height(18.dp))
+
+        // Настоящий график здесь рисовать нечем, пока нет ни одного правила, — на его месте
+        // пунктирная рамка вместо пустоты.
+        if (forecast == ForecastUiState.Empty) {
+            EmptyForecastPlaceholder()
+        } else {
+            chart(expanded)
+        }
+    }
+}

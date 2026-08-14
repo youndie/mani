@@ -30,6 +30,7 @@ import ru.workinprogress.feature.transaction.ui.component.EditTransactionCompone
 import ru.workinprogress.feature.transaction.ui.component.TransactionsListComponent
 import ru.workinprogress.mani.components.MainAppBarState
 import kotlin.math.roundToInt
+import ru.workinprogress.feature.welcome.WelcomeComponent
 
 @Composable
 @NonRestartableComposable
@@ -46,13 +47,28 @@ fun ManiAppNavHost(
 
     NavHost(
         navController = navController,
-        startDestination = if (isAuth.value) ManiScreen.Main.name else ManiScreen.Login.name,
+        startDestination = if (isAuth.value) ManiScreen.Main.name else ManiScreen.Welcome.name,
         modifier = Modifier.fillMaxSize().then(modifier)
     ) {
         composable(ManiScreen.Main.name) {
-            MainComponent(appBarState, snackbarHostState, {
-                navController.navigate(TransactionRoute(it))
-            })
+            MainComponent(
+                appBarState,
+                snackbarHostState,
+                onTransactionClicked = { navController.navigate(TransactionRoute(it)) },
+                onAddTransactionClicked = { navController.navigate(ManiScreen.Add.name) },
+            )
+        }
+        composable(ManiScreen.Welcome.name) {
+            WelcomeComponent(
+                appBarState,
+                onSignInClicked = { navController.navigate(ManiScreen.Login.name) },
+                onSignupClicked = { navController.navigate(ManiScreen.Signup.name) },
+                onSuccess = {
+                    navController.navigate(ManiScreen.Main.name) {
+                        popUpTo(ManiScreen.Welcome.name) { inclusive = true }
+                    }
+                },
+            )
         }
         composable(ManiScreen.Add.name) {
             AddTransactionComponent {

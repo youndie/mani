@@ -93,7 +93,14 @@ fun List<Transaction>.simulate(from: LocalDate, to: LocalDate): Map<LocalDate, L
 	return scheduled.toList().sortedBy { it.first }.toMap()
 }
 
-//searches for dates on which the balance sign changes
+/**
+ * Ищет дни, в которые баланс меняет знак.
+ *
+ * Дата берётся из **ключа**, а не из `transaction.date`: [simulate] раскладывает по дням одну и ту
+ * же транзакцию, и её поле `date` — дата начала правила, а не дня, на который пришлось вхождение.
+ * Пока сбой ловился только правилами, начатыми в прошлом: сумма пересекала ноль в будущем, а
+ * наружу уходил день заведения правила — то есть дата, которая уже прошла.
+ */
 fun Map<LocalDate, List<Transaction>>.findZeroEvents(): Pair<LocalDate?, LocalDate?> {
 	var positiveDate: LocalDate? = null
 	var negativeDate: LocalDate? = null
@@ -110,9 +117,9 @@ fun Map<LocalDate, List<Transaction>>.findZeroEvents(): Pair<LocalDate?, LocalDa
 			val alreadyChangeSign = positiveDate != null || negativeDate != null
 			if (nextValue.signum() != acc.signum() && (acc != BigDecimal.ZERO || alreadyChangeSign)) {
 				if (nextValue.signum() > acc.signum()) {
-					positiveDate = item.value.first().date
+					positiveDate = item.key
 				} else {
-					negativeDate = item.value.first().date
+					negativeDate = item.key
 				}
 			}
 

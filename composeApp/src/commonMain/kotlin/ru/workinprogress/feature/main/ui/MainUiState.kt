@@ -1,8 +1,8 @@
 package ru.workinprogress.feature.main.ui
 
-import androidx.compose.ui.text.AnnotatedString
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.ImmutableMap
+import kotlinx.collections.immutable.persistentMapOf
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.collections.immutable.toImmutableMap
 import kotlinx.datetime.LocalDate
@@ -15,8 +15,14 @@ data class MainUiState(
     val selectedTransactions: ImmutableList<TransactionUiItem> = emptyList<TransactionUiItem>().toImmutableList(),
     val showDeleteDialog: Boolean = false,
     val showProfile: Boolean = false,
-    val futureInformation: AnnotatedString = AnnotatedString(""),
+    val forecast: ForecastUiState = ForecastUiState.Loading,
+    /** Баланс на конец каждого дня — считается по всей симуляции, а не по отфильтрованной ленте. */
+    val dayBalances: ImmutableMap<LocalDate, String> = persistentMapOf(),
     val loading: Boolean = false,
     val filtersState: FiltersState = FiltersState(),
+    /** Не `null` — сети нет, показано последнее известное, снятое в это время. */
+    val showingCacheFrom: String? = null,
+    /** Не `null` — сервер не ответил и показать нечего: ни свежего, ни сохранённого. */
+    val unreachable: ServerUnreachableUiState? = null,
 )
 

@@ -302,6 +302,37 @@ class TransactionOperationsTest {
     }
 
     @Test
+    fun testZeroEventDateIsCrossingDayNotRuleStart() {
+        val ruleStart = LocalDate(2000, 1, 1)
+
+        val (positive, negative) = listOf(
+            Transaction(
+                "",
+                300.0.toBigDecimal(),
+                true,
+                ruleStart,
+                null,
+                Transaction.Period.OneTime,
+                "Savings"
+            ),
+            Transaction(
+                "",
+                100.0.toBigDecimal(),
+                false,
+                ruleStart,
+                null,
+                Transaction.Period.Week,
+                "Weekly spend"
+            ),
+        ).simulate(ruleStart to LocalDate(2000, 3, 1)).findZeroEvents()
+
+        // 1 янв: +300 −100 = 200, 8 янв: 100, 15 янв: 0, 22 янв: −100 — знак меняется здесь,
+        // а не 1 января, когда правило завели.
+        assertEquals(LocalDate(2000, 1, 22), negative)
+        assertTrue(positive == null)
+    }
+
+    @Test
     fun testZeroEvents() {
         val targetPositive = LocalDate(2000, 2, 3)
         val targetNegative = LocalDate(2000, 1, 5)

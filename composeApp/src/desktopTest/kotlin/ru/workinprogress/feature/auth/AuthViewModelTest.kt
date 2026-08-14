@@ -9,6 +9,7 @@ import org.koin.dsl.module
 import org.koin.test.KoinTest
 import org.koin.test.get
 import ru.workinprogress.feature.auth.domain.AuthUseCase
+import ru.workinprogress.feature.auth.domain.DemoUseCase
 import ru.workinprogress.feature.auth.ui.AuthViewModel
 import ru.workinprogress.feature.auth.ui.model.AuthUiState
 import ru.workinprogress.mani.data.ServerException
@@ -72,6 +73,29 @@ class AuthViewModelTest : KoinTest {
     }
 
 
+    @Test
+    fun testDemoSuccess() = runTest {
+        useCaseSuccess = true
+
+        viewModel.onTryDemoClicked()
+        advanceUntilIdle()
+
+        assertTrue(viewModel.observe.value.success)
+        assertNull(viewModel.observe.value.errorMessage)
+    }
+
+    @Test
+    fun testDemoError() = runTest {
+        useCaseSuccess = false
+
+        viewModel.onTryDemoClicked()
+        advanceUntilIdle()
+
+        assertFalse(viewModel.observe.value.success)
+        assertFalse(viewModel.observe.value.demoLoading)
+        assertEquals(errorMessage, viewModel.observe.value.errorMessage)
+    }
+
     @AfterTest
     fun tearDown() {
         stopKoin()
@@ -89,10 +113,22 @@ class FakeAuthUseCase(private val success: () -> Boolean) : AuthUseCase() {
     }
 }
 
+class FakeDemoUseCase(private val success: () -> Boolean) : DemoUseCase() {
+    override suspend fun invoke(params: ru.workinprogress.useCase.EmptyParams) = if (success()) {
+        Result.Success(true)
+    } else {
+        Result.Error(ServerException(errorMessage, null))
+    }
+}
+
 private fun testModule(success: () -> Boolean) = module {
     single<AuthUseCase> {
         FakeAuthUseCase(success)
     }
 
-    single<AuthViewModel> { AuthViewModel(get()) }
+    single<DemoUseCase> {
+        FakeDemoUseCase(success)
+    }
+
+    single<AuthViewModel> { AuthViewModel(get(), get()) }
 }

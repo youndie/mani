@@ -20,6 +20,7 @@ import ru.workinprogress.feature.category.FakeCategoriesDataSource
 import ru.workinprogress.feature.currency.currencyModule
 import ru.workinprogress.feature.transaction.data.FakeTransactionsRepository
 import ru.workinprogress.feature.transaction.domain.AddTransactionUseCase
+import ru.workinprogress.feature.transaction.domain.ObserveTransactionsUseCase
 import ru.workinprogress.feature.transaction.domain.TransactionRepository
 import ru.workinprogress.feature.transaction.ui.AddTransactionViewModel
 import ru.workinprogress.mani.today
@@ -70,9 +71,10 @@ class TransactionViewModelTest : KoinTest {
                     singleOf(::FakeCategoriesDataSource).bind<DataSource<Category>>()
 
                     factory {
-                        AddTransactionViewModel(get(), get(), get(), get(), get(), Dispatchers.Unconfined)
+                        AddTransactionViewModel(get(), get(), get(), get(), get(), get(), Dispatchers.Unconfined)
                     }
                     singleOf(::AddTransactionUseCase)
+                    singleOf(::ObserveTransactionsUseCase)
                 })
         }
 
@@ -84,8 +86,9 @@ class TransactionViewModelTest : KoinTest {
         var viewModel: AddTransactionViewModel = get()
         runCurrent()
 
+        // Расход по умолчанию: правило чаще заводят на трату, чем на доход.
         assertEquals(
-            true, viewModel.observe.value.income
+            false, viewModel.observe.value.income
         )
 
 
@@ -104,6 +107,56 @@ class TransactionViewModelTest : KoinTest {
         assertEquals(result.date, today())
     }
 
+    /**
+     * Сдвиг дня обнуления — главное последствие правила, и считаться он должен относительно уже
+     * заведённых. Здесь фон уже уходит в минус на пятый день, а новое правило роняет баланс на
+     * второй: строка обязана сказать «на три дня раньше».
+     */
+    @Test
+    fun runsOutShiftTest() = runTest {
+        val repository = get<TransactionRepository>()
+        repository.load()
+        repository.create(
+            Transaction(
+                id = "big",
+                amount = 2000.0.toBigDecimal(),
+                income = false,
+                date = today().plus(5, DateTimeUnit.DAY),
+                until = null,
+                period = Transaction.Period.OneTime,
+                comment = "",
+            )
+        )
+
+        val viewModel: AddTransactionViewModel = get()
+        runCurrent()
+
+        viewModel.onAmountChanged("1200")
+        viewModel.onDateSelected(today().plus(2, DateTimeUnit.DAY))
+        runCurrent()
+
+        val shift = viewModel.observe.value.runsOutShift
+        assertNotNull(shift)
+        assertTrue(shift.worse)
+        assertTrue(shift.text.startsWith("money runs out 3 days earlier"), shift.text)
+    }
+
+    /** Доход день обнуления не приближает — и красной строкой такое помечать нечего. */
+    @Test
+    fun runsOutShiftAbsentForIncomeTest() = runTest {
+        get<TransactionRepository>().load()
+
+        val viewModel: AddTransactionViewModel = get()
+        runCurrent()
+
+        viewModel.onIncomeChanged(true)
+        viewModel.onAmountChanged("100")
+        viewModel.onDateSelected(today().plus(2, DateTimeUnit.DAY))
+        runCurrent()
+
+        assertNull(viewModel.observe.value.runsOutShift)
+    }
+
     @Test
     fun dateTest() = runTest {
         var viewModel: AddTransactionViewModel = get()
@@ -118,7 +171,7 @@ class TransactionViewModelTest : KoinTest {
         assertEquals(Transaction.Period.OneTime, viewModel.observe.value.period)
 
         assertEquals(
-            viewModel.observe.value.futureInformation.toString(), "+100 $ on 01/02/2000"
+            viewModel.observe.value.futureInformation.toString(), "\u2212100 $ on 2 Jan 2000"
         )
 
         viewModel.onPeriodChanged(Transaction.Period.TwoWeek)
@@ -128,7 +181,7 @@ class TransactionViewModelTest : KoinTest {
 
         assertEquals(
             viewModel.observe.value.futureInformation.toString(),
-            "+100 $ from 01/02/2000. In 3 month's repeat 7 times, total: +700 $"
+            "\u2212100 $ from 2 Jan 2000. In 3 month's repeat 7 times, total: \u2212700 $"
         )
 
         viewModel.onSubmitClicked()
@@ -157,14 +210,14 @@ class TransactionViewModelTest : KoinTest {
         viewModel.onPeriodChanged(Transaction.Period.Day)
 
         assertEquals(
-            "+100 \$ from 01/02/2000. In 3 month's repeat 91 times, total: +9100 \$",
+            "\u2212100 \$ from 2 Jan 2000. In 3 month's repeat 91 times, total: \u22129\u00A0100 \$",
             viewModel.observe.value.futureInformation.toString()
         )
 
         viewModel.onDateUntilSelected(LocalDate(2000, 2, 2))
 
         assertEquals(
-            "+100 \$ from 01/02/2000 to 02/02/2000 repeat 31 times, total: +3100 \$",
+            "\u2212100 \$ from 2 Jan 2000 to 2 Feb 2000 repeat 31 times, total: \u22123\u00A0100 \$",
             viewModel.observe.value.futureInformation.toString()
         )
     }
@@ -182,7 +235,7 @@ class TransactionViewModelTest : KoinTest {
         viewModel.onPeriodChanged(Transaction.Period.Month)
 
         assertEquals(
-            "+100 \$ from 01/02/2000. In 1 year's repeat 12 times, total: +1200 \$",
+            "\u2212100 \$ from 2 Jan 2000. In 1 year's repeat 12 times, total: \u22121\u00A0200 \$",
             viewModel.observe.value.futureInformation.toString()
         )
     }
@@ -274,6 +327,10 @@ class TransactionViewModelTest : KoinTest {
         viewModel.onAmountChanged("100")
         viewModel.onCommentChanged("anotherTest")
 
+        // Одной суммы мало: правило без даты не разворачивается в календарь.
+        assertFalse(viewModel.observe.value.valid)
+
+        viewModel.onDateSelected(LocalDate(2000, 1, 2))
         assertTrue(viewModel.observe.value.valid)
 
         withError = true
