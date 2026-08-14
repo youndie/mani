@@ -4,6 +4,7 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import org.koin.core.module.dsl.singleOf
 import org.koin.core.module.dsl.viewModelOf
+import org.koin.core.qualifier.named
 import org.koin.dsl.bind
 import org.koin.dsl.module
 import com.russhwolf.settings.Settings
@@ -21,13 +22,16 @@ val transactionsModule = module {
     singleOf(::GetTransactionUseCase)
     singleOf(::AddTransactionUseCase)
     singleOf(::UpdateTransactionUseCase)
-    singleOf(::TransactionsNetworkDataSource)
+    single<DataSource<Transaction>>(named(TRANSACTIONS_SOURCE)) { TransactionsNetworkDataSource(get()) }
     // Настройки без аргументов: multiplatform-settings сам подбирает хранилище платформы.
     // Отдельным определением, а не внутри кэша: проверка графа обходит конструкторы и иначе
     // не видит зависимость.
     single<Settings> { Settings() }
     single<TransactionsCache> { TransactionsCache(get()) }
-    singleOf(::TransactionRepositoryImpl).bind<TransactionRepository>()
+    // Источник берётся по имени: см. комментарий в `categoriesModule`.
+    single<TransactionRepository> { TransactionRepositoryImpl(get(named(TRANSACTIONS_SOURCE)), get()) }
     viewModelOf(::TransactionsViewModel)
 }
 
+/** Имя привязки источника правил: обобщённый тип его не различает. */
+const val TRANSACTIONS_SOURCE = "transactions-source"
