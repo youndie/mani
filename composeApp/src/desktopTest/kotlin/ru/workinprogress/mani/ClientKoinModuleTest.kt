@@ -11,7 +11,21 @@ import ru.workinprogress.feature.main.MainViewModel
 import ru.workinprogress.feature.welcome.WelcomeViewModel
 import org.koin.test.verify.verify
 import ru.workinprogress.mani.appModules
+import kotlin.test.AfterTest
 import kotlin.test.Test
+import kotlin.test.assertIs
+import kotlin.test.assertNull
+import org.koin.core.qualifier.named
+import ru.workinprogress.feature.categories.CATEGORIES_SOURCE
+import ru.workinprogress.feature.transaction.TRANSACTIONS_SOURCE
+import org.koin.core.context.startKoin
+import org.koin.core.context.stopKoin
+import org.koin.test.KoinTest
+import ru.workinprogress.feature.categories.data.CategoriesNetworkDataSource
+import ru.workinprogress.feature.transaction.Category
+import ru.workinprogress.feature.transaction.DataSource
+import ru.workinprogress.feature.transaction.Transaction
+import ru.workinprogress.feature.transaction.data.TransactionsNetworkDataSource
 
 /**
  * `verify()` обходит только модули приложения. Виртуальные машины экранов регистрируются
@@ -39,6 +53,40 @@ class ClientKoinModuleTest {
                 // Привязку выбирает экран: вход даёт `LoginUseCase`, регистрация — `SignupUseCase`.
                 AuthUseCase::class,
             ),
+        )
+    }
+}
+/**
+ * Разные источники данных не должны путаться местами.
+ *
+ * `DataSource<T>` — обобщённый интерфейс, а обобщения стираются: для Koin `DataSource<Category>` и
+ * `DataSource<Transaction>` — один и тот же ключ. Кто зарегистрировался под ним последним, того и
+ * получают все. В браузере это выглядело как `ClassCastException: Cannot cast instance of
+ * Category to Transaction` при открытии главного экрана.
+ */
+class DataSourceBindingTest : KoinTest {
+
+    @AfterTest
+    fun tearDown() = stopKoin()
+
+    @Test
+    fun sourcesAreBoundByName() {
+        val koin = startKoin { modules(appModules) }.koin
+
+        assertIs<TransactionsNetworkDataSource>(
+            koin.get<DataSource<Transaction>>(named(TRANSACTIONS_SOURCE)),
+            "лента правил получила чужой источник данных",
+        )
+        assertIs<CategoriesNetworkDataSource>(
+            koin.get<DataSource<Category>>(named(CATEGORIES_SOURCE)),
+            "категории получили чужой источник данных",
+        )
+
+        // И ни один источник не висит на безымянном ключе: именно он и путал их местами, потому
+        // что обобщение в нём стирается. Вернётся — тест покраснеет здесь, а не в браузере.
+        assertNull(
+            koin.getOrNull<DataSource<Transaction>>(),
+            "источник данных снова привязан к обобщённому интерфейсу без имени",
         )
     }
 }
