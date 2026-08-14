@@ -18,6 +18,9 @@ all of them.
 
 ![Screenshot](/Screenshot.png?raw=true "screenshot")
 
+<sup>Собран тем же кодом, что и остальные снимки: `./gradlew :composeApp:screenshotTest` с
+`VIDDIK_RECORD_MODE=true` перерисовывает и его — картинка не разъедется с интерфейсом.</sup>
+
 > **This is a demo project.** It exists to show what a full Kotlin Multiplatform stack looks like
 > when every part of it is real — the same `@Resource` classes route requests on the server and
 > build URLs on the client, the same code signs a token in both server builds. It is not a

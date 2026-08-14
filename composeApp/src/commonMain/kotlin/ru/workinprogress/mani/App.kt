@@ -2,6 +2,7 @@ package ru.workinprogress.mani
 
 import androidx.compose.animation.*
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.*
@@ -13,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -114,17 +116,10 @@ fun ManiApp(
 						)
 					})
 			) {
-				FloatingActionButton(
-					onClick = {
-						navController.navigate(ManiScreen.Add.name)
-					},
-					modifier = Modifier.navigationBarsPadding().testTag("fab")
-				) {
-					Icon(
-						imageVector = Icons.Filled.Add,
-						contentDescription = "Add",
-					)
-				}
+				AddRuleFab(
+					onClick = { navController.navigate(ManiScreen.Add.name) },
+					modifier = Modifier.navigationBarsPadding(),
+				)
 			}
 		}) { padding ->
 		ManiAppNavHost(
@@ -137,5 +132,28 @@ fun ManiApp(
 	}
 }
 
-
-
+/**
+ * Кнопка «завести правило».
+ *
+ * Скруглённый квадрат, а не круг, и цвет контейнера, а не основной: в макете она держит ту же
+ * форму, что карточки и чипы, и не спорит яркостью с линией прогноза — на график смотрят чаще,
+ * чем нажимают на кнопку.
+ */
+@Composable
+fun AddRuleFab(
+	onClick: () -> Unit,
+	modifier: Modifier = Modifier,
+) {
+	FloatingActionButton(
+		onClick = onClick,
+		shape = RoundedCornerShape(16.dp),
+		containerColor = MaterialTheme.colorScheme.primaryContainer,
+		contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+		modifier = modifier.testTag("fab"),
+	) {
+		Icon(
+			imageVector = Icons.Filled.Add,
+			contentDescription = "Add",
+		)
+	}
+}
