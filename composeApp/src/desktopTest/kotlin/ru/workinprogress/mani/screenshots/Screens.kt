@@ -99,14 +99,14 @@ private fun item(
 )
 
 /**
- * Снимок для README: приложение целиком — шапка, прогноз, лента и кнопка.
+ * Экран целиком, вместе с обвязкой: шапка, содержимое и кнопка добавления в одном кадре.
  *
- * Собирается тем же кодом и теми же демо-данными, что и остальные снимки, поэтому картинка в
- * репозитории не разъедется с интерфейсом: обновляется одной командой вместе с голденами.
+ * Остальные снимки берут экраны по отдельности и обвязку не видят — рассогласование между ними
+ * (наехавшая кнопка, шапка не того цвета) ловится только здесь.
  */
-@ViddikScreenshot(name = "readme", group = "screens", width = WIDE_WIDTH, height = WIDE_HEIGHT)
+@ViddikScreenshot(name = "whole screen", group = "screens", width = WIDE_WIDTH, height = WIDE_HEIGHT)
 @Composable
-fun ReadmeScreenshot() {
+fun WholeScreenScreenshot() {
     Harness {
         Box(Modifier.fillMaxSize()) {
             Column {

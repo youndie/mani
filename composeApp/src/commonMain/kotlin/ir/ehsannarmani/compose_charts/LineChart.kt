@@ -21,6 +21,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.*
+import androidx.compose.ui.graphics.drawscope.clipRect
 import ir.ehsannarmani.compose_charts.components.LabelHelper
 import ir.ehsannarmani.compose_charts.extensions.drawGridLines
 import ir.ehsannarmani.compose_charts.extensions.line_chart.drawLineGradient
@@ -48,6 +49,7 @@ fun LineChart(
     dividerProperties: DividerProperties = DividerProperties(),
     gridProperties: GridProperties = GridProperties(),
     zeroLineProperties: ZeroLineProperties = ZeroLineProperties(),
+    zeroCrossingProperties: ZeroCrossingProperties = ZeroCrossingProperties(),
     indicatorProperties: HorizontalIndicatorProperties = HorizontalIndicatorProperties(
         textStyle = TextStyle.Default, padding = 16.dp
     ),
@@ -334,6 +336,31 @@ fun LineChart(
                                 progress = line.gradientProgress.value,
                                 size = size.copy(height = chartAreaHeight)
                             )
+
+                            // Площадь минуса подкрашивается отдельно: она и есть то, «насколько
+                            // глубоко», а обычная заливка одинаковая по всей высоте.
+                            if (zeroCrossingProperties.enabled &&
+                                zeroCrossingProperties.underZeroFill != Color.Transparent
+                            ) {
+                                val zeroY = chartAreaHeight - calculateOffset(
+                                    minValue = minValue,
+                                    maxValue = maxValue,
+                                    total = chartAreaHeight,
+                                    value = 0f,
+                                ).toFloat()
+
+                                // Многоугольник замыкается на нулевой линии, а не на дне поля:
+                                // иначе он накрыл бы всю полосу под нулём, включая ту её часть,
+                                // где баланс ещё в плюсе.
+                                clipRect(top = zeroY, bottom = chartAreaHeight) {
+                                    val filled = Path()
+                                    filled.addPath(path)
+                                    filled.lineTo(size.width, zeroY)
+                                    filled.lineTo(0f, zeroY)
+                                    filled.close()
+                                    drawPath(filled, color = zeroCrossingProperties.underZeroFill)
+                                }
+                            }
                         } else if (line.drawStyle is DrawStyle.Fill) {
                             var fillColor = Color.Unspecified
                             if (line.color is SolidColor) {
@@ -374,6 +401,40 @@ fun LineChart(
                     }
                     if (zeroLineProperties.enabled && zeroLineProperties.zType == ZeroLineProperties.ZType.Above) {
                         drawZeroLine()
+                    }
+
+                    // День, на котором деньги кончаются, — поверх линии: это то, ради чего на
+                    // график смотрят, и оно не должно теряться под ней.
+                    val crossingIndex = zeroCrossingProperties.index
+                    val pointCount = data.firstOrNull()?.values?.count() ?: 0
+                    if (zeroCrossingProperties.enabled && crossingIndex != null && pointCount > 1 &&
+                        crossingIndex in 1 until pointCount
+                    ) {
+                        val crossingX = size.width * crossingIndex / (pointCount - 1).toFloat()
+                        val zeroY = chartAreaHeight - calculateOffset(
+                            minValue = minValue, maxValue = maxValue, total = chartAreaHeight, value = 0f
+                        ).toFloat()
+
+                        drawLine(
+                            brush = zeroCrossingProperties.color,
+                            start = Offset(x = crossingX, y = 0f),
+                            end = Offset(x = crossingX, y = chartAreaHeight),
+                            pathEffect = zeroCrossingProperties.style.pathEffect,
+                            strokeWidth = zeroCrossingProperties.thickness.toPx(),
+                        )
+
+                        val markerRadius = zeroCrossingProperties.markerRadius.toPx()
+                        drawCircle(
+                            color = zeroCrossingProperties.markerFill,
+                            radius = markerRadius,
+                            center = Offset(crossingX, zeroY),
+                        )
+                        drawCircle(
+                            brush = zeroCrossingProperties.color,
+                            radius = markerRadius,
+                            center = Offset(crossingX, zeroY),
+                            style = Stroke(width = zeroCrossingProperties.thickness.toPx() * 2),
+                        )
                     }
                     popups.forEachIndexed { index, popup ->
                         drawPopup(

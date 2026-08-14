@@ -18,6 +18,18 @@ import kotlin.test.assertFalse
 
 class FiltersTest {
 
+    /**
+     * Ждать появления, а не проверять сразу.
+     *
+     * Выпадающее меню живёт в отдельном окне и въезжает анимацией: на медленном headless-браузере
+     * очередной кадр не успевал до проверки, и тест падал через раз — на разных ветках, включая
+     * те, что меню вообще не трогали.
+     */
+    private fun ComposeUiTest.awaitText(text: String) {
+        waitUntil { onAllNodesWithText(text).fetchSemanticsNodes().isNotEmpty() }
+        onNodeWithText(text).assertIsDisplayed()
+    }
+
     @Test
     fun filterChipsTest() = runComposeUiTest {
         val targetCategory = Category("1", "Test1")
@@ -49,16 +61,16 @@ class FiltersTest {
         stateFlow.update { state ->
             state.copy(loading = false)
         }
-        onNodeWithText("Upcoming").assertIsDisplayed()
+        awaitText("Upcoming")
         onNodeWithText("All categories").assertIsDisplayed()
 
         onNodeWithText("Upcoming").performClick()
-        onNodeWithText("Past").assertIsDisplayed()
+        awaitText("Past")
 
         onNodeWithText("Past").performClick()
         assertFalse(stateFlow.value.upcoming)
         onNodeWithText("All categories").performClick()
-        onNodeWithText(targetCategory.name).assertIsDisplayed()
+        awaitText(targetCategory.name)
         onNodeWithText(targetCategory.name).performClick()
         assertEquals(targetCategory, stateFlow.value.category)
     }
