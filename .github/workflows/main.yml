@@ -5,6 +5,23 @@ on:
     branches: [ "main" ]
 
 jobs:
+  # Стиль проверяется отдельной джобой: она короткая, и её падение сразу отличимо от падения
+  # тестов. Правила лежат в .editorconfig, здесь только запуск.
+  ktlint:
+    runs-on: [ ubuntu-latest ]
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v5
+      - name: Setup Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: 21
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v5
+      - name: Check formatting
+        run: ./gradlew ktlintCheck --no-daemon
+
   test-common:
     runs-on: [ ubuntu-latest ]
     steps:

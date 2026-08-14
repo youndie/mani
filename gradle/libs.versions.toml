@@ -21,6 +21,8 @@ deFlapdoodleEmbedMongo = "4.33.0"
 desugar_jdk_libs = "2.1.5"
 junit = "4.13.2"
 ksp = "2.3.11"
+ktlintPlugin = "13.1.0"
+ktlintTool = "1.8.0"
 viddik = "0.0.1.6"
 junitJupiter = "5.11.4"
 junitPlatform = "1.11.4"
@@ -167,3 +169,4 @@ pluginSerialization = { id = "org.jetbrains.kotlin.plugin.serialization", versio
 androidTest = { id = "com.android.test", version.ref = "agp" }
 baselineprofile = { id = "androidx.baselineprofile", version.ref = "baselineprofile" }
 jib = { id = "com.google.cloud.tools.jib", version.ref = "jib" }
+ktlint = { id = "org.jlleitschuh.gradle.ktlint", version.ref = "ktlintPlugin" }

@@ -140,10 +140,14 @@ VIDDIK_RECORD_MODE=true ./gradlew :composeApp:screenshotTest --rerun-tasks
 ```
 
 Style is checked by [ktlint](https://github.com/pinterest/ktlint) against `.editorconfig`, which
-holds every deviation with a reason next to it:
+holds every deviation with a reason next to it. It runs on every pull request, and locally as:
 
 ```bash
-ktlint '**/src/**/*.kt' '!**/build/**'
+./gradlew ktlintCheck
+```
+
+```bash
+./gradlew ktlintFormat
 ```
 
 **Record and verify these on Linux.** The goldens in `composeApp/src/desktopTest/snapshots` were
