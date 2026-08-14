@@ -16,10 +16,7 @@ import ru.workinprogress.mongkn.bson.BsonString
 import ru.workinprogress.mongkn.ext.filter
 import ru.workinprogress.mongkn.ext.find
 
-class MongknUserRepository(
-    mongoDatabase: MongoDatabase,
-    private val hashingService: HashingService,
-) : UserRepository {
+class MongknUserRepository(mongoDatabase: MongoDatabase, private val hashingService: HashingService) : UserRepository {
     private val db = mongoDatabase.getCollection<UserDb>(USER_COLLECTION)
 
     override suspend fun save(user: LoginParams): String? {
@@ -52,26 +49,20 @@ class MongknUserRepository(
      * Фильтр собирается документом, а не через `eq`: нужен `$regex`, которого в scope-DSL нет.
      * Префикс приходит константой из общего кода, поэтому экранировать в выражении нечего.
      */
-    override suspend fun findByUsernamePrefix(prefix: String): List<User> =
-        db
-            .find(BsonDocument(UserDb::username.name to BsonDocument("\$regex" to BsonString("^$prefix"))))
-            .map { it.toUser() }
-            .toList()
+    override suspend fun findByUsernamePrefix(prefix: String): List<User> = db
+        .find(BsonDocument(UserDb::username.name to BsonDocument("\$regex" to BsonString("^$prefix"))))
+        .map { it.toUser() }
+        .toList()
 
     override suspend fun delete(userId: String) {
         db.deleteOne(byId(userId))
     }
 }
 
-class MongknTokenRepository(
-    mongoDatabase: MongoDatabase,
-) : TokenRepository {
+class MongknTokenRepository(mongoDatabase: MongoDatabase) : TokenRepository {
     private val db = mongoDatabase.getCollection<UserDb>(USER_COLLECTION)
 
-    override suspend fun addToken(
-        token: String,
-        userId: String,
-    ) {
+    override suspend fun addToken(token: String, userId: String) {
         db.updateOne(
             filter = byId(userId),
             update = BsonDocument("\$addToSet" to BsonDocument(TOKENS to BsonString(token))),
@@ -98,10 +89,7 @@ class MongknTokenRepository(
     override suspend fun findUserByToken(refreshToken: String): User? =
         db.find { TOKENS eq BsonString(refreshToken) }.firstOrNull()?.toUser()
 
-    override suspend fun removeToken(
-        token: String,
-        userId: String,
-    ) {
+    override suspend fun removeToken(token: String, userId: String) {
         db.updateOne(
             filter = byId(userId),
             update = BsonDocument("\$pull" to BsonDocument(TOKENS to BsonString(token))),

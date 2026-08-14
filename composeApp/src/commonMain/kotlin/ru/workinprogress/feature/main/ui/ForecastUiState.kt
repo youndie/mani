@@ -40,7 +40,5 @@ sealed interface ForecastUiState {
      * Отдельное состояние, а не `runsOutOn = null`: показывать нужно другое — сам баланс, а не
      * дату, которой нет.
      */
-    data class Steady(
-        val balanceToday: String,
-    ) : ForecastUiState
+    data class Steady(val balanceToday: String) : ForecastUiState
 }

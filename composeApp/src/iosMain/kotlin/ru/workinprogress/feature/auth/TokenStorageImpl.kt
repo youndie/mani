@@ -7,7 +7,7 @@ import ru.workinprogress.feature.auth.data.TokenStorage
 class TokenStorageImpl : TokenStorage {
     override fun load() = BearerTokens(
         NSUserDefaults.standardUserDefaults.stringForKey(BearerTokens::accessToken.name).orEmpty(),
-        NSUserDefaults.standardUserDefaults.stringForKey(BearerTokens::refreshToken.name).orEmpty()
+        NSUserDefaults.standardUserDefaults.stringForKey(BearerTokens::refreshToken.name).orEmpty(),
     )
 
     override fun save(bearerTokens: BearerTokens) {

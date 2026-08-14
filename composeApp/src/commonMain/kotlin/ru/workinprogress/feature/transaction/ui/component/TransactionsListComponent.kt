@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -15,7 +16,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ionspin.kotlin.bignum.decimal.BigDecimal
 import com.valentinilk.shimmer.shimmer
@@ -23,9 +26,6 @@ import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.ImmutableMap
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.format
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.sp
 import kotlinx.datetime.format.DayOfWeekNames
 import kotlinx.datetime.format.MonthNames
 import kotlinx.datetime.format.Padding
@@ -42,11 +42,9 @@ import ru.workinprogress.feature.transaction.ui.TransactionsViewModel
 import ru.workinprogress.feature.transaction.ui.model.TransactionListUiState
 import ru.workinprogress.feature.transaction.ui.model.TransactionUiItem
 import ru.workinprogress.feature.transaction.ui.model.buildColoredAmount
-import androidx.compose.ui.unit.sp
 import ru.workinprogress.mani.components.MainAppBarState
 import ru.workinprogress.mani.theme.LocalManiFonts
 import ru.workinprogress.mani.today
-
 
 @Composable
 @Preview
@@ -56,9 +54,11 @@ fun TransactionsListComponent(
     onTransactionClicked: (String) -> Unit = {},
 ) {
     rememberKoinModules {
-        listOf(module {
-            viewModelOf(::TransactionsViewModel)
-        })
+        listOf(
+            module {
+                viewModelOf(::TransactionsViewModel)
+            },
+        )
     }
 
     val viewModel = koinViewModel<TransactionsViewModel>()
@@ -67,14 +67,14 @@ fun TransactionsListComponent(
     TransactionDeleteDialog(
         state.showDeleteDialog,
         viewModel::onDeleteClicked,
-        viewModel::onDismissDeleteDialog
+        viewModel::onDismissDeleteDialog,
     )
 
     connectToAppBarState(
         state.selectedTransactions,
         appBarState,
         viewModel::onShowDeleteDialogClicked,
-        viewModel::onContextMenuClosed
+        viewModel::onContextMenuClosed,
     )
 
     TransactionsListContent(state, modifier, appBarState.contextMode, viewModel::onTransactionSelected) {
@@ -177,10 +177,9 @@ private fun LazyListScope.transactionMonths(
 /** Год в ключе обязателен: без него январь двух разных лет — один месяц. */
 private val LocalDate.monthKey get() = year * 12 + monthNumber
 
-private fun List<TransactionUiItem>.signedSum(): BigDecimal =
-    fold(BigDecimal.ZERO) { sum, item ->
-        if (item.income) sum + item.amount else sum - item.amount
-    }
+private fun List<TransactionUiItem>.signedSum(): BigDecimal = fold(BigDecimal.ZERO) { sum, item ->
+    if (item.income) sum + item.amount else sum - item.amount
+}
 
 /** «July 2026» — год нужен: история уходит вглубь дальше, чем на двенадцать месяцев. */
 private val monthSeparatorFormat = LocalDate.Format {
@@ -190,12 +189,7 @@ private val monthSeparatorFormat = LocalDate.Format {
 }
 
 @Composable
-private fun MonthSeparator(
-    title: String,
-    total: BigDecimal?,
-    currency: Currency?,
-    loading: Boolean,
-) {
+private fun MonthSeparator(title: String, total: BigDecimal?, currency: Currency?, loading: Boolean) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -238,7 +232,7 @@ fun LazyListScope.transactionsDay(
     contextMode: Boolean,
     loadingMode: Boolean,
     onSelected: (TransactionUiItem) -> Unit,
-    onClick: (TransactionUiItem) -> Unit
+    onClick: (TransactionUiItem) -> Unit,
 ) {
     stickyHeader(date.toString()) {
         val loadingModifier = if (loadingMode) {
@@ -251,12 +245,12 @@ fun LazyListScope.transactionsDay(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(MaterialTheme.colorScheme.surface)
-                .then(loadingModifier)
+                .then(loadingModifier),
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth().padding(start = 20.dp, end = 20.dp, top = 14.dp, bottom = 6.dp),
                 verticalAlignment = Alignment.Bottom,
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.SpaceBetween,
             ) {
                 // Сегодняшний день назван словом и выделен цветом: в ленте будущих трат это
                 // единственная точка отсчёта, и искать её по дате — лишняя работа.
@@ -268,7 +262,7 @@ fun LazyListScope.transactionsDay(
                         .takeIf { !loadingMode } ?: "           ",
                     style = MaterialTheme.typography.labelSmall.copy(
                         fontWeight = FontWeight.W500,
-                        letterSpacing = 1.3.sp
+                        letterSpacing = 1.3.sp,
                     ),
                     color = if (isToday) {
                         MaterialTheme.colorScheme.primary
@@ -283,14 +277,14 @@ fun LazyListScope.transactionsDay(
                     Text(
                         it,
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
             }
 
             HorizontalDivider(
                 modifier = Modifier.padding(horizontal = 20.dp),
-                color = MaterialTheme.colorScheme.outlineVariant
+                color = MaterialTheme.colorScheme.outlineVariant,
             )
         }
     }
@@ -300,7 +294,7 @@ fun LazyListScope.transactionsDay(
         contextMode,
         loadingMode,
         onSelected,
-        onClick
+        onClick,
     )
 }
 
@@ -310,7 +304,7 @@ private fun LazyListScope.transactionsListItems(
     contextMode: Boolean,
     loadingMode: Boolean,
     onSelected: (TransactionUiItem) -> Unit,
-    onClick: (TransactionUiItem) -> Unit
+    onClick: (TransactionUiItem) -> Unit,
 ) {
     itemsIndexed(list) { index, transaction ->
         TransactionItem(
@@ -337,12 +331,7 @@ private val dayHeaderFormat = LocalDate.Format {
 
 /** Полоса над историей: «August so far» слева, баланс справа. */
 @Composable
-private fun MonthSummary(
-    title: String,
-    change: String,
-    balance: String,
-    loading: Boolean,
-) {
+private fun MonthSummary(title: String, change: String, balance: String, loading: Boolean) {
     if (loading) return
 
     Row(
@@ -358,10 +347,7 @@ private fun MonthSummary(
 }
 
 @Composable
-private fun Fact(
-    label: String,
-    value: String,
-) {
+private fun Fact(label: String, value: String) {
     Column {
         Text(
             label.uppercase(),

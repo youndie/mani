@@ -80,10 +80,7 @@ object BigDecimalAsBsonDecimal128 : KSerializer<BigDecimal> {
     override val descriptor: SerialDescriptor =
         PrimitiveSerialDescriptor("ru.workinprogress.mani.db.BigDecimalAsBsonDecimal128", PrimitiveKind.STRING)
 
-    override fun serialize(
-        encoder: Encoder,
-        value: BigDecimal,
-    ) {
+    override fun serialize(encoder: Encoder, value: BigDecimal) {
         val bson = encoder as? BsonEncoder ?: throw SerializationException("amount сериализуется только в BSON")
         bson.encodeBsonValue(BsonDecimal128(value.toPlainString()))
     }

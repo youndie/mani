@@ -40,11 +40,9 @@ fun TransactionDatePicker(
     onToggleDatePicker: () -> Unit,
     onDateSelected: (LocalDate) -> Unit,
 ) {
-
     OutlinedTextField(
         value = value.orEmpty(),
         onValueChange = {
-
         },
         singleLine = true,
         readOnly = true,
@@ -94,7 +92,8 @@ fun TransactionDatePicker(
                 TextButton(onClick = onToggleDatePicker) {
                     Text("Cancel")
                 }
-            }) {
+            },
+        ) {
             DatePicker(state = datePickerState)
         }
     }

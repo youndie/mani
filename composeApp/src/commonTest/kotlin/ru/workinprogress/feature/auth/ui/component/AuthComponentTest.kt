@@ -21,8 +21,8 @@ class AuthComponentTest {
                 password = "",
                 buttonText = "Submit",
                 errorMessage = null,
-                loading = false
-            )
+                loading = false,
+            ),
         )
 
         runComposeUiTest {
@@ -45,7 +45,8 @@ class AuthComponentTest {
                         stateFlow.update { state ->
                             state.copy(loading = true)
                         }
-                    })
+                    },
+                )
             }
 
             onNodeWithTag("title").isDisplayed()

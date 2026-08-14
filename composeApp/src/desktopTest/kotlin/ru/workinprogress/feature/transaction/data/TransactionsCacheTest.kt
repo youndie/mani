@@ -1,8 +1,8 @@
 package ru.workinprogress.feature.transaction.data
 
+import com.ionspin.kotlin.bignum.decimal.toBigDecimal
 import com.russhwolf.settings.MapSettings
 import com.russhwolf.settings.Settings
-import com.ionspin.kotlin.bignum.decimal.toBigDecimal
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
 import ru.workinprogress.feature.transaction.DataSource
@@ -24,9 +24,7 @@ private val rule =
         comment = "Rent",
     )
 
-private class FailingSource(
-    var fail: Boolean,
-) : DataSource<Transaction> {
+private class FailingSource(var fail: Boolean) : DataSource<Transaction> {
     override suspend fun create(params: Transaction) = params
 
     override suspend fun load(): List<Transaction> {
@@ -56,37 +54,35 @@ class TransactionsCacheTest {
     }
 
     @Test
-    fun `without network the last known list is shown`() =
-        runTest {
-            val settings = MapSettings()
-            val source = FailingSource(fail = false)
-            val repository = TransactionRepositoryImpl(source, TransactionsCache(settings))
+    fun `without network the last known list is shown`() = runTest {
+        val settings = MapSettings()
+        val source = FailingSource(fail = false)
+        val repository = TransactionRepositoryImpl(source, TransactionsCache(settings))
 
-            repository.load()
-            assertEquals(listOf(rule), repository.dataStateFlow.value)
-            assertNull(repository.showingCacheFrom.value, "сеть была — отметки о кэше быть не должно")
+        repository.load()
+        assertEquals(listOf(rule), repository.dataStateFlow.value)
+        assertNull(repository.showingCacheFrom.value, "сеть была — отметки о кэше быть не должно")
 
-            source.fail = true
-            repository.load()
+        source.fail = true
+        repository.load()
 
-            assertEquals(listOf(rule), repository.dataStateFlow.value)
-            assertNotNull(repository.showingCacheFrom.value, "экран должен сказать, что данные не свежие")
-        }
+        assertEquals(listOf(rule), repository.dataStateFlow.value)
+        assertNotNull(repository.showingCacheFrom.value, "экран должен сказать, что данные не свежие")
+    }
 
     @Test
-    fun `without network and without cache the failure surfaces`() =
-        runTest {
-            val repository = TransactionRepositoryImpl(FailingSource(fail = true), TransactionsCache(MapSettings()))
+    fun `without network and without cache the failure surfaces`() = runTest {
+        val repository = TransactionRepositoryImpl(FailingSource(fail = true), TransactionsCache(MapSettings()))
 
-            // Показывать нечего и врать нечем — отказ должен дойти до экрана.
-            val failed =
-                try {
-                    repository.load()
-                    false
-                } catch (e: IllegalStateException) {
-                    true
-                }
+        // Показывать нечего и врать нечем — отказ должен дойти до экрана.
+        val failed =
+            try {
+                repository.load()
+                false
+            } catch (e: IllegalStateException) {
+                true
+            }
 
-            assertTrue(failed)
-        }
+        assertTrue(failed)
+    }
 }

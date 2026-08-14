@@ -8,26 +8,26 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import ru.workinprogress.feature.currency.Currency
-import ru.workinprogress.feature.currency.GetCurrentCurrencyUseCase
 import kotlinx.datetime.format
 import kotlinx.datetime.format.MonthNames
 import kotlinx.datetime.format.char
+import ru.workinprogress.feature.currency.Currency
+import ru.workinprogress.feature.currency.GetCurrentCurrencyUseCase
 import ru.workinprogress.feature.main.MainViewModel
 import ru.workinprogress.feature.main.MainViewModel.Companion.loadingItems
-import ru.workinprogress.feature.transaction.amountSigned
-import ru.workinprogress.feature.transaction.ui.model.buildColoredAmount
-import ru.workinprogress.feature.transaction.ui.model.formatMoney
-import ru.workinprogress.utilz.bigdecimal.sumOf
 import ru.workinprogress.feature.transaction.Transaction
+import ru.workinprogress.feature.transaction.amountSigned
 import ru.workinprogress.feature.transaction.domain.DeleteTransactionsUseCase
 import ru.workinprogress.feature.transaction.domain.GetTransactionsUseCase
 import ru.workinprogress.feature.transaction.simulate
 import ru.workinprogress.feature.transaction.ui.model.TransactionListUiState
 import ru.workinprogress.feature.transaction.ui.model.TransactionUiItem
+import ru.workinprogress.feature.transaction.ui.model.buildColoredAmount
+import ru.workinprogress.feature.transaction.ui.model.formatMoney
 import ru.workinprogress.mani.emptyImmutableMap
 import ru.workinprogress.mani.today
 import ru.workinprogress.useCase.UseCase
+import ru.workinprogress.utilz.bigdecimal.sumOf
 
 class TransactionsViewModel(
     private val getTransactionsUseCase: GetTransactionsUseCase,
@@ -81,23 +81,23 @@ class TransactionsViewModel(
                                 dayBalances = MainViewModel.buildDayBalances(simulated, currency),
                                 monthTitle = today().format(monthFormat) + " so far",
                                 monthChange =
-                                    buildColoredAmount(
-                                        simulated
-                                            .filterKeys { it.year == today().year && it.month == today().month }
-                                            .values
-                                            .flatten()
-                                            .sumOf { it.amountSigned },
-                                        currency,
-                                    ).text,
+                                buildColoredAmount(
+                                    simulated
+                                        .filterKeys { it.year == today().year && it.month == today().month }
+                                        .values
+                                        .flatten()
+                                        .sumOf { it.amountSigned },
+                                    currency,
+                                ).text,
                                 balanceToday =
-                                    formatMoney(
-                                        simulated
-                                            .filterKeys { it <= today() }
-                                            .values
-                                            .flatten()
-                                            .sumOf { it.amountSigned },
-                                        currency,
-                                    ),
+                                formatMoney(
+                                    simulated
+                                        .filterKeys { it <= today() }
+                                        .values
+                                        .flatten()
+                                        .sumOf { it.amountSigned },
+                                    currency,
+                                ),
                             )
                     }
                 }
@@ -109,13 +109,13 @@ class TransactionsViewModel(
         if (transactionUiItem in state.value.selectedTransactions) {
             state.update { state ->
                 state.copy(
-                    selectedTransactions = (state.selectedTransactions - transactionUiItem).toImmutableList()
+                    selectedTransactions = (state.selectedTransactions - transactionUiItem).toImmutableList(),
                 )
             }
         } else {
             state.update { state ->
                 state.copy(
-                    selectedTransactions = (state.selectedTransactions + transactionUiItem).toImmutableList()
+                    selectedTransactions = (state.selectedTransactions + transactionUiItem).toImmutableList(),
                 )
             }
         }
@@ -130,7 +130,7 @@ class TransactionsViewModel(
     fun onContextMenuClosed() {
         state.update { state ->
             state.copy(
-                selectedTransactions = emptyList<TransactionUiItem>().toImmutableList()
+                selectedTransactions = emptyList<TransactionUiItem>().toImmutableList(),
             )
         }
     }
@@ -147,7 +147,7 @@ class TransactionsViewModel(
             state.update { state ->
                 state.copy(
                     showDeleteDialog = false,
-                    selectedTransactions = emptyList<TransactionUiItem>().toImmutableList()
+                    selectedTransactions = emptyList<TransactionUiItem>().toImmutableList(),
                 )
             }
 

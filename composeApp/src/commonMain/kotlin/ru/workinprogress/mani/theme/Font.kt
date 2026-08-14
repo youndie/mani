@@ -19,11 +19,10 @@ import org.jetbrains.compose.resources.Font
  * как отладочный вывод, а не как деньги.
  */
 @Composable
-fun sansFamily() =
-    FontFamily(
-        Font(resource = Res.font.IBMPlexSans_Regular, FontWeight.W400),
-        Font(resource = Res.font.IBMPlexSans_SemiBold, FontWeight.W600),
-    )
+fun sansFamily() = FontFamily(
+    Font(resource = Res.font.IBMPlexSans_Regular, FontWeight.W400),
+    Font(resource = Res.font.IBMPlexSans_SemiBold, FontWeight.W600),
+)
 
 /**
  * Моноширинный: суммы, даты, метки и словесный знак.
@@ -32,11 +31,10 @@ fun sansFamily() =
  * колонку сумм.
  */
 @Composable
-fun monoFamily() =
-    FontFamily(
-        Font(resource = Res.font.JetBrainsMono_Regular, FontWeight.W400),
-        Font(resource = Res.font.JetBrainsMono_Medium, FontWeight.W500),
-    )
+fun monoFamily() = FontFamily(
+    Font(resource = Res.font.JetBrainsMono_Regular, FontWeight.W400),
+    Font(resource = Res.font.JetBrainsMono_Medium, FontWeight.W500),
+)
 
 /**
  * Пара шрифтов, доступная из любого места дерева.
@@ -45,10 +43,7 @@ fun monoFamily() =
  * не ролью типографики: роль `bodyMedium` в одном месте держит комментарий к правилу, а в
  * другом его сумму.
  */
-data class ManiFonts(
-    val sans: FontFamily,
-    val mono: FontFamily,
-)
+data class ManiFonts(val sans: FontFamily, val mono: FontFamily)
 
 /**
  * По умолчанию — системные гарнитуры, а не исключение: `@Preview` и тесты компонентов рисуются
@@ -64,27 +59,22 @@ val LocalManiFonts =
  * Метки (`labelSmall`, `labelMedium`) уходят в моноширинный целиком: это подписи-эйбрау вроде
  * «BALANCE TODAY» и «UPCOMING», и они везде служебные. Остальные роли — наборные.
  */
-fun createTypography(
-    parent: Typography,
-    sans: FontFamily,
-    mono: FontFamily,
-): Typography =
-    Typography(
-        parent.displayLarge.copy(fontFamily = sans),
-        parent.displayMedium.copy(fontFamily = sans),
-        parent.displaySmall.copy(fontFamily = sans),
-        parent.headlineLarge.copy(fontFamily = sans),
-        parent.headlineMedium.copy(fontFamily = sans),
-        parent.headlineSmall.copy(fontFamily = sans),
-        parent.titleLarge.copy(fontFamily = sans),
-        parent.titleMedium.copy(fontFamily = sans),
-        parent.titleSmall.copy(fontFamily = sans),
-        parent.bodyLarge.copy(fontFamily = sans),
-        parent.bodyMedium.copy(fontFamily = sans),
-        parent.bodySmall.copy(fontFamily = sans),
-        // `labelLarge` — это надписи на кнопках и чипах. В макете они полужирные: кнопка должна
-        // читаться как кнопка, а не как строка текста внутри рамки.
-        parent.labelLarge.copy(fontFamily = sans, fontWeight = FontWeight.W600),
-        parent.labelMedium.copy(fontFamily = mono),
-        parent.labelSmall.copy(fontFamily = mono),
-    )
+fun createTypography(parent: Typography, sans: FontFamily, mono: FontFamily): Typography = Typography(
+    parent.displayLarge.copy(fontFamily = sans),
+    parent.displayMedium.copy(fontFamily = sans),
+    parent.displaySmall.copy(fontFamily = sans),
+    parent.headlineLarge.copy(fontFamily = sans),
+    parent.headlineMedium.copy(fontFamily = sans),
+    parent.headlineSmall.copy(fontFamily = sans),
+    parent.titleLarge.copy(fontFamily = sans),
+    parent.titleMedium.copy(fontFamily = sans),
+    parent.titleSmall.copy(fontFamily = sans),
+    parent.bodyLarge.copy(fontFamily = sans),
+    parent.bodyMedium.copy(fontFamily = sans),
+    parent.bodySmall.copy(fontFamily = sans),
+    // `labelLarge` — это надписи на кнопках и чипах. В макете они полужирные: кнопка должна
+    // читаться как кнопка, а не как строка текста внутри рамки.
+    parent.labelLarge.copy(fontFamily = sans, fontWeight = FontWeight.W600),
+    parent.labelMedium.copy(fontFamily = mono),
+    parent.labelSmall.copy(fontFamily = mono),
+)

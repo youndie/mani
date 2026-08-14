@@ -18,8 +18,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.*
@@ -27,25 +27,26 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
-import androidx.compose.ui.graphics.PathEffect
-import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -74,25 +75,25 @@ import ru.workinprogress.feature.transaction.ui.BaseTransactionViewModel
 import ru.workinprogress.feature.transaction.ui.EditTransactionViewModel
 import ru.workinprogress.feature.transaction.ui.component.model.TransactionAction
 import ru.workinprogress.feature.transaction.ui.component.model.TransactionAction.*
+import ru.workinprogress.feature.transaction.ui.model.NegativeColor
 import ru.workinprogress.feature.transaction.ui.model.TransactionUiState
+import ru.workinprogress.feature.transaction.ui.model.buildColoredAmount
 import ru.workinprogress.feature.transaction.ui.model.stringResource
 import ru.workinprogress.feature.transaction.ui.utils.CurrencyVisualTransformation
 import ru.workinprogress.mani.components.LoadingButton
 import ru.workinprogress.mani.navigation.TransactionRoute
+import ru.workinprogress.mani.theme.LocalManiFonts
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
-import ru.workinprogress.mani.theme.LocalManiFonts
-import ru.workinprogress.feature.transaction.ui.model.buildColoredAmount
-import ru.workinprogress.feature.transaction.ui.model.NegativeColor
-import androidx.compose.ui.text.buildAnnotatedString
-
 
 @Composable
 fun AddTransactionComponent(onNavigateBack: () -> Unit) {
     rememberKoinModules {
-        listOf(module {
-            viewModelOf(::AddTransactionViewModel).bind<BaseTransactionViewModel>()
-        })
+        listOf(
+            module {
+                viewModelOf(::AddTransactionViewModel).bind<BaseTransactionViewModel>()
+            },
+        )
     }
 
     TransactionComponentImpl(null, onNavigateBack)
@@ -101,13 +102,22 @@ fun AddTransactionComponent(onNavigateBack: () -> Unit) {
 @Composable
 fun EditTransactionComponent(transactionRoute: TransactionRoute, onNavigateBack: () -> Unit) {
     rememberKoinModules {
-        listOf(module {
-            viewModel { parameters ->
-                EditTransactionViewModel(
-                    transactionId = parameters.get(), get(), get(), get(), get(), get(), get(), get()
-                )
-            }.bind<BaseTransactionViewModel>()
-        })
+        listOf(
+            module {
+                viewModel { parameters ->
+                    EditTransactionViewModel(
+                        transactionId = parameters.get(),
+                        get(),
+                        get(),
+                        get(),
+                        get(),
+                        get(),
+                        get(),
+                        get(),
+                    )
+                }.bind<BaseTransactionViewModel>()
+            },
+        )
     }
 
     TransactionComponentImpl(transactionRoute.id, onNavigateBack)
@@ -130,7 +140,8 @@ internal fun <T> ChipsSelector(
     val markToDelete = remember { mutableStateOf<T?>(null) }
 
     FlowRow(
-        horizontalArrangement = spacedBy(8.dp), modifier = Modifier.animateContentSize()
+        horizontalArrangement = spacedBy(8.dp),
+        modifier = Modifier.animateContentSize(),
     ) {
         items.forEach { item ->
             key(item) {
@@ -155,7 +166,15 @@ internal fun <T> ChipsSelector(
                         } else {
                             null
                         },
-                        elevation = InputChipDefaults.inputChipElevation(elevation = if (item == markToDelete.value) 8.dp else 0.dp),
+                        elevation = InputChipDefaults.inputChipElevation(
+                            elevation = if (item ==
+                                markToDelete.value
+                            ) {
+                                8.dp
+                            } else {
+                                0.dp
+                            },
+                        ),
                         trailingIcon = {
                             if (item == markToDelete.value) {
                                 IconButton(
@@ -170,7 +189,6 @@ internal fun <T> ChipsSelector(
                                         contentDescription = "delete",
                                     )
                                 }
-
                             }
                         },
                         interactionSource = inputChipInteractionSource,
@@ -193,7 +211,7 @@ internal fun <T> ChipsSelector(
                             },
                             interactionSource = inputChipInteractionSource,
                             indication = null,
-                        )
+                        ),
                     )
                 }
             }
@@ -228,7 +246,9 @@ internal fun <T> ChipsSelector(
                 },
                 leadingIcon = {
                     Icon(
-                        Icons.Filled.Add, contentDescription = "add", Modifier.size(AssistChipDefaults.IconSize)
+                        Icons.Filled.Add,
+                        contentDescription = "add",
+                        Modifier.size(AssistChipDefaults.IconSize),
                     )
                 },
             )
@@ -277,9 +297,7 @@ private fun NewCategoryDialog(
 }
 
 @Composable
-fun CategoryDeleteDialog(
-    showDeleteDialog: Boolean, onDelete: () -> Unit, onDismiss: () -> Unit,
-) {
+fun CategoryDeleteDialog(showDeleteDialog: Boolean, onDelete: () -> Unit, onDismiss: () -> Unit) {
     if (showDeleteDialog) {
         AlertDialog(
             title = { Text("Delete selected category?") },
@@ -294,13 +312,13 @@ fun CategoryDeleteDialog(
                 TextButton(onClick = onDismiss) {
                     Text("Cancel")
                 }
-            })
+            },
+        )
     }
 }
 
-
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 /** Подпись над полем: моноширинная, в разрядку — служебная метка, а не текст. */
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 private fun FieldLabel(text: String) {
     Text(
@@ -364,7 +382,8 @@ private fun AmountField(
                 textStyle = amountStyle,
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Number, imeAction = ImeAction.Next
+                    keyboardType = KeyboardType.Number,
+                    imeAction = ImeAction.Next,
                 ),
                 keyboardActions = KeyboardActions(onNext = { onNext() }),
                 visualTransformation = CurrencyVisualTransformation(state.currency),
@@ -396,7 +415,7 @@ private fun AmountField(
                         }
                     },
                     style = MaterialTheme.typography.labelMedium.copy(
-                        fontFamily = LocalManiFonts.current.mono
+                        fontFamily = LocalManiFonts.current.mono,
                     ),
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(start = 12.dp, bottom = 14.dp).testTag("amountPreview"),
@@ -421,13 +440,12 @@ private fun AmountField(
 private fun TransactionComponentImpl(transactionId: String?, onNavigateBack: () -> Unit) {
     val viewModel = koinViewModel<BaseTransactionViewModel>(
         key = transactionId,
-        parameters = { parametersOf(transactionId) }
+        parameters = { parametersOf(transactionId) },
     )
     val state: State<TransactionUiState> = viewModel.observe.collectAsStateWithLifecycle()
 
     TransactionComponentImpl(state.value, viewModel::onAction, onNavigateBack)
 }
-
 
 @Composable
 internal fun TransactionComponentImpl(
@@ -435,26 +453,27 @@ internal fun TransactionComponentImpl(
     onAction: (TransactionAction) -> Unit,
     onNavigateBack: () -> Unit,
 ) {
-
     var showCreateCategoryDialog = remember { mutableStateOf(false) }
     var categoryToRemove = remember { mutableStateOf<Category?>(null) }
 
-    val datePickerState = rememberDatePickerState(selectableDates = object : SelectableDates {
-        override fun isSelectableYear(year: Int): Boolean {
-            return year > 2022
-        }
-    })
+    val datePickerState = rememberDatePickerState(
+        selectableDates = object : SelectableDates {
+            override fun isSelectableYear(year: Int): Boolean = year > 2022
+        },
+    )
 
-    val dateUntilPickerState = rememberDatePickerState(selectableDates = object : SelectableDates {
-        override fun isSelectableDate(utcTimeMillis: Long): Boolean {
-            val date = utcTimeMillis.toDate
-            val stateDate = state.date.value
-            if (date != null && stateDate != null) {
-                return date > stateDate
+    val dateUntilPickerState = rememberDatePickerState(
+        selectableDates = object : SelectableDates {
+            override fun isSelectableDate(utcTimeMillis: Long): Boolean {
+                val date = utcTimeMillis.toDate
+                val stateDate = state.date.value
+                if (date != null && stateDate != null) {
+                    return date > stateDate
+                }
+                return false
             }
-            return false
-        }
-    })
+        },
+    )
 
     val focusManager = LocalFocusManager.current
     val focusRequester = remember { FocusRequester() }
@@ -507,9 +526,11 @@ internal fun TransactionComponentImpl(
         onDelete = {
             onAction(CategoryDelete(categoryToRemove.value))
             categoryToRemove.value = null
-        }, onDismiss = {
+        },
+        onDismiss = {
             categoryToRemove.value = null
-        })
+        },
+    )
 
     // Прокручивается только верхняя часть; полоса с итогом и кнопкой прижата к низу экрана, как
     // в макете. Раньше она ехала следом за полями, и под ней оставалась полоска фона —
@@ -518,225 +539,226 @@ internal fun TransactionComponentImpl(
         Column(
             modifier = Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState()),
         ) {
-        // Поля лежат на общем фоне экрана: в макете приподнята только нижняя полоса с итогом, а
-        // карточка вокруг всей формы делала из неё отдельный предмет внутри экрана.
-        Column(
-            modifier = Modifier.widthIn(max = 640.dp).align(Alignment.CenterHorizontally)
-                .padding(horizontal = 20.dp).padding(top = 8.dp),
-            verticalArrangement = spacedBy(20.dp)
-        ) {
-            // Порядок блоков — как в макете и как человек думает о правиле: сначала знак
-            // (трачу или получаю), потом сколько, потом как часто, потом с какого дня и по
-            // какой, и лишь в конце — необязательная категория.
-            //
-            // Расход или доход чекбоксом не задаётся: выбор из двух равноправных вариантов
-            // читается переключателем, а включённый по умолчанию «Income» ещё и врал про
-            // частоту — расходы вносят чаще.
-            SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth().testTag("income")) {
-                SegmentedButton(
-                    selected = !state.income,
-                    onClick = { onAction(IncomeChanged(false)) },
-                    shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
-                    modifier = Modifier.testTag("expense"),
-                    icon = { DirectionIcon(Icons.Filled.KeyboardArrowDown) },
-                ) {
-                    Text("Expense")
-                }
-                SegmentedButton(
-                    selected = state.income,
-                    onClick = { onAction(IncomeChanged(true)) },
-                    shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
-                    icon = { DirectionIcon(Icons.Filled.KeyboardArrowUp) },
-                ) {
-                    Text("Income")
-                }
-            }
-
-            AmountField(
-                state = state,
-                focusRequester = focusRequester,
-                onAmountChanged = { onAction(AmountChanged(it)) },
-                onNext = { onAction(ToggleDatePicker) },
-            )
-
-            // Повторяемость показывается сразу: это ядро продукта, и прятать её до выбора
-            // даты означало прятать то, чем mani отличается от списка трат.
-            Column(Modifier.testTag("periodContainer")) {
-                FieldLabel("Repeats")
-
-                ChipsSelector(
-                    state.periods,
-                    state.period,
-                    state.periodsExpanded,
-                    { onAction(ExpandPeriodClicked) },
-                    { onAction(PeriodChanged(it)) }) { item ->
-                    stringResource(item.stringResource)
-                }
-            }
-
-            // Начало и конец — одна пара, поэтому в одной строке: «с какого дня и по какой»
-            // читается вместе. Для разовой траты второго поля нет, но место под него
-            // остаётся — строка не прыгает при смене повторяемости.
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = spacedBy(12.dp),
+            // Поля лежат на общем фоне экрана: в макете приподнята только нижняя полоса с итогом, а
+            // карточка вокруг всей формы делала из неё отдельный предмет внутри экрана.
+            Column(
+                modifier = Modifier.widthIn(max = 640.dp).align(Alignment.CenterHorizontally)
+                    .padding(horizontal = 20.dp).padding(top = 8.dp),
+                verticalArrangement = spacedBy(20.dp),
             ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    FieldLabel("Starts")
-                    TransactionDatePicker(
-                        value = state.date.value?.formatted,
-                        placeholder = "pick a day",
-                        modifier = Modifier.testTag("date"),
-                        datePickerState = datePickerState,
-                        showDialog = state.date.showDatePicker,
-                        onToggleDatePicker = { onAction(ToggleDatePicker) },
-                        onDateSelected = { onAction(DateSelected(it)) },
-                    )
+                // Порядок блоков — как в макете и как человек думает о правиле: сначала знак
+                // (трачу или получаю), потом сколько, потом как часто, потом с какого дня и по
+                // какой, и лишь в конце — необязательная категория.
+                //
+                // Расход или доход чекбоксом не задаётся: выбор из двух равноправных вариантов
+                // читается переключателем, а включённый по умолчанию «Income» ещё и врал про
+                // частоту — расходы вносят чаще.
+                SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth().testTag("income")) {
+                    SegmentedButton(
+                        selected = !state.income,
+                        onClick = { onAction(IncomeChanged(false)) },
+                        shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
+                        modifier = Modifier.testTag("expense"),
+                        icon = { DirectionIcon(Icons.Filled.KeyboardArrowDown) },
+                    ) {
+                        Text("Expense")
+                    }
+                    SegmentedButton(
+                        selected = state.income,
+                        onClick = { onAction(IncomeChanged(true)) },
+                        shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
+                        icon = { DirectionIcon(Icons.Filled.KeyboardArrowUp) },
+                    ) {
+                        Text("Income")
+                    }
                 }
 
-                if (state.period != Transaction.Period.OneTime) {
+                AmountField(
+                    state = state,
+                    focusRequester = focusRequester,
+                    onAmountChanged = { onAction(AmountChanged(it)) },
+                    onNext = { onAction(ToggleDatePicker) },
+                )
+
+                // Повторяемость показывается сразу: это ядро продукта, и прятать её до выбора
+                // даты означало прятать то, чем mani отличается от списка трат.
+                Column(Modifier.testTag("periodContainer")) {
+                    FieldLabel("Repeats")
+
+                    ChipsSelector(
+                        state.periods,
+                        state.period,
+                        state.periodsExpanded,
+                        { onAction(ExpandPeriodClicked) },
+                        { onAction(PeriodChanged(it)) },
+                    ) { item ->
+                        stringResource(item.stringResource)
+                    }
+                }
+
+                // Начало и конец — одна пара, поэтому в одной строке: «с какого дня и по какой»
+                // читается вместе. Для разовой траты второго поля нет, но место под него
+                // остаётся — строка не прыгает при смене повторяемости.
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = spacedBy(12.dp),
+                ) {
                     Column(modifier = Modifier.weight(1f)) {
-                        FieldLabel("Until")
+                        FieldLabel("Starts")
                         TransactionDatePicker(
-                            modifier = Modifier.testTag("until"),
-                            value = state.until.value?.formatted,
-                            // Пустое «до» — это не пропущенное поле, а «повторять без конца».
-                            placeholder = "forever",
-                            datePickerState = dateUntilPickerState,
-                            showDialog = state.until.showDatePicker,
-                            onToggleDatePicker = { onAction(ToggleUntilDatePicker) },
-                            onDateSelected = { onAction(DateUntilSelected(it)) },
+                            value = state.date.value?.formatted,
+                            placeholder = "pick a day",
+                            modifier = Modifier.testTag("date"),
+                            datePickerState = datePickerState,
+                            showDialog = state.date.showDatePicker,
+                            onToggleDatePicker = { onAction(ToggleDatePicker) },
+                            onDateSelected = { onAction(DateSelected(it)) },
                         )
                     }
-                } else {
-                    Spacer(modifier = Modifier.weight(1f))
-                }
-            }
 
-            Column(
-                modifier = Modifier.fillMaxWidth().testTag("categoryContainer")
-            ) {
-                FieldLabel("Category")
-
-                ChipsSelector(
-                    state.categories,
-                    state.category,
-                    state.categoriesExpanded,
-                    { onAction(ExpandCategoryClicked) },
-                    { onAction(CategoryChanged(it)) },
-                    showCreateNew = true,
-                    deleteEnabled = {
-                        it != Category.default
-                    },
-                    onCreateNew = {
-                        showCreateCategoryDialog.value = true
-                    },
-                    onDelete = {
-                        categoryToRemove.value = it
-                    }) { it.name }
-            }
-        }
-
-
-
-        Column(modifier = Modifier.widthIn(max = 640.dp).align(Alignment.CenterHorizontally)) {
-            Spacer(modifier = Modifier.height(16.dp))
-
-            val keyboardController = LocalSoftwareKeyboardController.current
-
-            // Однострочное поле без плавающей метки: комментарий — это одно короткое название
-            // вроде «Dining out», а не абзац, и подпись под полем объясняет, где оно всплывёт.
-            OutlinedTextField(
-                state.comment,
-                { onAction(CommentChanged(it)) },
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp).testTag("comment"),
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                keyboardActions = KeyboardActions(
-                    onDone = { keyboardController?.hide() }),
-                singleLine = true,
-                placeholder = { Text("Dining out") })
-
-            Text(
-                "comment — shown in the feed",
-                modifier = Modifier.padding(start = 22.dp, top = 6.dp),
-                style = MaterialTheme.typography.labelSmall.copy(fontFamily = LocalManiFonts.current.mono),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-
-            Spacer(modifier = Modifier.height(24.dp))
-        }
-        }
-
-            // Итог и кнопка — одной полосой: сколько раз повторится и во что обойдётся, читается
-            // прямо над тем действием, которое это подтверждает.
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(MaterialTheme.colorScheme.surfaceContainer)
-                    .padding(horizontal = 20.dp, vertical = 20.dp),
-                verticalArrangement = spacedBy(12.dp),
-            ) {
-                AnimatedVisibility(state.amount.isNotBlank() && state.date.value != null) {
-                    CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.secondary) {
-                        Text(
-                            state.futureInformation,
-                            modifier = Modifier.testTag("futureInformation"),
-                            style = MaterialTheme.typography.labelMedium.copy(
-                                fontFamily = LocalManiFonts.current.mono
-                            ),
-                        )
+                    if (state.period != Transaction.Period.OneTime) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            FieldLabel("Until")
+                            TransactionDatePicker(
+                                modifier = Modifier.testTag("until"),
+                                value = state.until.value?.formatted,
+                                // Пустое «до» — это не пропущенное поле, а «повторять без конца».
+                                placeholder = "forever",
+                                datePickerState = dateUntilPickerState,
+                                showDialog = state.until.showDatePicker,
+                                onToggleDatePicker = { onAction(ToggleUntilDatePicker) },
+                                onDateSelected = { onAction(DateUntilSelected(it)) },
+                            )
+                        }
+                    } else {
+                        Spacer(modifier = Modifier.weight(1f))
                     }
                 }
 
-                // Главное последствие правила — не его собственная сумма, а то, на сколько оно
-                // сдвигает день, когда деньги кончатся. Без этой строки цену решения приходилось
-                // узнавать, сохранив его и вернувшись на главный экран.
-                state.runsOutShift?.let { shift ->
-                    Text(
-                        shift.text,
-                        modifier = Modifier.testTag("runsOutShift"),
-                        style = MaterialTheme.typography.labelMedium.copy(
-                            fontFamily = LocalManiFonts.current.mono
-                        ),
-                        color = if (shift.worse) {
-                            NegativeColor
-                        } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
+                Column(
+                    modifier = Modifier.fillMaxWidth().testTag("categoryContainer"),
+                ) {
+                    FieldLabel("Category")
+
+                    ChipsSelector(
+                        state.categories,
+                        state.category,
+                        state.categoriesExpanded,
+                        { onAction(ExpandCategoryClicked) },
+                        { onAction(CategoryChanged(it)) },
+                        showCreateNew = true,
+                        deleteEnabled = {
+                            it != Category.default
                         },
-                    )
+                        onCreateNew = {
+                            showCreateCategoryDialog.value = true
+                        },
+                        onDelete = {
+                            categoryToRemove.value = it
+                        },
+                    ) { it.name }
                 }
-
-                state.errorMessage?.let {
-                    Text(
-                        it,
-                        modifier = Modifier.testTag("errorMessage"),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.error,
-                    )
-                }
-
-                LoadingButton(
-                    Modifier.fillMaxWidth().testTag("submit"),
-                    loading = state.loading,
-                    enabled = state.valid,
-                    if (state.edit) "Save" else "Create"
-                ) { onAction(SubmitClicked) }
             }
+
+            Column(modifier = Modifier.widthIn(max = 640.dp).align(Alignment.CenterHorizontally)) {
+                Spacer(modifier = Modifier.height(16.dp))
+
+                val keyboardController = LocalSoftwareKeyboardController.current
+
+                // Однострочное поле без плавающей метки: комментарий — это одно короткое название
+                // вроде «Dining out», а не абзац, и подпись под полем объясняет, где оно всплывёт.
+                OutlinedTextField(
+                    state.comment,
+                    { onAction(CommentChanged(it)) },
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp).testTag("comment"),
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                    keyboardActions = KeyboardActions(onDone = { keyboardController?.hide() }),
+                    singleLine = true,
+                    placeholder = { Text("Dining out") },
+                )
+
+                Text(
+                    "comment — shown in the feed",
+                    modifier = Modifier.padding(start = 22.dp, top = 6.dp),
+                    style = MaterialTheme.typography.labelSmall.copy(fontFamily = LocalManiFonts.current.mono),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+
+                Spacer(modifier = Modifier.height(24.dp))
+            }
+        }
+
+        // Итог и кнопка — одной полосой: сколько раз повторится и во что обойдётся, читается
+        // прямо над тем действием, которое это подтверждает.
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(MaterialTheme.colorScheme.surfaceContainer)
+                .padding(horizontal = 20.dp, vertical = 20.dp),
+            verticalArrangement = spacedBy(12.dp),
+        ) {
+            AnimatedVisibility(state.amount.isNotBlank() && state.date.value != null) {
+                CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.secondary) {
+                    Text(
+                        state.futureInformation,
+                        modifier = Modifier.testTag("futureInformation"),
+                        style = MaterialTheme.typography.labelMedium.copy(
+                            fontFamily = LocalManiFonts.current.mono,
+                        ),
+                    )
+                }
+            }
+
+            // Главное последствие правила — не его собственная сумма, а то, на сколько оно
+            // сдвигает день, когда деньги кончатся. Без этой строки цену решения приходилось
+            // узнавать, сохранив его и вернувшись на главный экран.
+            state.runsOutShift?.let { shift ->
+                Text(
+                    shift.text,
+                    modifier = Modifier.testTag("runsOutShift"),
+                    style = MaterialTheme.typography.labelMedium.copy(
+                        fontFamily = LocalManiFonts.current.mono,
+                    ),
+                    color = if (shift.worse) {
+                        NegativeColor
+                    } else {
+                        MaterialTheme.colorScheme.onSurfaceVariant
+                    },
+                )
+            }
+
+            state.errorMessage?.let {
+                Text(
+                    it,
+                    modifier = Modifier.testTag("errorMessage"),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
+
+            LoadingButton(
+                Modifier.fillMaxWidth().testTag("submit"),
+                loading = state.loading,
+                enabled = state.valid,
+                if (state.edit) "Save" else "Create",
+            ) { onAction(SubmitClicked) }
+        }
     }
 }
 
 /** «20 Aug 2026»: в макете дата написана словом — «08/20/2026» ещё и читается по-разному в мире. */
 val LocalDate.formatted
-    get() = this.format(LocalDate.Format {
-        dayOfMonth(Padding.NONE)
-        char(' ')
-        monthName(MonthNames.ENGLISH_ABBREVIATED)
-        char(' ')
-        year()
-    })
+    get() = this.format(
+        LocalDate.Format {
+            dayOfMonth(Padding.NONE)
+            char(' ')
+            monthName(MonthNames.ENGLISH_ABBREVIATED)
+            char(' ')
+            year()
+        },
+    )
 
 inline val Long?.toDate
     get() = this?.let {
         Instant.fromEpochMilliseconds(it).toLocalDateTime(TimeZone.currentSystemDefault()).date
     }
-

@@ -18,23 +18,17 @@ import ru.workinprogress.mongkn.ext.find
 /**
  * Категории лежат массивом в документе пользователя, поэтому коллекция здесь — `users`.
  */
-class MongknCategoryRepository(
-    mongoDatabase: MongoDatabase,
-) : CategoryRepository {
+class MongknCategoryRepository(mongoDatabase: MongoDatabase) : CategoryRepository {
     private val db = mongoDatabase.getCollection<UserDb>(USER_COLLECTION)
 
-    override suspend fun getByUser(userId: String): List<Category> =
-        db
-            .find(byId(userId))
-            .firstOrNull()
-            ?.categories
-            ?.map { it.toCategory() }
-            .orEmpty()
+    override suspend fun getByUser(userId: String): List<Category> = db
+        .find(byId(userId))
+        .firstOrNull()
+        ?.categories
+        ?.map { it.toCategory() }
+        .orEmpty()
 
-    override suspend fun create(
-        category: Category,
-        userId: String,
-    ): Category {
+    override suspend fun create(category: Category, userId: String): Category {
         val newCategory = CategoryDb(id = BsonObjectId.generate().hex, name = category.name)
 
         db.updateOne(
@@ -43,22 +37,21 @@ class MongknCategoryRepository(
             // у `CategoryDb._id` свой сериализатор, и собранный из BsonString документ лёг бы
             // в массив с чужим типом ключа. Найти такую категорию потом было бы нечем.
             update =
-                BsonDocument(
-                    "\$addToSet" to
-                        BsonDocument(
-                            CATEGORIES to encodeToBsonValue(CategoryDb.serializer(), newCategory),
-                        ),
-                ),
+            BsonDocument(
+                "\$addToSet" to
+                    BsonDocument(
+                        CATEGORIES to encodeToBsonValue(CategoryDb.serializer(), newCategory),
+                    ),
+            ),
         )
 
         return newCategory.toCategory()
     }
 
-    override suspend fun getById(categoryId: String): Category? =
-        findUserByCategoryId(categoryId)
-            ?.categories
-            ?.find { it.id == categoryId }
-            ?.toCategory()
+    override suspend fun getById(categoryId: String): Category? = findUserByCategoryId(categoryId)
+        ?.categories
+        ?.find { it.id == categoryId }
+        ?.toCategory()
 
     override suspend fun update(category: Category): Category {
         db.updateOne(
@@ -78,12 +71,12 @@ class MongknCategoryRepository(
         db.updateOne(
             filter = byCategoryId(categoryId),
             update =
-                BsonDocument(
-                    "\$pull" to
-                        BsonDocument(
-                            CATEGORIES to BsonDocument("_id" to BsonObjectId.parse(categoryId)),
-                        ),
-                ),
+            BsonDocument(
+                "\$pull" to
+                    BsonDocument(
+                        CATEGORIES to BsonDocument("_id" to BsonObjectId.parse(categoryId)),
+                    ),
+            ),
         )
     }
 
@@ -94,8 +87,7 @@ class MongknCategoryRepository(
      * сериализатор поля по нему не найдётся. Кодируем значение сами: без `BsonObjectId` фильтр
      * ушёл бы строкой и не совпал бы ни с одной категорией.
      */
-    private fun byCategoryId(categoryId: String) =
-        filter<UserDb> { "categories._id" eq BsonObjectId.parse(categoryId) }
+    private fun byCategoryId(categoryId: String) = filter<UserDb> { "categories._id" eq BsonObjectId.parse(categoryId) }
 
     private fun CategoryDb.toCategory() = Category(id, name)
 

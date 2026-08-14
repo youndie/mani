@@ -36,8 +36,8 @@ class FiltersTest {
         val stateFlow = MutableStateFlow(
             FiltersState(
                 categories = persistentSetOf(Category("0", "Test0"), targetCategory),
-                loading = true
-            )
+                loading = true,
+            ),
         )
 
         setContent {
@@ -49,7 +49,8 @@ class FiltersTest {
                     stateFlow.update { state ->
                         state.copy(upcoming = it)
                     }
-                }) {
+                },
+            ) {
                 stateFlow.update { state ->
                     state.copy(category = it)
                 }

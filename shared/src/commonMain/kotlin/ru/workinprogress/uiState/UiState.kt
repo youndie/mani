@@ -32,4 +32,7 @@ inline fun <T, reified R : DataState<T>> MutableStateFlow<R>.showData(data: T) {
     value = value.showData(data) as R
 }
 
-interface CommonUiState<T> : DataState<T>, LoadingState, ErrorState
+interface CommonUiState<T> :
+    DataState<T>,
+    LoadingState,
+    ErrorState

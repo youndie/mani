@@ -13,10 +13,7 @@ import ru.workinprogress.feature.auth.Tokens
 import ru.workinprogress.feature.auth.data.TokenRepository
 import ru.workinprogress.mani.data.ServerException
 
-class LoginUseCase(
-    private val httpClient: HttpClient,
-    private val tokenRepository: TokenRepository
-) : AuthUseCase() {
+class LoginUseCase(private val httpClient: HttpClient, private val tokenRepository: TokenRepository) : AuthUseCase() {
 
     override suspend operator fun invoke(params: LoginParams): Result<Boolean> {
         try {
@@ -31,12 +28,11 @@ class LoginUseCase(
                     val result = response.body<Tokens>()
                     tokenRepository.set(
                         accessToken = result.accessToken,
-                        refreshToken = result.refreshToken
+                        refreshToken = result.refreshToken,
                     )
                     Result.Success(true)
                 }
             }
-
         } catch (e: Exception) {
             return Result.Error(ServerException(message = "Network Error", cause = e))
         }

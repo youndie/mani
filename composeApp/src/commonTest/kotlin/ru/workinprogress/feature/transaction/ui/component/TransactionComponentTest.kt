@@ -26,7 +26,7 @@ class TransactionComponentTest : LifecycleOwner {
             }
             setContent {
                 CompositionLocalProvider(
-                    LocalLifecycleOwner provides this@TransactionComponentTest
+                    LocalLifecycleOwner provides this@TransactionComponentTest,
                 ) {
                     val state = stateFlow.collectAsStateWithLifecycle()
 
@@ -36,11 +36,11 @@ class TransactionComponentTest : LifecycleOwner {
                             {
                                 when (action) {
                                     else -> {
-
                                     }
                                 }
                             }
-                        }) {
+                        },
+                    ) {
                         lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_PAUSE)
                         lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_STOP)
                         lifecycle.handleLifecycleEvent(Lifecycle.Event.ON_DESTROY)

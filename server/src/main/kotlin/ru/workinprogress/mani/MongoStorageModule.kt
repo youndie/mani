@@ -22,13 +22,12 @@ import ru.workinprogress.mani.config.MongoConfig
  * не дублирование, а единственный способ иметь две сборки: драйвер существует лишь на JVM,
  * mongkn — лишь под linuxX64.
  */
-fun mongoStorageModule(mongoConfig: MongoConfig): Module =
-    module {
-        single<MongoClient> { MongoClient.create(mongoConfig.connectionString) }
-        single<MongoDatabase> { get<MongoClient>().getDatabase(mongoConfig.database) }
+fun mongoStorageModule(mongoConfig: MongoConfig): Module = module {
+    single<MongoClient> { MongoClient.create(mongoConfig.connectionString) }
+    single<MongoDatabase> { get<MongoClient>().getDatabase(mongoConfig.database) }
 
-        single { MongoUserRepository(get(), get()) }.bind<UserRepository>()
-        single { MongoTokenRepository(get()) }.bind<TokenRepository>()
-        single { MongoTransactionRepository(get()) }.bind<TransactionRepository>()
-        single { MongoCategoryRepository(get()) }.bind<CategoryRepository>()
-    }
+    single { MongoUserRepository(get(), get()) }.bind<UserRepository>()
+    single { MongoTokenRepository(get()) }.bind<TokenRepository>()
+    single { MongoTransactionRepository(get()) }.bind<TransactionRepository>()
+    single { MongoCategoryRepository(get()) }.bind<CategoryRepository>()
+}

@@ -32,12 +32,11 @@ class DemoSeedTest {
     private fun horizon(): Pair<LocalDate, LocalDate> =
         DemoSeed.transactions(today).minOf(Transaction::date) to defaultPeriodAppend(today)
 
-    private fun balanceAt(date: LocalDate): BigDecimal =
-        simulated
-            .filterKeys { it <= date }
-            .values
-            .flatten()
-            .sumOf(Transaction::amountSigned)
+    private fun balanceAt(date: LocalDate): BigDecimal = simulated
+        .filterKeys { it <= date }
+        .values
+        .flatten()
+        .sumOf(Transaction::amountSigned)
 
     @Test
     fun balanceRunsOutInsideForecastHorizon() {

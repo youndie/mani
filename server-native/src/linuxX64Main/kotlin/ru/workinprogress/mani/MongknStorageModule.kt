@@ -22,13 +22,12 @@ import ru.workinprogress.mongkn.MongoDatabase
  * владеет пулом соединений и своим пулом потоков, и второй экземпляр означал бы вдвое больше
  * и того и другого.
  */
-fun mongknStorageModule(mongoConfig: MongoConfig): Module =
-    module {
-        single<MongoClient> { MongoClient(mongoConfig.connectionString) }
-        single<MongoDatabase> { get<MongoClient>().getDatabase(mongoConfig.database) }
+fun mongknStorageModule(mongoConfig: MongoConfig): Module = module {
+    single<MongoClient> { MongoClient(mongoConfig.connectionString) }
+    single<MongoDatabase> { get<MongoClient>().getDatabase(mongoConfig.database) }
 
-        single { MongknUserRepository(get(), get()) }.bind<UserRepository>()
-        single { MongknTokenRepository(get()) }.bind<TokenRepository>()
-        single { MongknTransactionRepository(get()) }.bind<TransactionRepository>()
-        single { MongknCategoryRepository(get()) }.bind<CategoryRepository>()
-    }
+    single { MongknUserRepository(get(), get()) }.bind<UserRepository>()
+    single { MongknTokenRepository(get()) }.bind<TokenRepository>()
+    single { MongknTransactionRepository(get()) }.bind<TransactionRepository>()
+    single { MongknCategoryRepository(get()) }.bind<CategoryRepository>()
+}

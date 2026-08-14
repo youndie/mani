@@ -20,19 +20,18 @@ class SeedDemoDataUseCase(
     private val httpClient: HttpClient,
     private val transactionRepository: TransactionRepository,
 ) : SeedUseCase() {
-    override suspend operator fun invoke(params: EmptyParams): Result<Boolean> =
-        try {
-            withContext(Dispatchers.Default) {
-                val response = httpClient.post(DemoResource.Seed())
+    override suspend operator fun invoke(params: EmptyParams): Result<Boolean> = try {
+        withContext(Dispatchers.Default) {
+            val response = httpClient.post(DemoResource.Seed())
 
-                if (response.status != HttpStatusCode.Created) {
-                    Result.Error(ServerException("Couldn't fill the demo data"))
-                } else {
-                    transactionRepository.load()
-                    Result.Success(true)
-                }
+            if (response.status != HttpStatusCode.Created) {
+                Result.Error(ServerException("Couldn't fill the demo data"))
+            } else {
+                transactionRepository.load()
+                Result.Success(true)
             }
-        } catch (e: Exception) {
-            Result.Error(ServerException(message = "Couldn't fill the demo data", cause = e))
         }
+    } catch (e: Exception) {
+        Result.Error(ServerException(message = "Couldn't fill the demo data", cause = e))
+    }
 }

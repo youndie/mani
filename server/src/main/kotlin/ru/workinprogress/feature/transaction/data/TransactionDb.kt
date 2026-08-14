@@ -15,4 +15,3 @@ data class TransactionDb(
     val userId: String,
     val categoryId: String?,
 )
-

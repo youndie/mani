@@ -13,8 +13,4 @@ class HealthResource
  * @param uptimeSeconds сколько эта сборка работает
  */
 @Serializable
-data class Health(
-    val build: String,
-    val version: String,
-    val uptimeSeconds: Long,
-)
+data class Health(val build: String, val version: String, val uptimeSeconds: Long)

@@ -26,18 +26,17 @@ object TestMongo {
 
     fun client(): MongoClient = MongoClient("mongodb://$host/?w=majority&appName=ManiTest")
 
-    fun config(webRoot: String? = null): ManiConfig =
-        ManiConfig(
-            port = 0,
-            mongo = MongoConfig(host = host),
-            jwt =
-                JWTConfig(
-                    secret = "test-secret",
-                    audience = "jwt-audience",
-                    issuer = "jwt-issuer",
-                    expirationSeconds = 3600,
-                ),
-            webRoot = webRoot,
-            development = false,
-        )
+    fun config(webRoot: String? = null): ManiConfig = ManiConfig(
+        port = 0,
+        mongo = MongoConfig(host = host),
+        jwt =
+        JWTConfig(
+            secret = "test-secret",
+            audience = "jwt-audience",
+            issuer = "jwt-issuer",
+            expirationSeconds = 3600,
+        ),
+        webRoot = webRoot,
+        development = false,
+    )
 }

@@ -5,11 +5,7 @@ import kotlinx.coroutines.flow.StateFlow
 
 interface TokenRepository {
     fun getToken(): BearerTokens
-    fun set(
-        accessToken: String = getToken().accessToken,
-        refreshToken: String = getToken().refreshToken.orEmpty(),
-    )
+    fun set(accessToken: String = getToken().accessToken, refreshToken: String = getToken().refreshToken.orEmpty())
 
     fun observeToken(): StateFlow<BearerTokens>
 }
-

@@ -10,3 +10,30 @@ ij_kotlin_code_style_defaults = KOTLIN_OFFICIAL
 ij_kotlin_name_count_to_use_star_import = 2147483647
 ij_kotlin_name_count_to_use_star_import_for_members = 2147483647
 ij_kotlin_packages_to_use_import_on_demand = unset
+
+# Четыре пробела: так набраны 187 файлов из 197, остальные десять приведены к ним.
+indent_style = space
+indent_size = 4
+max_line_length = 120
+
+ktlint_code_style = intellij_idea
+
+# Composable-функции называются с большой буквы — это соглашение Compose, а не ошибка. Правило
+# именования не умеет отличать их само, поэтому исключение задаётся аннотацией.
+ktlint_function_naming_ignore_when_annotated_with = Composable, Preview, ViddikScreenshot
+
+# Имя файла обязано совпадать с единственным объявлением в нём. У нас файлы собирают по смыслу
+# (`module.kt` — DI одной фичи, `sumOf.kt` — расширения над BigDecimal), и переименование ради
+# правила разложило бы связанные вещи по разным местам.
+ktlint_standard_filename = disabled
+
+# Звёздочные импорты: правило выключено осознанно. Их 80 в 35 файлах, и это наследство —
+# развернуть их вручную значит переписать импорты в трети файлов поверх и без того большой
+# правки стиля. Новых не появится: настройки IDE выше запрещают ей сворачивать импорты в
+# звёздочку, так что счётчик может только убывать.
+ktlint_standard_no-wildcard-imports = disabled
+
+[**/ir/ehsannarmani/**]
+# Вендоренная compose-charts: свой стиль, чужая история. Форматировать её — значит навсегда
+# испортить сравнение с апстримом ради строк, которые мы не писали.
+ktlint = disabled

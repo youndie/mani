@@ -7,8 +7,6 @@ package ru.workinprogress.feature.transaction.domain
  * сдвиг измеряется относительно всех остальных правил. Грузить ради этого заново нечего —
  * экран, с которого сюда пришли, список уже загрузил.
  */
-class ObserveTransactionsUseCase(
-    private val transactionRepository: TransactionRepository,
-) {
+class ObserveTransactionsUseCase(private val transactionRepository: TransactionRepository) {
     val observe = transactionRepository.dataStateFlow
 }

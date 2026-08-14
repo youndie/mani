@@ -6,21 +6,12 @@ import dev.whyoleg.cryptography.random.CryptographyRandom
 import ru.workinprogress.mani.security.constantTimeEquals
 import ru.workinprogress.mani.security.toHex
 
-data class SaltedHash(
-    val hash: String,
-    val salt: String,
-)
+data class SaltedHash(val hash: String, val salt: String)
 
 interface HashingService {
-    suspend fun generateSaltedHash(
-        value: String,
-        saltLength: Int = 32,
-    ): SaltedHash
+    suspend fun generateSaltedHash(value: String, saltLength: Int = 32): SaltedHash
 
-    suspend fun verify(
-        value: String,
-        saltedHash: SaltedHash,
-    ): Boolean
+    suspend fun verify(value: String, saltedHash: SaltedHash): Boolean
 }
 
 /**
@@ -39,10 +30,7 @@ interface HashingService {
 class Sha256HashingService : HashingService {
     private val sha256 = CryptographyProvider.Default.get(SHA256).hasher()
 
-    override suspend fun generateSaltedHash(
-        value: String,
-        saltLength: Int,
-    ): SaltedHash {
+    override suspend fun generateSaltedHash(value: String, saltLength: Int): SaltedHash {
         val saltAsHex = CryptographyRandom.nextBytes(saltLength).toHex()
         return SaltedHash(
             hash = sha256Hex(saltAsHex + value),
@@ -50,10 +38,8 @@ class Sha256HashingService : HashingService {
         )
     }
 
-    override suspend fun verify(
-        value: String,
-        saltedHash: SaltedHash,
-    ): Boolean = constantTimeEquals(saltedHash.hash, sha256Hex(saltedHash.salt + value))
+    override suspend fun verify(value: String, saltedHash: SaltedHash): Boolean =
+        constantTimeEquals(saltedHash.hash, sha256Hex(saltedHash.salt + value))
 
     private suspend fun sha256Hex(value: String): String = sha256.hash(value.encodeToByteArray()).toHex()
 }

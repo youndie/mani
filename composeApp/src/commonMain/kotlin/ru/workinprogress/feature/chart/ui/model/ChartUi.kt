@@ -13,17 +13,17 @@ import ru.workinprogress.utilz.bigdecimal.BigDecimalSerializable
 
 @Serializable
 data class ChartUi(
-	val days: ImmutableMap<LocalDate, BigDecimalSerializable> = persistentMapOf(),
-	val from: LocalDate = LocalDate(2000, 1, 1),
-	val to: LocalDate = LocalDate(2001, 4, 1),
-	val currency: Currency = Currency.Usd,
-	val loading: Boolean = false,
-	val todayIndexProvider: () -> Int = { days.entries.indexOfFirst { entry -> entry.key == today() } },
+    val days: ImmutableMap<LocalDate, BigDecimalSerializable> = persistentMapOf(),
+    val from: LocalDate = LocalDate(2000, 1, 1),
+    val to: LocalDate = LocalDate(2001, 4, 1),
+    val currency: Currency = Currency.Usd,
+    val loading: Boolean = false,
+    val todayIndexProvider: () -> Int = { days.entries.indexOfFirst { entry -> entry.key == today() } },
 ) {
-	companion object {
-		val Loading = ChartUi(emptyImmutableMap(), today(), today(), Currency.Usd, true)
+    companion object {
+        val Loading = ChartUi(emptyImmutableMap(), today(), today(), Currency.Usd, true)
 
-		operator fun invoke(chart: ChartResponse, currency: Currency): ChartUi =
-			ChartUi(chart.days.toImmutableMap(), chart.from, chart.to, currency)
-	}
+        operator fun invoke(chart: ChartResponse, currency: Currency): ChartUi =
+            ChartUi(chart.days.toImmutableMap(), chart.from, chart.to, currency)
+    }
 }

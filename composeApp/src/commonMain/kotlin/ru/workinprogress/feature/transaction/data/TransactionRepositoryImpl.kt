@@ -19,7 +19,8 @@ import kotlin.time.Instant
 class TransactionRepositoryImpl(
     source: ru.workinprogress.feature.transaction.DataSource<Transaction>,
     private val cache: TransactionsCache,
-) : BaseFlowRepository<Transaction>(source), TransactionRepository {
+) : BaseFlowRepository<Transaction>(source),
+    TransactionRepository {
 
     private val staleSince = MutableStateFlow<Instant?>(null)
 

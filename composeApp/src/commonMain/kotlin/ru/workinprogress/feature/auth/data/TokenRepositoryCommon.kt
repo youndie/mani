@@ -7,7 +7,7 @@ import kotlinx.coroutines.flow.asStateFlow
 
 class TokenRepositoryCommon(private val storage: TokenStorage) : TokenRepository {
     private val token: MutableStateFlow<BearerTokens> = MutableStateFlow(
-        storage.load() ?: BearerTokens("", "")
+        storage.load() ?: BearerTokens("", ""),
     )
 
     override fun getToken(): BearerTokens = token.value
@@ -18,7 +18,5 @@ class TokenRepositoryCommon(private val storage: TokenStorage) : TokenRepository
         storage.save(this.token.value)
     }
 
-    override fun observeToken(): StateFlow<BearerTokens> {
-        return token.asStateFlow()
-    }
+    override fun observeToken(): StateFlow<BearerTokens> = token.asStateFlow()
 }

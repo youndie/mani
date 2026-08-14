@@ -20,9 +20,9 @@ import ru.workinprogress.feature.categories.domain.AddCategoryUseCase
 import ru.workinprogress.feature.categories.domain.DeleteCategoryUseCase
 import ru.workinprogress.feature.categories.domain.ObserveCategoriesUseCase
 import ru.workinprogress.feature.transaction.*
+import ru.workinprogress.feature.transaction.domain.ObserveTransactionsUseCase
 import ru.workinprogress.feature.transaction.ui.component.formatted
 import ru.workinprogress.feature.transaction.ui.component.model.TransactionAction
-import ru.workinprogress.feature.transaction.domain.ObserveTransactionsUseCase
 import ru.workinprogress.feature.transaction.ui.model.RunsOutShift
 import ru.workinprogress.feature.transaction.ui.model.TransactionUiState
 import ru.workinprogress.feature.transaction.ui.model.buildColoredAmount
@@ -153,7 +153,6 @@ abstract class BaseTransactionViewModel(
                     }
                 }
             }
-
         }
     }
 
@@ -195,12 +194,16 @@ abstract class BaseTransactionViewModel(
 
         return when {
             before == null && after == null -> null
+
             before == null -> RunsOutShift("money starts running out · ${after?.formatted}", worse = true)
+
             after == null -> RunsOutShift("money no longer runs out in sight", worse = false)
+
             else -> {
                 val days = before.daysUntil(after)
                 when {
                     days == 0 -> null
+
                     days < 0 -> RunsOutShift(
                         "money runs out ${-days} days earlier · ${after.formatted}",
                         worse = true,
@@ -215,15 +218,15 @@ abstract class BaseTransactionViewModel(
         }
     }
 
-    private fun buildFutureInformation(
-        state: TransactionUiState,
-    ): AnnotatedString {
+    private fun buildFutureInformation(state: TransactionUiState): AnnotatedString {
         val currency = state.currency
         return buildAnnotatedString {
             append(
                 buildColoredAmount(
-                    amount = state.amount, currency = state.currency, sign = state.income
-                )
+                    amount = state.amount,
+                    currency = state.currency,
+                    sign = state.income,
+                ),
             )
 
             if (state.period == Transaction.Period.OneTime) {
@@ -242,45 +245,62 @@ abstract class BaseTransactionViewModel(
                 append(simulation.count { entry -> entry.value.isNotEmpty() }.toString())
                 append(" times,")
                 append(
-                    " total: "
+                    " total: ",
                 )
-                append(buildColoredAmount(simulation.flatMap { it.value }
-                    .sumOf { transaction -> transaction.amountSigned }, currency))
+                append(
+                    buildColoredAmount(
+                        simulation.flatMap { it.value }
+                            .sumOf { transaction -> transaction.amountSigned },
+                        currency,
+                    ),
+                )
             }
             if (state.until.value != null) {
                 append(" to ")
                 append("${state.until.value?.formatted}")
                 append(" repeat ")
 
-                proceedSimulate(listOf(state.tempTransaction).run {
-                    simulate(state.date.value.orToday, state.until.value)
-                })
+                proceedSimulate(
+                    listOf(state.tempTransaction).run {
+                        simulate(state.date.value.orToday, state.until.value)
+                    },
+                )
             } else {
                 when (state.period) {
-                    Transaction.Period.Month, Transaction.Period.ThreeMonth, Transaction.Period.HalfYear, Transaction.Period.Year -> {
+                    Transaction.Period.Month,
+                    Transaction.Period.ThreeMonth,
+                    Transaction.Period.HalfYear,
+                    Transaction.Period.Year,
+                    -> {
                         this.append(
                             ". In $LARGE_PERIOD_VALUE ${
                                 LARGE_PERIOD_UNIT.toString().lowercase()
-                            }'s repeat "
+                            }'s repeat ",
                         )
-                        proceedSimulate(listOf(state.tempTransaction).run {
-                            simulate(
-                                state.date.value.orToday, largePeriodAppend(state.date.value.orToday)
-                            )
-                        })
+                        proceedSimulate(
+                            listOf(state.tempTransaction).run {
+                                simulate(
+                                    state.date.value.orToday,
+                                    largePeriodAppend(state.date.value.orToday),
+                                )
+                            },
+                        )
                     }
 
                     else -> {
                         this.append(
                             ". In $DEFAULT_PERIOD_VALUE ${
                                 DEFAULT_PERIOD_UNIT.toString().lowercase()
-                            }'s repeat "
+                            }'s repeat ",
                         )
-                        proceedSimulate(listOf(state.tempTransaction).run {
-                            simulate(
-                                state.date.value.orToday, defaultPeriodAppend(state.date.value.orToday)
-                            )
-                        })
+                        proceedSimulate(
+                            listOf(state.tempTransaction).run {
+                                simulate(
+                                    state.date.value.orToday,
+                                    defaultPeriodAppend(state.date.value.orToday),
+                                )
+                            },
+                        )
                     }
                 }
             }

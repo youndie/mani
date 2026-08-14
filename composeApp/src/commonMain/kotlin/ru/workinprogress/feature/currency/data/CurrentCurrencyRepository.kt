@@ -20,15 +20,13 @@ class CurrentCurrencyRepositoryImpl : CurrentCurrencyRepository {
         get() = settings.decodeValue(
             Currency.serializer(),
             Currency::class.simpleName.toString(),
-            Currency.Usd
+            Currency.Usd,
         )
         set(value) {
             settings.encodeValue(
                 Currency.serializer(),
                 Currency::class.simpleName.toString(),
-                value
+                value,
             )
         }
-
 }
-

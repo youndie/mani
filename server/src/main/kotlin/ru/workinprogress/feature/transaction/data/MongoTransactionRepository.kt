@@ -13,15 +13,10 @@ import ru.workinprogress.mani.db.deleteById
 
 const val TRANSACTION_COLLECTION = "transaction"
 
-class MongoTransactionRepository(
-    mongoDatabase: MongoDatabase,
-) : TransactionRepository {
+class MongoTransactionRepository(mongoDatabase: MongoDatabase) : TransactionRepository {
     private val db = mongoDatabase.getCollection<TransactionDb>(TRANSACTION_COLLECTION)
 
-    override suspend fun create(
-        transaction: Transaction,
-        userId: String,
-    ): String {
+    override suspend fun create(transaction: Transaction, userId: String): String {
         val new = mapToDb(transaction, userId = userId)
         db.insertOne(new)
         return new.id.toHexString()
@@ -30,16 +25,12 @@ class MongoTransactionRepository(
     override suspend fun getById(id: String): TransactionRecord? =
         db.find(Filters.eq("_id", ObjectId(id))).firstOrNull()?.toRecord()
 
-    override suspend fun getByUser(userId: String): List<TransactionRecord> =
-        db
-            .find<TransactionDb>(Filters.eq(TransactionDb::userId.name, userId))
-            .toList()
-            .map { it.toRecord() }
+    override suspend fun getByUser(userId: String): List<TransactionRecord> = db
+        .find<TransactionDb>(Filters.eq(TransactionDb::userId.name, userId))
+        .toList()
+        .map { it.toRecord() }
 
-    override suspend fun update(
-        transaction: Transaction,
-        userId: String,
-    ) {
+    override suspend fun update(transaction: Transaction, userId: String) {
         val id = ObjectId(transaction.id)
         db.replaceOne(Filters.eq("_id", id), mapToDb(transaction, id, userId))
     }
@@ -50,11 +41,7 @@ class MongoTransactionRepository(
         db.deleteMany(Filters.eq(TransactionDb::userId.name, userId))
     }
 
-    private fun mapToDb(
-        transaction: Transaction,
-        id: ObjectId = ObjectId(),
-        userId: String,
-    ) = TransactionDb(
+    private fun mapToDb(transaction: Transaction, id: ObjectId = ObjectId(), userId: String) = TransactionDb(
         id = id,
         amount = transaction.amount.toJavaBigDecimal(),
         income = transaction.income,
@@ -66,16 +53,15 @@ class MongoTransactionRepository(
         categoryId = transaction.category.id,
     )
 
-    private fun TransactionDb.toRecord() =
-        TransactionRecord(
-            id = id.toHexString(),
-            amount = amount.toPlainString().toBigDecimal(),
-            income = income,
-            date = LocalDate.parse(date),
-            until = until?.let(LocalDate::parse),
-            period = Transaction.Period.valueOf(period),
-            comment = comment,
-            userId = userId,
-            categoryId = categoryId,
-        )
+    private fun TransactionDb.toRecord() = TransactionRecord(
+        id = id.toHexString(),
+        amount = amount.toPlainString().toBigDecimal(),
+        income = income,
+        date = LocalDate.parse(date),
+        until = until?.let(LocalDate::parse),
+        period = Transaction.Period.valueOf(period),
+        comment = comment,
+        userId = userId,
+        categoryId = categoryId,
+    )
 }

@@ -27,32 +27,25 @@ data class TransactionRecord(
     val categoryId: String?,
 )
 
-fun TransactionRecord.toTransaction(userCategories: List<Category>): Transaction =
-    Transaction(
-        id = id,
-        amount = amount,
-        income = income,
-        date = date,
-        period = period,
-        until = until,
-        comment = comment,
-        category = userCategories.find { it.id == categoryId } ?: Category.default,
-    )
+fun TransactionRecord.toTransaction(userCategories: List<Category>): Transaction = Transaction(
+    id = id,
+    amount = amount,
+    income = income,
+    date = date,
+    period = period,
+    until = until,
+    comment = comment,
+    category = userCategories.find { it.id == categoryId } ?: Category.default,
+)
 
 interface TransactionRepository {
-    suspend fun create(
-        transaction: Transaction,
-        userId: String,
-    ): String
+    suspend fun create(transaction: Transaction, userId: String): String
 
     suspend fun getByUser(userId: String): List<TransactionRecord>
 
     suspend fun getById(id: String): TransactionRecord?
 
-    suspend fun update(
-        transaction: Transaction,
-        userId: String,
-    )
+    suspend fun update(transaction: Transaction, userId: String)
 
     suspend fun delete(id: String): Boolean
 

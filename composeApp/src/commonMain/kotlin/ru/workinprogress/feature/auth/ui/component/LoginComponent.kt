@@ -30,16 +30,14 @@ import ru.workinprogress.mani.components.LoadingButton
 import ru.workinprogress.mani.components.MainAppBarState
 
 @Composable
-fun LoginComponent(
-    appBarState: MainAppBarState,
-    onSignupClicked: () -> Unit,
-    onSuccess: () -> Unit
-) {
+fun LoginComponent(appBarState: MainAppBarState, onSignupClicked: () -> Unit, onSuccess: () -> Unit) {
     rememberKoinModules {
-        listOf(module {
-            singleOf(::LoginUseCase).bind<AuthUseCase>()
-            viewModelOf(::AuthViewModel)
-        })
+        listOf(
+            module {
+                singleOf(::LoginUseCase).bind<AuthUseCase>()
+                viewModelOf(::AuthViewModel)
+            },
+        )
     }
 
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -51,7 +49,6 @@ fun LoginComponent(
                 }
 
                 Lifecycle.Event.ON_STOP -> {
-
                 }
 
                 else -> {}
@@ -76,7 +73,7 @@ fun LoginComponent(
 
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.padding(top = 32.dp, bottom = 24.dp)
+        modifier = Modifier.padding(top = 32.dp, bottom = 24.dp),
     ) {
         AuthComponentImpl(
             Modifier.weight(1f, true),
@@ -86,11 +83,11 @@ fun LoginComponent(
                 state.value.password,
                 "Login",
                 state.value.errorMessage,
-                state.value.loading
+                state.value.loading,
             ),
             onUsernameChanged = viewModel::onUsernameChanged,
             onPasswordChanged = viewModel::onPasswordChanged,
-            onButtonClicked = viewModel::onLoginClicked
+            onButtonClicked = viewModel::onLoginClicked,
         )
 
         // Главная дорожка витрины: посетителю нечего вводить, песочницу заводит сервер.
@@ -98,14 +95,14 @@ fun LoginComponent(
             loading = state.value.demoLoading,
             buttonText = "Try the demo",
             modifier = Modifier.testTag("tryDemo"),
-            onButtonClicked = viewModel::onTryDemoClicked
+            onButtonClicked = viewModel::onTryDemoClicked,
         )
 
         Text(
             "your own sandbox — no account, no password",
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.secondary,
-            modifier = Modifier.padding(top = 4.dp)
+            modifier = Modifier.padding(top = 4.dp),
         )
 
         TextButton(onSignupClicked) {

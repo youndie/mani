@@ -38,49 +38,45 @@ class LegacyTokenCompatibilityTest {
         id: String,
         username: String,
         expiresAt: Date = Date(System.currentTimeMillis() + 3_600_000),
-    ): String =
-        JWT
-            .create()
-            .withSubject("Authentication")
-            .withAudience(config.audience)
-            .withIssuer(config.issuer)
-            .withClaim("id", id)
-            .withClaim("username", username)
-            .withExpiresAt(expiresAt)
-            .sign(algorithm)
+    ): String = JWT
+        .create()
+        .withSubject("Authentication")
+        .withAudience(config.audience)
+        .withIssuer(config.issuer)
+        .withClaim("id", id)
+        .withClaim("username", username)
+        .withExpiresAt(expiresAt)
+        .sign(algorithm)
 
     @Test
-    fun acceptsTokenIssuedByJavaJwt() =
-        runTest {
-            val claims = assertNotNull(service.verify(legacyToken("64b7f0c2e1a2b3c4d5e6f708", "vasya")))
+    fun acceptsTokenIssuedByJavaJwt() = runTest {
+        val claims = assertNotNull(service.verify(legacyToken("64b7f0c2e1a2b3c4d5e6f708", "vasya")))
 
-            assertEquals("64b7f0c2e1a2b3c4d5e6f708", claims.id)
-            assertEquals("vasya", claims.username)
-        }
-
-    @Test
-    fun rejectsExpiredTokenIssuedByJavaJwt() =
-        runTest {
-            val expired = legacyToken("1", "u", expiresAt = Date(System.currentTimeMillis() - 1_000))
-
-            assertNull(service.verify(expired))
-        }
+        assertEquals("64b7f0c2e1a2b3c4d5e6f708", claims.id)
+        assertEquals("vasya", claims.username)
+    }
 
     @Test
-    fun javaJwtAcceptsOurToken() =
-        runTest {
-            val ours = service.issue(id = "64b7f0c2e1a2b3c4d5e6f708", username = "vasya")
+    fun rejectsExpiredTokenIssuedByJavaJwt() = runTest {
+        val expired = legacyToken("1", "u", expiresAt = Date(System.currentTimeMillis() - 1_000))
 
-            val decoded =
-                JWT
-                    .require(algorithm)
-                    .withAudience(config.audience)
-                    .withIssuer(config.issuer)
-                    .build()
-                    .verify(ours)
+        assertNull(service.verify(expired))
+    }
 
-            assertEquals("64b7f0c2e1a2b3c4d5e6f708", decoded.getClaim("id").asString())
-            assertEquals("vasya", decoded.getClaim("username").asString())
-            assertEquals("Authentication", decoded.subject)
-        }
+    @Test
+    fun javaJwtAcceptsOurToken() = runTest {
+        val ours = service.issue(id = "64b7f0c2e1a2b3c4d5e6f708", username = "vasya")
+
+        val decoded =
+            JWT
+                .require(algorithm)
+                .withAudience(config.audience)
+                .withIssuer(config.issuer)
+                .build()
+                .verify(ours)
+
+        assertEquals("64b7f0c2e1a2b3c4d5e6f708", decoded.getClaim("id").asString())
+        assertEquals("vasya", decoded.getClaim("username").asString())
+        assertEquals("Authentication", decoded.subject)
+    }
 }

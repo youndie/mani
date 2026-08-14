@@ -22,14 +22,15 @@ import ru.workinprogress.feature.auth.domain.SignupUseCase
 import ru.workinprogress.feature.auth.ui.AuthViewModel
 import ru.workinprogress.feature.auth.ui.model.AuthComponentUiState
 
-
 @Composable
 fun SignupComponent(onNavigateBack: () -> Unit, onSuccess: () -> Unit) {
     rememberKoinModules {
-        listOf(module {
-            singleOf(::SignupUseCase).bind<AuthUseCase>()
-            viewModelOf(::AuthViewModel)
-        })
+        listOf(
+            module {
+                singleOf(::SignupUseCase).bind<AuthUseCase>()
+                viewModelOf(::AuthViewModel)
+            },
+        )
     }
 
     val viewModel = koinViewModel<AuthViewModel>()
@@ -48,7 +49,8 @@ fun SignupComponent(onNavigateBack: () -> Unit, onSuccess: () -> Unit) {
         verticalArrangement = Arrangement.Center,
     ) {
         IconButton(
-            onNavigateBack, modifier = Modifier.padding(vertical = 16.dp)
+            onNavigateBack,
+            modifier = Modifier.padding(vertical = 16.dp),
         ) {
             Icon(Icons.Default.Close, "Close")
         }
@@ -60,11 +62,11 @@ fun SignupComponent(onNavigateBack: () -> Unit, onSuccess: () -> Unit) {
                 password = state.value.password,
                 buttonText = "Create",
                 errorMessage = state.value.errorMessage,
-                loading = state.value.loading
+                loading = state.value.loading,
             ),
             onUsernameChanged = viewModel::onUsernameChanged,
             onPasswordChanged = viewModel::onPasswordChanged,
-            onButtonClicked = viewModel::onLoginClicked
+            onButtonClicked = viewModel::onLoginClicked,
         )
         Spacer(Modifier.height(128.dp))
     }

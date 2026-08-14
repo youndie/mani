@@ -10,14 +10,14 @@ import org.koin.core.context.startKoin
 import org.koin.core.context.stopKoin
 import org.koin.core.module.dsl.factoryOf
 import org.koin.core.module.dsl.singleOf
-import org.koin.dsl.bind
 import org.koin.core.qualifier.named
+import org.koin.dsl.bind
 import org.koin.dsl.module
 import org.koin.test.KoinTest
 import org.koin.test.get
+import ru.workinprogress.feature.categories.CATEGORIES_SOURCE
 import ru.workinprogress.feature.categories.categoriesModule
 import ru.workinprogress.feature.categories.data.CategoriesRepository
-import ru.workinprogress.feature.categories.CATEGORIES_SOURCE
 import ru.workinprogress.feature.category.FakeCategoriesDataSource
 import ru.workinprogress.feature.currency.currencyModule
 import ru.workinprogress.feature.transaction.data.FakeTransactionsRepository
@@ -37,10 +37,13 @@ class TransactionViewModelTest : KoinTest {
         // Start Koin
         startKoin {
             modules(
-                categoriesModule, currencyModule, module {
+                categoriesModule,
+                currencyModule,
+                module {
                     single<TransactionRepository> {
                         FakeTransactionsRepository(
-                            { withError }, listOf(
+                            { withError },
+                            listOf(
                                 Transaction(
                                     id = "upcoming",
                                     amount = 500.0.toBigDecimal(),
@@ -48,16 +51,18 @@ class TransactionViewModelTest : KoinTest {
                                     date = today().plus(1, DateTimeUnit.DAY),
                                     until = null,
                                     period = Transaction.Period.OneTime,
-                                    comment = ""
-                                ), Transaction(
+                                    comment = "",
+                                ),
+                                Transaction(
                                     id = "past",
                                     amount = 250.0.toBigDecimal(),
                                     income = true,
                                     date = LocalDate(2000, 1, 1),
                                     until = null,
                                     period = Transaction.Period.OneTime,
-                                    comment = ""
-                                ), Transaction(
+                                    comment = "",
+                                ),
+                                Transaction(
                                     id = "past2",
                                     amount = 250.0.toBigDecimal(),
                                     income = true,
@@ -65,8 +70,8 @@ class TransactionViewModelTest : KoinTest {
                                     until = null,
                                     period = Transaction.Period.OneTime,
                                     comment = "",
-                                )
-                            )
+                                ),
+                            ),
                         )
                     }
 
@@ -79,7 +84,8 @@ class TransactionViewModelTest : KoinTest {
                     }
                     singleOf(::AddTransactionUseCase)
                     singleOf(::ObserveTransactionsUseCase)
-                })
+                },
+            )
         }
 
         Dispatchers.setMain(StandardTestDispatcher())
@@ -92,9 +98,9 @@ class TransactionViewModelTest : KoinTest {
 
         // Расход по умолчанию: правило чаще заводят на трату, чем на доход.
         assertEquals(
-            false, viewModel.observe.value.income
+            false,
+            viewModel.observe.value.income,
         )
-
 
         viewModel.onAmountChanged("100")
         viewModel.onCommentChanged("simpleTest")
@@ -129,7 +135,7 @@ class TransactionViewModelTest : KoinTest {
                 until = null,
                 period = Transaction.Period.OneTime,
                 comment = "",
-            )
+            ),
         )
 
         val viewModel: AddTransactionViewModel = get()
@@ -175,7 +181,8 @@ class TransactionViewModelTest : KoinTest {
         assertEquals(Transaction.Period.OneTime, viewModel.observe.value.period)
 
         assertEquals(
-            viewModel.observe.value.futureInformation.toString(), "\u2212100 $ on 2 Jan 2000"
+            viewModel.observe.value.futureInformation.toString(),
+            "\u2212100 $ on 2 Jan 2000",
         )
 
         viewModel.onPeriodChanged(Transaction.Period.TwoWeek)
@@ -185,7 +192,7 @@ class TransactionViewModelTest : KoinTest {
 
         assertEquals(
             viewModel.observe.value.futureInformation.toString(),
-            "\u2212100 $ from 2 Jan 2000. In 3 month's repeat 7 times, total: \u2212700 $"
+            "\u2212100 $ from 2 Jan 2000. In 3 month's repeat 7 times, total: \u2212700 $",
         )
 
         viewModel.onSubmitClicked()
@@ -215,14 +222,14 @@ class TransactionViewModelTest : KoinTest {
 
         assertEquals(
             "\u2212100 \$ from 2 Jan 2000. In 3 month's repeat 91 times, total: \u22129\u00A0100 \$",
-            viewModel.observe.value.futureInformation.toString()
+            viewModel.observe.value.futureInformation.toString(),
         )
 
         viewModel.onDateUntilSelected(LocalDate(2000, 2, 2))
 
         assertEquals(
             "\u2212100 \$ from 2 Jan 2000 to 2 Feb 2000 repeat 31 times, total: \u22123\u00A0100 \$",
-            viewModel.observe.value.futureInformation.toString()
+            viewModel.observe.value.futureInformation.toString(),
         )
     }
 
@@ -240,10 +247,9 @@ class TransactionViewModelTest : KoinTest {
 
         assertEquals(
             "\u2212100 \$ from 2 Jan 2000. In 1 year's repeat 12 times, total: \u22121\u00A0200 \$",
-            viewModel.observe.value.futureInformation.toString()
+            viewModel.observe.value.futureInformation.toString(),
         )
     }
-
 
     @Test
     fun createCategoryTest() = runTest {
@@ -253,11 +259,12 @@ class TransactionViewModelTest : KoinTest {
         viewModel.onCategoryCreate("New category")
         runCurrent()
 
-        assertNotNull(get<CategoriesRepository>().dataStateFlow.value.find { category ->
-            category.name == "New category"
-        })
+        assertNotNull(
+            get<CategoriesRepository>().dataStateFlow.value.find { category ->
+                category.name == "New category"
+            },
+        )
     }
-
 
     @Test
     fun createCategoryErrorTest() = runTest {
@@ -269,9 +276,11 @@ class TransactionViewModelTest : KoinTest {
         runCurrent()
 
         assertNotNull(viewModel.observe.value.errorMessage)
-        assertNull(get<CategoriesRepository>().dataStateFlow.value.find { category ->
-            category.name == "Error category"
-        })
+        assertNull(
+            get<CategoriesRepository>().dataStateFlow.value.find { category ->
+                category.name == "Error category"
+            },
+        )
 
         get<FakeCategoriesDataSource>().withError = false
     }
@@ -286,7 +295,8 @@ class TransactionViewModelTest : KoinTest {
         assertNotNull(
             viewModel.observe.value.categories.find {
                 it.name == category.name
-            })
+            },
+        )
 
         viewModel.onCategoryChanged(category)
         viewModel.onCategoryDelete(category)
@@ -294,7 +304,8 @@ class TransactionViewModelTest : KoinTest {
         assertNull(
             viewModel.observe.value.categories.find {
                 it.name == category.name
-            })
+            },
+        )
         assertNotEquals(category, viewModel.observe.value.category)
     }
 
@@ -313,12 +324,12 @@ class TransactionViewModelTest : KoinTest {
         assertNotNull(
             viewModel.observe.value.categories.find {
                 it.name == category.name
-            })
+            },
+        )
         assertEquals(category, viewModel.observe.value.category)
 
         get<FakeCategoriesDataSource>().withError = false
     }
-
 
     @Test
     fun anotherTest() = runTest {
@@ -352,11 +363,9 @@ class TransactionViewModelTest : KoinTest {
         withError = false
     }
 
-
     @AfterTest
     fun tearDown() {
         stopKoin()
         Dispatchers.resetMain()
     }
-
 }

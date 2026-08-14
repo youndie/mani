@@ -2,8 +2,8 @@ package ru.workinprogress.feature.main.ui
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -13,11 +13,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -25,8 +25,8 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.valentinilk.shimmer.ShimmerBounds
@@ -42,11 +42,7 @@ import ru.workinprogress.mani.theme.LocalManiFonts
  * и ничем не отличалась от остальных.
  */
 @Composable
-fun ForecastHero(
-    state: ForecastUiState,
-    modifier: Modifier = Modifier,
-    expanded: Boolean = false,
-) {
+fun ForecastHero(state: ForecastUiState, modifier: Modifier = Modifier, expanded: Boolean = false) {
     // Фон рисует полоса вокруг: на широком экране герой и график лежат в одной карточке, и
     // собственный фон компонента её бы расслоил.
     Column(modifier.fillMaxWidth().testTag("futureInfo")) {
@@ -172,30 +168,26 @@ private fun Eyebrow(text: String) {
         Text(
             text.uppercase(),
             style =
-                MaterialTheme.typography.labelSmall.copy(
-                    fontFamily = LocalManiFonts.current.mono,
-                    fontWeight = FontWeight.W500,
-                    letterSpacing = 1.5.sp,
-                ),
+            MaterialTheme.typography.labelSmall.copy(
+                fontFamily = LocalManiFonts.current.mono,
+                fontWeight = FontWeight.W500,
+                letterSpacing = 1.5.sp,
+            ),
         )
     }
 }
 
+/** На широком экране места больше, и дата — единственное, ради чего туда смотрят. */
 @Composable
-private fun Headline(
-    text: String,
-    expanded: Boolean = false,
-    modifier: Modifier = Modifier,
-) {
+private fun Headline(text: String, expanded: Boolean = false, modifier: Modifier = Modifier) {
     Text(
         text,
         modifier = modifier.padding(top = 6.dp),
         style =
-            // На широком экране места больше, и дата — единственное, ради чего туда смотрят.
-            (if (expanded) MaterialTheme.typography.displayLarge else MaterialTheme.typography.displaySmall).copy(
-                fontWeight = FontWeight.W600,
-                letterSpacing = (-0.9).sp,
-            ),
+        (if (expanded) MaterialTheme.typography.displayLarge else MaterialTheme.typography.displaySmall).copy(
+            fontWeight = FontWeight.W600,
+            letterSpacing = (-0.9).sp,
+        ),
         color = MaterialTheme.colorScheme.onSurface,
         textAlign = TextAlign.Start,
     )
@@ -203,11 +195,7 @@ private fun Headline(
 
 /** Пояснение под героем; [highlight] — та часть, что должна читаться как число. */
 @Composable
-private fun Caption(
-    text: String,
-    highlight: String? = null,
-    highlightColor: Color? = null,
-) {
+private fun Caption(text: String, highlight: String? = null, highlightColor: Color? = null) {
     val accent = highlightColor ?: MaterialTheme.colorScheme.onSurface
 
     Text(

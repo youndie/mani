@@ -30,15 +30,9 @@ interface UserRepository {
 
 /** Refresh-токены пользователя. Лежат массивом в его же документе — так было и на JVM. */
 interface TokenRepository {
-    suspend fun addToken(
-        token: String,
-        userId: String,
-    )
+    suspend fun addToken(token: String, userId: String)
 
     suspend fun findUserByToken(refreshToken: String): User?
 
-    suspend fun removeToken(
-        token: String,
-        userId: String,
-    )
+    suspend fun removeToken(token: String, userId: String)
 }

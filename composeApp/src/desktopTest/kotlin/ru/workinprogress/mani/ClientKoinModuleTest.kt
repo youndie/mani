@@ -3,29 +3,29 @@ package ru.workinprogress.mani
 import io.ktor.client.HttpClientConfig
 import io.ktor.client.engine.HttpClientEngine
 import org.koin.core.annotation.KoinExperimentalAPI
+import org.koin.core.context.startKoin
+import org.koin.core.context.stopKoin
 import org.koin.core.module.dsl.viewModelOf
+import org.koin.core.qualifier.named
 import org.koin.dsl.module
+import org.koin.test.KoinTest
+import org.koin.test.verify.verify
 import ru.workinprogress.feature.auth.domain.AuthUseCase
 import ru.workinprogress.feature.auth.ui.AuthViewModel
+import ru.workinprogress.feature.categories.CATEGORIES_SOURCE
+import ru.workinprogress.feature.categories.data.CategoriesNetworkDataSource
 import ru.workinprogress.feature.main.MainViewModel
+import ru.workinprogress.feature.transaction.Category
+import ru.workinprogress.feature.transaction.DataSource
+import ru.workinprogress.feature.transaction.TRANSACTIONS_SOURCE
+import ru.workinprogress.feature.transaction.Transaction
+import ru.workinprogress.feature.transaction.data.TransactionsNetworkDataSource
 import ru.workinprogress.feature.welcome.WelcomeViewModel
-import org.koin.test.verify.verify
 import ru.workinprogress.mani.appModules
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertIs
 import kotlin.test.assertNull
-import org.koin.core.qualifier.named
-import ru.workinprogress.feature.categories.CATEGORIES_SOURCE
-import ru.workinprogress.feature.transaction.TRANSACTIONS_SOURCE
-import org.koin.core.context.startKoin
-import org.koin.core.context.stopKoin
-import org.koin.test.KoinTest
-import ru.workinprogress.feature.categories.data.CategoriesNetworkDataSource
-import ru.workinprogress.feature.transaction.Category
-import ru.workinprogress.feature.transaction.DataSource
-import ru.workinprogress.feature.transaction.Transaction
-import ru.workinprogress.feature.transaction.data.TransactionsNetworkDataSource
 
 /**
  * `verify()` обходит только модули приложения. Виртуальные машины экранов регистрируются
@@ -56,6 +56,7 @@ class ClientKoinModuleTest {
         )
     }
 }
+
 /**
  * Разные источники данных не должны путаться местами.
  *

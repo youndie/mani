@@ -20,64 +20,56 @@ class DemoSandboxCleanerTest {
     private val now = Instant.fromEpochSeconds(1_800_000_000)
 
     /** Идентификатор ObjectId'ом, где первые четыре байта — заданное время создания. */
-    private fun objectId(createdAt: Instant): String =
-        createdAt.epochSeconds
-            .toString(16)
-            .padStart(8, '0') + "0123456789abcdef"
+    private fun objectId(createdAt: Instant): String = createdAt.epochSeconds
+        .toString(16)
+        .padStart(8, '0') + "0123456789abcdef"
 
-    private fun user(
-        name: String,
-        createdAt: Instant,
-    ) = User(id = objectId(createdAt), username = name)
+    private fun user(name: String, createdAt: Instant) = User(id = objectId(createdAt), username = name)
 
     @Test
-    fun `expired sandbox goes away with its transactions`() =
-        runTest {
-            val expired = user("demo-dead", now - DAY * 2)
-            val users = FakeUserRepository(listOf(expired))
-            val transactions = FakeTransactionRepository()
+    fun `expired sandbox goes away with its transactions`() = runTest {
+        val expired = user("demo-dead", now - DAY * 2)
+        val users = FakeUserRepository(listOf(expired))
+        val transactions = FakeTransactionRepository()
 
-            DemoSandboxCleaner(users, transactions).sweep(now)
+        DemoSandboxCleaner(users, transactions).sweep(now)
 
-            assertTrue(users.stored.isEmpty())
-            assertEquals(listOf(expired.id), transactions.deletedForUsers)
-        }
-
-    @Test
-    fun `fresh sandbox stays`() =
-        runTest {
-            val fresh = user("demo-alive", now - HOUR)
-            val users = FakeUserRepository(listOf(fresh))
-            val transactions = FakeTransactionRepository()
-
-            DemoSandboxCleaner(users, transactions).sweep(now)
-
-            assertEquals(listOf(fresh), users.stored)
-            assertTrue(transactions.deletedForUsers.isEmpty())
-        }
+        assertTrue(users.stored.isEmpty())
+        assertEquals(listOf(expired.id), transactions.deletedForUsers)
+    }
 
     @Test
-    fun `only sandboxes are searched`() =
-        runTest {
-            val users = FakeUserRepository(emptyList())
+    fun `fresh sandbox stays`() = runTest {
+        val fresh = user("demo-alive", now - HOUR)
+        val users = FakeUserRepository(listOf(fresh))
+        val transactions = FakeTransactionRepository()
 
-            DemoSandboxCleaner(users, FakeTransactionRepository()).sweep(now)
+        DemoSandboxCleaner(users, transactions).sweep(now)
 
-            assertEquals(DEMO_USERNAME_PREFIX, users.searchedPrefix)
-        }
+        assertEquals(listOf(fresh), users.stored)
+        assertTrue(transactions.deletedForUsers.isEmpty())
+    }
 
     @Test
-    fun `id that is not an ObjectId is left alone`() =
-        runTest {
-            // Возраст такой записи неизвестен, и удалять её по догадке нельзя: чужой формат
-            // ключа означает, что документ завёл не этот код.
-            val alien = User(id = "not-an-object-id", username = "demo-alien")
-            val users = FakeUserRepository(listOf(alien))
+    fun `only sandboxes are searched`() = runTest {
+        val users = FakeUserRepository(emptyList())
 
-            DemoSandboxCleaner(users, FakeTransactionRepository()).sweep(now)
+        DemoSandboxCleaner(users, FakeTransactionRepository()).sweep(now)
 
-            assertEquals(listOf(alien), users.stored)
-        }
+        assertEquals(DEMO_USERNAME_PREFIX, users.searchedPrefix)
+    }
+
+    @Test
+    fun `id that is not an ObjectId is left alone`() = runTest {
+        // Возраст такой записи неизвестен, и удалять её по догадке нельзя: чужой формат
+        // ключа означает, что документ завёл не этот код.
+        val alien = User(id = "not-an-object-id", username = "demo-alien")
+        val users = FakeUserRepository(listOf(alien))
+
+        DemoSandboxCleaner(users, FakeTransactionRepository()).sweep(now)
+
+        assertEquals(listOf(alien), users.stored)
+    }
 
     @Test
     fun `creation time is read out of the identifier`() {
@@ -93,9 +85,7 @@ class DemoSandboxCleanerTest {
     }
 }
 
-private class FakeUserRepository(
-    initial: List<User>,
-) : UserRepository {
+private class FakeUserRepository(initial: List<User>) : UserRepository {
     val stored = initial.toMutableList()
     var searchedPrefix: String? = null
 
@@ -120,19 +110,13 @@ private class FakeUserRepository(
 private class FakeTransactionRepository : TransactionRepository {
     val deletedForUsers = mutableListOf<String>()
 
-    override suspend fun create(
-        transaction: Transaction,
-        userId: String,
-    ): String = ""
+    override suspend fun create(transaction: Transaction, userId: String): String = ""
 
     override suspend fun getByUser(userId: String): List<TransactionRecord> = emptyList()
 
     override suspend fun getById(id: String): TransactionRecord? = null
 
-    override suspend fun update(
-        transaction: Transaction,
-        userId: String,
-    ) = Unit
+    override suspend fun update(transaction: Transaction, userId: String) = Unit
 
     override suspend fun delete(id: String): Boolean = false
 

@@ -34,10 +34,7 @@ import ru.workinprogress.mani.theme.LocalManiFonts
  * @param retryInSeconds сколько осталось до автоматической повторной попытки; `null` — если
  *  автоповтора нет.
  */
-data class ServerUnreachableUiState(
-    val cause: String? = null,
-    val retryInSeconds: Int? = null,
-)
+data class ServerUnreachableUiState(val cause: String? = null, val retryInSeconds: Int? = null)
 
 @Composable
 fun ServerUnreachable(

@@ -55,9 +55,7 @@ abstract class BaseFlowRepository<T : WithId>(private val dataSource: DataSource
         data.value = items
     }
 
-    override fun getById(transactionId: String): T {
-        return dataStateFlow.value.first { it.id == transactionId }
-    }
+    override fun getById(transactionId: String): T = dataStateFlow.value.first { it.id == transactionId }
 
     override suspend fun update(params: T): Boolean {
         val old = data.value.first { it.id == params.id }

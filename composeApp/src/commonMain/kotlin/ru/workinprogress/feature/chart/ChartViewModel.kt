@@ -13,11 +13,8 @@ import ru.workinprogress.feature.transaction.domain.TransactionRepository
 import ru.workinprogress.feature.transaction.toChartInternal
 import ru.workinprogress.mani.defaultMinDate
 
-
-class ChartViewModel(
-    currencyRepository: CurrentCurrencyRepository,
-    transactionRepository: TransactionRepository,
-) : ViewModel() {
+class ChartViewModel(currencyRepository: CurrentCurrencyRepository, transactionRepository: TransactionRepository) :
+    ViewModel() {
 
     private val currency = currencyRepository.currency
 
@@ -26,12 +23,9 @@ class ChartViewModel(
         .map { toChart(transactions = it, from = defaultMinDate) }
         .flowOn(Dispatchers.Default)
 
-    private fun toChart(transactions: List<Transaction>, from: LocalDate): ChartUi {
-        return ChartUi(
-            transactions.toChartInternal()
-                .let { chart -> chart.copy(days = chart.days.filter { it.key > from }) },
-            currency
-        )
-    }
+    private fun toChart(transactions: List<Transaction>, from: LocalDate): ChartUi = ChartUi(
+        transactions.toChartInternal()
+            .let { chart -> chart.copy(days = chart.days.filter { it.key > from }) },
+        currency,
+    )
 }
-

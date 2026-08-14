@@ -20,9 +20,7 @@ open class StateFlowDataSource<T : WithId> : DataSource<T> {
         return params
     }
 
-    override suspend fun load(): List<T> {
-        return stateFlow.value
-    }
+    override suspend fun load(): List<T> = stateFlow.value
 
     override suspend fun update(params: T): T? {
         stateFlow.update { items ->

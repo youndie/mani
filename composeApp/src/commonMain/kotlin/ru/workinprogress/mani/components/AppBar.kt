@@ -17,20 +17,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import ru.workinprogress.mani.theme.LocalManiFonts
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.dp
 import kotlinx.collections.immutable.ImmutableSet
 import kotlinx.collections.immutable.toImmutableSet
+import ru.workinprogress.mani.theme.LocalManiFonts
 import kotlin.math.roundToInt
 
-data class Action(
-    val name: String,
-    val icon: ImageVector,
-    val onClick: () -> Unit
-)
+data class Action(val name: String, val icon: ImageVector, val onClick: () -> Unit)
 
 class MainAppBarState {
     private val enabledState = mutableStateOf(false)
@@ -45,9 +41,9 @@ class MainAppBarState {
     val contextMode get() = contextModeState.value
     val actions get() = actionsState.value
     val empty
-        get() = title.value.isEmpty()
-                && actions.isEmpty()
-                && !contextMode
+        get() = title.value.isEmpty() &&
+            actions.isEmpty() &&
+            !contextMode
 
     private fun enable() {
         this.enabledState.value = true
@@ -95,25 +91,22 @@ class MainAppBarState {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ManiAppBar(
-    appbarState: MainAppBarState = remember { MainAppBarState() },
-    onBack: () -> Unit
-) {
+fun ManiAppBar(appbarState: MainAppBarState = remember { MainAppBarState() }, onBack: () -> Unit) {
     if (appbarState.enabled) {
         AnimatedVisibility(
             appbarState.empty.not(),
             exit = fadeOut() + slideOut(targetOffset = {
                 IntOffset(
                     0,
-                    -(it.height / 2f).roundToInt()
+                    -(it.height / 2f).roundToInt(),
                 )
             }),
             enter = fadeIn() + slideIn(initialOffset = {
                 IntOffset(
                     0,
-                    -(it.height / 2f).roundToInt()
+                    -(it.height / 2f).roundToInt(),
                 )
-            })
+            }),
         ) {
             TopAppBar(
                 modifier = Modifier,
@@ -132,7 +125,7 @@ fun ManiAppBar(
                             Box(
                                 Modifier
                                     .size(9.dp)
-                                    .background(MaterialTheme.colorScheme.primary, CircleShape)
+                                    .background(MaterialTheme.colorScheme.primary, CircleShape),
                             )
                             Text(
                                 text,
@@ -149,14 +142,16 @@ fun ManiAppBar(
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = if (appbarState.contextMode) {
                         MaterialTheme.colorScheme.surfaceContainerLow
-                    } else MaterialTheme.colorScheme.surfaceContainer,
-                    titleContentColor = if (appbarState.contextMode) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface,
+                    } else {
+                        MaterialTheme.colorScheme.surfaceContainer
+                    },
+                    titleContentColor = MaterialTheme.colorScheme.onSurface,
                 ),
                 actions = {
                     AnimatedVisibility(
                         appbarState.actions.isNotEmpty(),
                         enter = fadeIn() + expandIn(expandFrom = Alignment.CenterStart),
-                        exit = fadeOut() + shrinkOut(shrinkTowards = Alignment.CenterStart)
+                        exit = fadeOut() + shrinkOut(shrinkTowards = Alignment.CenterStart),
                     ) {
                         Row {
                             appbarState.actions.forEach { action ->
@@ -164,11 +159,11 @@ fun ManiAppBar(
                                     onClick = {
                                         action.onClick()
                                     },
-                                    modifier = Modifier.testTag(action.name.lowercase())
+                                    modifier = Modifier.testTag(action.name.lowercase()),
                                 ) {
                                     Icon(
                                         imageVector = action.icon,
-                                        contentDescription = action.name
+                                        contentDescription = action.name,
                                     )
                                 }
                             }
@@ -179,33 +174,32 @@ fun ManiAppBar(
                     AnimatedVisibility(
                         appbarState.showBack.value && !appbarState.contextMode,
                         enter = fadeIn() + expandIn(expandFrom = Alignment.CenterEnd),
-                        exit = fadeOut() + shrinkOut(shrinkTowards = Alignment.CenterEnd)
+                        exit = fadeOut() + shrinkOut(shrinkTowards = Alignment.CenterEnd),
                     ) {
-                        IconButton(
-                            onClick = {
-                                onBack()
-                            }) {
+                        IconButton(onClick = {
+                            onBack()
+                        }) {
                             Icon(
                                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "back"
+                                contentDescription = "back",
                             )
                         }
                     }
                     AnimatedVisibility(
                         appbarState.contextMode,
                         enter = fadeIn() + expandIn(expandFrom = Alignment.CenterEnd),
-                        exit = fadeOut() + shrinkOut(shrinkTowards = Alignment.CenterEnd)
+                        exit = fadeOut() + shrinkOut(shrinkTowards = Alignment.CenterEnd),
                     ) {
-                        IconButton(
-                            onClick = {
-                                appbarState.closeContextMenu()
-                            }) {
+                        IconButton(onClick = {
+                            appbarState.closeContextMenu()
+                        }) {
                             Icon(
-                                imageVector = Icons.Default.Close, contentDescription = "back"
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "back",
                             )
                         }
                     }
-                }
+                },
             )
         }
     }

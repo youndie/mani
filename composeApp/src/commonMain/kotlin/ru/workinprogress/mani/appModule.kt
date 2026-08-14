@@ -8,13 +8,11 @@ import ru.workinprogress.feature.currency.currencyModule
 import ru.workinprogress.feature.transaction.transactionsModule
 import ru.workinprogress.mani.data.networkModule
 
-
 val appModules: List<Module> = listOf(
     networkModule,
     authModule,
     chartModule,
     currencyModule,
     transactionsModule,
-    categoriesModule
+    categoriesModule,
 )
-

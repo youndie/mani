@@ -15,12 +15,12 @@ sealed class DataState<T> {
     data class Error<T>(val throwable: Throwable) : DataState<T>()
 }
 
-fun <T> NonParameterizedUseCase<T>.toDataState(dispatcher: CoroutineDispatcher = Dispatchers.Default): Flow<DataState<T>> {
-    return toDataState(EmptyParams, dispatcher)
-}
+fun <T> NonParameterizedUseCase<T>.toDataState(
+    dispatcher: CoroutineDispatcher = Dispatchers.Default,
+): Flow<DataState<T>> = toDataState(EmptyParams, dispatcher)
 
-fun <P, T> UseCase<P, T>.toDataState(p: P, dispatcher: CoroutineDispatcher = Dispatchers.Default): Flow<DataState<T>> {
-    return flow {
+fun <P, T> UseCase<P, T>.toDataState(p: P, dispatcher: CoroutineDispatcher = Dispatchers.Default): Flow<DataState<T>> =
+    flow {
         emit(DataState.Loading())
 
         val result = withContext(dispatcher) {
@@ -37,4 +37,3 @@ fun <P, T> UseCase<P, T>.toDataState(p: P, dispatcher: CoroutineDispatcher = Dis
             }
         }
     }
-}

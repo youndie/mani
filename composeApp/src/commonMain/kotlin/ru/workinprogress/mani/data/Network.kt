@@ -20,7 +20,6 @@ import ru.workinprogress.feature.auth.Tokens
 import ru.workinprogress.feature.auth.data.TokenRepository
 import ru.workinprogress.mani.data.serverConfig
 
-
 val networkModule = module {
     single<HttpClient> {
         HttpClient {
@@ -35,11 +34,13 @@ val networkModule = module {
                 }
             }
             install(ContentNegotiation) {
-                json(Json {
-                    prettyPrint = true
-                    ignoreUnknownKeys = true
-                    isLenient = true
-                })
+                json(
+                    Json {
+                        prettyPrint = true
+                        ignoreUnknownKeys = true
+                        isLenient = true
+                    },
+                )
             }
             install(Auth) {
                 bearer {
@@ -71,7 +72,7 @@ val networkModule = module {
 
                         tokenRepository.set(
                             accessToken = data.accessToken,
-                            refreshToken = data.refreshToken
+                            refreshToken = data.refreshToken,
                         )
                         tokenRepository.getToken()
                     }

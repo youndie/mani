@@ -10,15 +10,15 @@ import kotlinx.browser.window
 
 @OptIn(ExperimentalComposeUiApi::class, ExperimentalBrowserHistoryApi::class)
 fun main() {
-	ComposeViewport(document.body!!) {
-		LaunchedEffect("") {
-			document.getElementById("progressBar")?.let { element ->
-				document.body?.removeChild(element)
-			}
-		}
+    ComposeViewport(document.body!!) {
+        LaunchedEffect("") {
+            document.getElementById("progressBar")?.let { element ->
+                document.body?.removeChild(element)
+            }
+        }
 
-		App(
-			onNavHostReady = { window.bindToNavigation(it) }
-		)
-	}
+        App(
+            onNavHostReady = { window.bindToNavigation(it) },
+        )
+    }
 }

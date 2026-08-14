@@ -6,25 +6,25 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -36,6 +36,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import org.koin.compose.module.rememberKoinModules
+import org.koin.compose.viewmodel.koinViewModel
+import org.koin.core.module.dsl.viewModelOf
+import org.koin.dsl.module
 import ru.workinprogress.feature.chart.ui.ChartComponent
 import ru.workinprogress.feature.chart.ui.model.ChartUi
 import ru.workinprogress.feature.currency.Currency
@@ -43,14 +48,9 @@ import ru.workinprogress.feature.main.MainViewModel
 import ru.workinprogress.feature.main.ui.ForecastUiState
 import ru.workinprogress.feature.transaction.simulate
 import ru.workinprogress.feature.transaction.toChartInternal
-import ru.workinprogress.mani.demo.DemoSeed
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import org.koin.compose.module.rememberKoinModules
-import org.koin.compose.viewmodel.koinViewModel
-import org.koin.core.module.dsl.viewModelOf
-import org.koin.dsl.module
 import ru.workinprogress.mani.components.LoadingButton
 import ru.workinprogress.mani.components.MainAppBarState
+import ru.workinprogress.mani.demo.DemoSeed
 import ru.workinprogress.mani.theme.LocalManiFonts
 
 /**
@@ -366,7 +366,7 @@ private fun Logo(modifier: Modifier = Modifier) {
         Box(
             Modifier
                 .size(9.dp)
-                .background(MaterialTheme.colorScheme.primary, CircleShape)
+                .background(MaterialTheme.colorScheme.primary, CircleShape),
         )
         Text(
             "mani",
@@ -379,11 +379,7 @@ private fun Logo(modifier: Modifier = Modifier) {
     }
 }
 
-private data class Sample(
-    val chart: ChartUi,
-    val headline: String,
-    val caption: String,
-)
+private data class Sample(val chart: ChartUi, val headline: String, val caption: String)
 
 /**
  * Образец прогноза из [DemoSeed] — тем же кодом, что считает настоящий.
@@ -474,12 +470,7 @@ private fun StackFacts(server: String?) {
 
 /** [mono] — для машинных строк вроде «ktor · kotlin/native · 1.4.2»; перечисление платформ наборное. */
 @Composable
-private fun Fact(
-    label: String,
-    value: String,
-    testTag: String? = null,
-    mono: Boolean = true,
-) {
+private fun Fact(label: String, value: String, testTag: String? = null, mono: Boolean = true) {
     Column {
         Text(
             label.uppercase(),

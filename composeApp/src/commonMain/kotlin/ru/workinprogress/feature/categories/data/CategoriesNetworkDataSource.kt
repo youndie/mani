@@ -13,23 +13,16 @@ import ru.workinprogress.feature.transaction.Category
 import ru.workinprogress.feature.transaction.DataSource
 
 class CategoriesNetworkDataSource(private val httpClient: HttpClient) : DataSource<Category> {
-    override suspend fun create(params: Category): Category {
-        return httpClient.post(CategoryResource()) {
-            setBody(params)
-        }.body()
-    }
+    override suspend fun create(params: Category): Category = httpClient.post(CategoryResource()) {
+        setBody(params)
+    }.body()
 
-    override suspend fun load(): List<Category> {
-        return httpClient.get(CategoryResource()).body()
-    }
+    override suspend fun load(): List<Category> = httpClient.get(CategoryResource()).body()
 
-    override suspend fun update(params: Category): Category? {
-        return httpClient.patch(CategoryResource.ById(id = params.id)) {
-            setBody(params)
-        }.takeIf { it.status == HttpStatusCode.Companion.OK }?.body()
-    }
+    override suspend fun update(params: Category): Category? = httpClient.patch(CategoryResource.ById(id = params.id)) {
+        setBody(params)
+    }.takeIf { it.status == HttpStatusCode.Companion.OK }?.body()
 
-    override suspend fun delete(id: String): Boolean {
-        return httpClient.delete(CategoryResource.ById(id = id)).status == HttpStatusCode.Companion.OK
-    }
+    override suspend fun delete(id: String): Boolean =
+        httpClient.delete(CategoryResource.ById(id = id)).status == HttpStatusCode.Companion.OK
 }

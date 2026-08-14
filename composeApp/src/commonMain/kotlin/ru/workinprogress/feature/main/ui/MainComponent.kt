@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.shape.CornerSize
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Delete
@@ -14,14 +15,13 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.layout.LocalPinnableContainer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Popup
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -42,8 +42,8 @@ import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.module
 import ru.workinprogress.feature.chart.ui.ChartComponent
 import ru.workinprogress.feature.main.MainViewModel
-import ru.workinprogress.feature.main.ui.FiltersState.Companion.Past
-import ru.workinprogress.feature.main.ui.FiltersState.Companion.Upcoming
+import ru.workinprogress.feature.main.ui.FiltersState.Companion.PAST
+import ru.workinprogress.feature.main.ui.FiltersState.Companion.UPCOMING
 import ru.workinprogress.feature.transaction.Category
 import ru.workinprogress.feature.transaction.ui.component.TrasactionsEmpty
 import ru.workinprogress.feature.transaction.ui.component.transactionsDay
@@ -59,9 +59,11 @@ fun MainComponent(
     onAddTransactionClicked: () -> Unit = {},
 ) {
     rememberKoinModules {
-        listOf(module {
-            viewModelOf(::MainViewModel)
-        })
+        listOf(
+            module {
+                viewModelOf(::MainViewModel)
+            },
+        )
     }
 
     val viewModel = koinViewModel<MainViewModel>()
@@ -73,13 +75,16 @@ fun MainComponent(
         state.value.selectedTransactions,
         appBarState,
         viewModel::onShowDeleteDialogClicked,
-        viewModel::onContextMenuClosed
+        viewModel::onContextMenuClosed,
     )
 
     LaunchedEffect(state.value.errorMessage) {
         state.value.errorMessage?.let { string ->
             snackbarHostState.showSnackbar(
-                string, null, false, SnackbarDuration.Short
+                string,
+                null,
+                false,
+                SnackbarDuration.Short,
             )
         }
     }
@@ -125,7 +130,7 @@ fun MainComponent(
                 modifier = Modifier.padding(16.dp),
                 shape = MaterialTheme.shapes.medium.copy(all = CornerSize(4.dp)),
                 colors = CardDefaults.cardColors()
-                    .copy(containerColor = MaterialTheme.colorScheme.surfaceContainerHighest)
+                    .copy(containerColor = MaterialTheme.colorScheme.surfaceContainerHighest),
             ) {
                 Column(Modifier.width(IntrinsicSize.Min)) {
                     DropdownMenuItem({ Text("Logout") }, {
@@ -133,14 +138,13 @@ fun MainComponent(
                     }, modifier = Modifier.testTag("logout"))
                 }
             }
-
         }
     }
 
     TransactionDeleteDialog(
         showDeleteDialog = state.value.showDeleteDialog,
         onDelete = viewModel::onDeleteClicked,
-        onDismiss = viewModel::onDismissDeleteDialog
+        onDismiss = viewModel::onDismissDeleteDialog,
     )
 
     MainContent(
@@ -171,7 +175,7 @@ private fun <T> DropdownFilterChip(
     itemTitle: (T) -> String = { it.toString() },
     defaultText: String = "",
     showDefault: Boolean = defaultText.isNotEmpty(),
-    onSelected: (T?) -> Unit = {}
+    onSelected: (T?) -> Unit = {},
 ) {
     var expanded by remember { mutableStateOf(false) }
 
@@ -212,12 +216,12 @@ data class FiltersState(
     val upcoming: Boolean = true,
     val category: Category? = null,
     val categories: ImmutableSet<Category> = persistentSetOf(),
-    val periods: ImmutableSet<String> = persistentSetOf(Upcoming, Past),
+    val periods: ImmutableSet<String> = persistentSetOf(UPCOMING, PAST),
     val loading: Boolean = true,
 ) {
     companion object {
-        const val Upcoming = "Upcoming"
-        const val Past = "Past"
+        const val UPCOMING = "Upcoming"
+        const val PAST = "Past"
     }
 }
 
@@ -226,11 +230,11 @@ internal fun FiltersChips(
     filtersState: FiltersState = FiltersState(),
     modifier: Modifier = Modifier,
     onUpcomingToggle: (Boolean) -> Unit = {},
-    onCategorySelected: (Category?) -> Unit = {}
+    onCategorySelected: (Category?) -> Unit = {},
 ) {
     Row(
         modifier = modifier.padding(horizontal = 16.dp).padding(bottom = 16.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp)
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         if (filtersState.loading) {
             FilterChip(
@@ -238,17 +242,17 @@ internal fun FiltersChips(
                 {},
                 modifier = Modifier.testTag("filtersShimmer"),
                 label = { Text("   ") },
-                enabled = false
+                enabled = false,
             )
             FilterChip(false, {}, label = { Text("   ") }, enabled = false)
         } else {
             DropdownFilterChip(
                 filtersState.periods,
                 !filtersState.upcoming,
-                if (filtersState.upcoming) Upcoming else Past
+                if (filtersState.upcoming) UPCOMING else PAST,
             ) { selected ->
                 selected?.let {
-                    onUpcomingToggle(selected == Upcoming)
+                    onUpcomingToggle(selected == UPCOMING)
                 }
             }
             DropdownFilterChip(
@@ -256,7 +260,8 @@ internal fun FiltersChips(
                 filtersState.category != null,
                 filtersState.category,
                 defaultText = "All categories",
-                itemTitle = { it.name }) {
+                itemTitle = { it.name },
+            ) {
                 onCategorySelected(it)
             }
         }
@@ -282,7 +287,11 @@ internal fun MainContent(
     onFillWithDemoData: (() -> Unit)? = null,
     unreachable: ServerUnreachableUiState? = null,
     onRetry: () -> Unit = {},
-    chart: @Composable ((Boolean) -> Unit) = remember { @Composable { expanded: Boolean -> ChartComponent(expanded = expanded) } }
+    chart: @Composable (
+    (
+        Boolean,
+    ) -> Unit
+    ) = remember { @Composable { expanded: Boolean -> ChartComponent(expanded = expanded) } },
 ) {
     // Сервер не ответил и показать нечего — тогда весь экран об этом, а не лента-заглушка с
     // сообщением в углу.
@@ -293,10 +302,9 @@ internal fun MainContent(
 
     val filters = remember(filtersState) {
         @Composable {
-            FiltersChips(
-                filtersState = filtersState, modifier = Modifier.testTag("filters"), onUpcomingToggle = {
-                    onUpcomingToggle(it)
-                }) {
+            FiltersChips(filtersState = filtersState, modifier = Modifier.testTag("filters"), onUpcomingToggle = {
+                onUpcomingToggle(it)
+            }) {
                 onCategorySelected(it)
             }
         }
@@ -308,9 +316,12 @@ internal fun MainContent(
         if (maxWidth < 640.dp) {
             LazyColumn(
                 modifier = lazyColumnModifier,
-                contentPadding = PaddingValues(bottom = with(LocalDensity.current) {
-                    WindowInsets.navigationBars.getBottom(this).toDp()
-                } + DefaultFabButtonPadding + DefaultFabButtonPadding + DefaultFabButtonSize)) {
+                contentPadding = PaddingValues(
+                    bottom = with(LocalDensity.current) {
+                        WindowInsets.navigationBars.getBottom(this).toDp()
+                    } + DefaultFabButtonPadding + DefaultFabButtonPadding + DefaultFabButtonSize,
+                ),
+            ) {
                 item {
                     val handle = LocalPinnableContainer.current?.pin()
                     ForecastAndChart(forecast, expanded = false, showingCacheFrom = showingCacheFrom, chart = chart)
@@ -326,13 +337,15 @@ internal fun MainContent(
                     item {
                         CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.secondary) {
                             Text(
-                                "Transactions", modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp).then(
+                                "Transactions",
+                                modifier = Modifier.padding(horizontal = 24.dp, vertical = 8.dp).then(
                                     if (loading) {
                                         Modifier.shimmer()
                                     } else {
                                         Modifier
-                                    }
-                                ), style = MaterialTheme.typography.titleMedium
+                                    },
+                                ),
+                                style = MaterialTheme.typography.titleMedium,
                             )
                         }
                         filters()
@@ -353,7 +366,7 @@ internal fun MainContent(
             }
         } else {
             Row(
-                modifier = Modifier.fillMaxHeight().padding(start = 32.dp)
+                modifier = Modifier.fillMaxHeight().padding(start = 32.dp),
             ) {
                 // Ширина ограничена: график тянется по ширине родителя, и без потолка левая
                 // колонка забирала всю строку, а списку не оставалось места. 780 и отступ 40 —
@@ -362,9 +375,9 @@ internal fun MainContent(
                     ForecastAndChart(forecast, expanded = true, showingCacheFrom = showingCacheFrom, chart = chart)
                 }
                 LazyColumn(
-                    modifier = lazyColumnModifier, contentPadding = PaddingValues(16.dp)
+                    modifier = lazyColumnModifier,
+                    contentPadding = PaddingValues(16.dp),
                 ) {
-
                     if (loading || transactions.isNotEmpty()) {
                         item {
                             filters()
@@ -422,7 +435,6 @@ private fun LazyListScope.transactionItemsOrEmpty(
             dayBalances = dayBalances,
         )
     }
-
 }
 
 fun LazyListScope.transactionItems(
@@ -444,15 +456,13 @@ fun LazyListScope.transactionItems(
             contextMode = contextMode,
             loadingMode = loading,
             onSelected = onTransactionSelected,
-            onClick = onTransactionClicked
+            onClick = onTransactionClicked,
         )
     }
 }
 
 @Composable
-fun TransactionDeleteDialog(
-    showDeleteDialog: Boolean, onDelete: () -> Unit, onDismiss: () -> Unit
-) {
+fun TransactionDeleteDialog(showDeleteDialog: Boolean, onDelete: () -> Unit, onDismiss: () -> Unit) {
     if (showDeleteDialog) {
         AlertDialog(
             title = { Text("Delete selected transactions?") },
@@ -467,7 +477,8 @@ fun TransactionDeleteDialog(
                 TextButton(onClick = onDismiss) {
                     Text("Cancel")
                 }
-            })
+            },
+        )
     }
 }
 
@@ -476,7 +487,7 @@ fun connectToAppBarState(
     selected: ImmutableList<TransactionUiItem>,
     appBarState: MainAppBarState,
     onDeleteClicked: () -> Unit,
-    onContextMenuClosed: () -> Unit
+    onContextMenuClosed: () -> Unit,
 ) {
     val actions = remember {
         listOf(Action("Delete", Icons.Default.Delete, onDeleteClicked)).toImmutableSet()
@@ -498,9 +509,9 @@ fun connectToAppBarState(
     }
 }
 
-
 private val DefaultFabButtonPadding = 16.dp
 private val DefaultFabButtonSize = 56.dp
+
 /**
  * Герой и график одним блоком: сначала ответ, потом его обоснование.
  *
@@ -526,7 +537,7 @@ private fun ForecastAndChart(
                 end = if (expanded) 28.dp else 24.dp,
                 top = if (expanded) 28.dp else 20.dp,
                 bottom = 20.dp,
-            )
+            ),
     ) {
         showingCacheFrom?.let { takenAt ->
             // Данные не пропали и не устарели по смыслу — правила остаются верными без сети.

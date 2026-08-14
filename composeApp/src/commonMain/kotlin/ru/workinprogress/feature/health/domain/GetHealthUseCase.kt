@@ -20,15 +20,12 @@ import ru.workinprogress.useCase.NonParameterizedUseCase
  */
 abstract class HealthUseCase : NonParameterizedUseCase<Health>()
 
-class GetHealthUseCase(
-    private val httpClient: HttpClient,
-) : HealthUseCase() {
-    override suspend operator fun invoke(params: EmptyParams): Result<Health> =
-        try {
-            withContext(Dispatchers.Default) {
-                Result.Success(httpClient.get(HealthResource()).body())
-            }
-        } catch (e: Exception) {
-            Result.Error(ServerException(message = "Couldn't reach the server", cause = e))
+class GetHealthUseCase(private val httpClient: HttpClient) : HealthUseCase() {
+    override suspend operator fun invoke(params: EmptyParams): Result<Health> = try {
+        withContext(Dispatchers.Default) {
+            Result.Success(httpClient.get(HealthResource()).body())
         }
+    } catch (e: Exception) {
+        Result.Error(ServerException(message = "Couldn't reach the server", cause = e))
+    }
 }
