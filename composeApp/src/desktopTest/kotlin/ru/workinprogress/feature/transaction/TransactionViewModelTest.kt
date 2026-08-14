@@ -11,11 +11,13 @@ import org.koin.core.context.stopKoin
 import org.koin.core.module.dsl.factoryOf
 import org.koin.core.module.dsl.singleOf
 import org.koin.dsl.bind
+import org.koin.core.qualifier.named
 import org.koin.dsl.module
 import org.koin.test.KoinTest
 import org.koin.test.get
 import ru.workinprogress.feature.categories.categoriesModule
 import ru.workinprogress.feature.categories.data.CategoriesRepository
+import ru.workinprogress.feature.categories.CATEGORIES_SOURCE
 import ru.workinprogress.feature.category.FakeCategoriesDataSource
 import ru.workinprogress.feature.currency.currencyModule
 import ru.workinprogress.feature.transaction.data.FakeTransactionsRepository
@@ -68,7 +70,9 @@ class TransactionViewModelTest : KoinTest {
                         )
                     }
 
-                    singleOf(::FakeCategoriesDataSource).bind<DataSource<Category>>()
+                    singleOf(::FakeCategoriesDataSource)
+                    // Тот же объект — и под именем, которое спрашивает репозиторий категорий.
+                    single<DataSource<Category>>(named(CATEGORIES_SOURCE)) { get<FakeCategoriesDataSource>() }
 
                     factory {
                         AddTransactionViewModel(get(), get(), get(), get(), get(), get(), Dispatchers.Unconfined)
