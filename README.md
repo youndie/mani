@@ -18,8 +18,8 @@ all of them.
 
 ![Screenshot](/Screenshot.png?raw=true "screenshot")
 
-<sup>Собран тем же кодом, что и остальные снимки: `./gradlew :composeApp:screenshotTest` с
-`VIDDIK_RECORD_MODE=true` перерисовывает и его — картинка не разъедется с интерфейсом.</sup>
+<sup>This screenshot is itself a golden: re-recording the screenshot tests redraws it, so the
+picture cannot drift away from the interface it advertises.</sup>
 
 > **This is a demo project.** It exists to show what a full Kotlin Multiplatform stack looks like
 > when every part of it is real — the same `@Resource` classes route requests on the server and
@@ -93,6 +93,21 @@ For iOS, open `iosApp/iosApp.xcodeproj` in Xcode, or use
 
 The same set runs on every pull request.
 
+Native server tests need a real `mongod`, because what they look for does not raise errors — an
+`_id` written as a string or an amount written as text simply matches nothing:
+
+```bash
+docker run -d --name mani-mongo -p 27017:27017 mongo:8
+```
+
+```bash
+./gradlew :server-native:linuxX64Test :server-native:linuxX64ReleaseTest
+```
+
+The release run is not optional. Kotlin/Native omits type-cast checks in release builds, so code
+that fails with a catchable exception in debug can reach undefined behaviour in release — and the
+binary that ships is the release one.
+
 Screen layouts are checked separately, against recorded screenshots:
 
 ```bash
@@ -120,6 +135,10 @@ the native target cannot be linked at all.
 [mongkn](https://github.com/youndie/mongkn) — a binding over the C driver, because there is no
 official Kotlin/Native driver — and serves the wasm frontend from a directory instead of the
 classpath, since `staticResources` does not exist outside the JVM.
+
+Which build is answering is not a matter of trust: `GET /health` reports it live —
+`{"build": "kotlin/native", "version": "1.4.2", "uptimeSeconds": …}` — and the welcome screen
+prints that same response instead of a hard-coded string.
 
 Routing, dependency injection, configuration, token issuing and password hashing are **shared**.
 Both builds sign and verify JWTs with the same code, so a token issued by one is accepted by the
@@ -155,23 +174,3 @@ Both builds read the environment, with the same names:
 | `MANI_WEB_ROOT` | directory with the wasm bundle; unset — no frontend, API only |
 | `MANI_DEVELOPMENT` | `true` enables CORS |
 
-### Tests
-
-```bash
-./gradlew :shared:jvmTest :server-common:jvmTest :server:test :composeApp:desktopTest
-```
-
-Native tests need a real `mongod`, because what they look for does not raise errors — an `_id`
-written as a string or an amount written as text simply matches nothing:
-
-```bash
-docker run -d --name mani-mongo -p 27017:27017 mongo:8
-```
-
-```bash
-./gradlew :server-native:linuxX64Test :server-native:linuxX64ReleaseTest
-```
-
-The release run is not optional. Kotlin/Native omits type-cast checks in release builds, so code
-that fails with a catchable exception in debug can reach undefined behaviour in release — and the
-binary that ships is the release one.

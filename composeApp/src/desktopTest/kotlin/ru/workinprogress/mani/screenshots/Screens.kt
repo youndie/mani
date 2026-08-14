@@ -98,39 +98,6 @@ private fun item(
     Currency.Usd,
 )
 
-/**
- * Снимок для README: приложение целиком — шапка, прогноз, лента и кнопка.
- *
- * Собирается тем же кодом и теми же демо-данными, что и остальные снимки, поэтому картинка в
- * репозитории не разъедется с интерфейсом: обновляется одной командой вместе с голденами.
- */
-@ViddikScreenshot(name = "readme", group = "screens", width = WIDE_WIDTH, height = WIDE_HEIGHT)
-@Composable
-fun ReadmeScreenshot() {
-    Harness {
-        Box(Modifier.fillMaxSize()) {
-            Column {
-                ManiAppBar(
-                    appbarState = remember {
-                        MainAppBarState().apply {
-                            title.value = ManiScreen.Main.title()
-                            showAction(Action("Profile", Icons.Default.Person) {})
-                        }
-                    },
-                    onBack = {},
-                )
-
-                WideHomeContent()
-            }
-
-            AddRuleFab(
-                onClick = {},
-                modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
-            )
-        }
-    }
-}
-
 /** Кнопка добавления правила: скруглённый квадрат в цвете контейнера, как в макете. */
 @ViddikScreenshot(name = "fab", group = "screens", width = 120, height = 120)
 @Composable
