@@ -31,6 +31,20 @@ the interface it advertises.</sup>
 
 Live instance: **[mani.kotlin.website](https://mani.kotlin.website)**
 
+## Its own dependencies
+
+Two of the moving parts are written for this project and used from here first:
+
+- **[mongkn](https://github.com/youndie/mongkn)** — a MongoDB driver for Kotlin/Native, over the
+  C driver via cinterop. It exists because there is no official one, and the native server build
+  has to talk to the same database as the JVM one, in the same document shape.
+- **[viddik](https://github.com/youndie/viddik)** — screenshot testing for Compose Multiplatform.
+  The pictures in `composeApp/src/desktopTest/snapshots`, including the one at the top of this
+  file, are recorded and compared by it.
+
+Neither is a showcase bolted on for the README: the demo would not run without the first and the
+redesign could not be checked without the second.
+
 ## What is where
 
 | Module | What it is | Targets |
@@ -114,7 +128,8 @@ The release run is not optional. Kotlin/Native omits type-cast checks in release
 that fails with a catchable exception in debug can reach undefined behaviour in release — and the
 binary that ships is the release one.
 
-Screen layouts are checked separately, against recorded screenshots:
+Screen layouts are checked separately, against screenshots recorded by
+[viddik](https://github.com/youndie/viddik):
 
 ```bash
 ./gradlew :composeApp:screenshotTest
@@ -138,8 +153,8 @@ The server code lives in `:server-common` and is compiled twice.
 the native target cannot be linked at all.
 
 `:server-native` is the Kotlin/Native binary the demo instance runs. It talks to MongoDB through
-[mongkn](https://github.com/youndie/mongkn) — a binding over the C driver, because there is no
-official Kotlin/Native driver — and serves the wasm frontend from a directory instead of the
+[mongkn](https://github.com/youndie/mongkn) — our own binding over the C driver, because there is
+no official Kotlin/Native one — and serves the wasm frontend from a directory instead of the
 classpath, since `staticResources` does not exist outside the JVM.
 
 Which build is answering is not a matter of trust: `GET /health` reports it live —
