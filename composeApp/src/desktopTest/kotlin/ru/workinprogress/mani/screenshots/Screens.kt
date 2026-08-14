@@ -301,17 +301,7 @@ fun HomeEmptyScreenshot() {
 fun RuleFormScreenshot() {
     Harness {
         TransactionComponentImpl(
-            // Ровно тот случай, что нарисован в макете: 340 в месяц с 20 августа, без конца.
-            state = TransactionUiState(
-                amount = "340",
-                currency = Currency.Usd,
-                period = Transaction.Period.Month,
-                date = DateDataUiState(LocalDate(2026, 8, 20)),
-                futureInformation = AnnotatedString(
-                    "\u2212340 $ from 20 Aug 2026. In 1 year's repeat 12 times, total: \u22124\u00A0080 $",
-                ),
-                runsOutShift = RunsOutShift("money runs out 12 days earlier \u00B7 19 Nov 2026", worse = true),
-            ),
+            state = ruleFormState,
             onAction = {},
         ) {}
     }
@@ -328,6 +318,30 @@ fun ServerUnreachableScreenshot() {
                 retryInSeconds = 8,
             ),
         )
+    }
+}
+
+/** Ровно тот случай, что нарисован в макете R6: 340 в месяц с 20 августа, без конца. */
+private val ruleFormState = TransactionUiState(
+    amount = "340",
+    currency = Currency.Usd,
+    period = Transaction.Period.Month,
+    date = DateDataUiState(LocalDate(2026, 8, 20)),
+    futureInformation = AnnotatedString(
+        "\u2212340 $ from 20 Aug 2026. In 1 year's repeat 12 times, total: \u22124\u00A0080 $",
+    ),
+    runsOutShift = RunsOutShift("money runs out 12 days earlier \u00B7 19 Nov 2026", worse = true),
+)
+
+/** Форма на ноутбуке: поля и нижняя полоса стоят одной колонкой, а не разъезжаются по ширине. */
+@ViddikScreenshot(name = "rule form wide", group = "screens", width = WIDE_WIDTH, height = WIDE_HEIGHT)
+@Composable
+fun RuleFormWideScreenshot() {
+    Harness {
+        TransactionComponentImpl(
+            state = ruleFormState,
+            onAction = {},
+        ) {}
     }
 }
 

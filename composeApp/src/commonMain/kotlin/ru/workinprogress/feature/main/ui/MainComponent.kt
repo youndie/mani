@@ -371,7 +371,15 @@ internal fun MainContent(
                 // Ширина ограничена: график тянется по ширине родителя, и без потолка левая
                 // колонка забирала всю строку, а списку не оставалось места. 780 и отступ 40 —
                 // из макета.
-                Column(modifier = Modifier.padding(top = 8.dp, end = 40.dp).widthIn(max = 780.dp)) {
+                // По центру вертикали: карточка ниже окна, и прижатая к верху она оставляла под
+                // собой пустое поле в половину экрана.
+                Column(
+                    modifier =
+                    Modifier
+                        .align(Alignment.CenterVertically)
+                        .padding(top = 8.dp, end = 40.dp)
+                        .widthIn(max = 780.dp),
+                ) {
                     ForecastAndChart(forecast, expanded = true, showingCacheFrom = showingCacheFrom, chart = chart)
                 }
                 LazyColumn(
