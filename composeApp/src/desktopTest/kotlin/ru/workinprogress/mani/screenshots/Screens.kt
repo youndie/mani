@@ -4,29 +4,24 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.runtime.remember
-import androidx.compose.ui.unit.dp
-import ru.workinprogress.mani.components.Action
-import ru.workinprogress.mani.components.MainAppBarState
-import ru.workinprogress.mani.components.ManiAppBar
-import ru.workinprogress.mani.navigation.ManiScreen
-import ru.workinprogress.mani.navigation.title
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.unit.dp
 import com.ionspin.kotlin.bignum.decimal.toBigDecimal
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentSetOf
 import kotlinx.collections.immutable.toImmutableMap
-import kotlinx.datetime.LocalDate
 import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.LocalDate
 import kotlinx.datetime.plus
 import ru.workinprogress.feature.chart.ui.ChartComponent
 import ru.workinprogress.feature.chart.ui.model.ChartUi
@@ -40,14 +35,19 @@ import ru.workinprogress.feature.transaction.Category
 import ru.workinprogress.feature.transaction.Transaction
 import ru.workinprogress.feature.transaction.ui.component.TransactionComponentImpl
 import ru.workinprogress.feature.transaction.ui.component.TransactionsListContent
-import ru.workinprogress.feature.transaction.ui.model.TransactionListUiState
-import ru.workinprogress.feature.transaction.ui.model.TransactionUiItem
 import ru.workinprogress.feature.transaction.ui.model.DateDataUiState
 import ru.workinprogress.feature.transaction.ui.model.RunsOutShift
+import ru.workinprogress.feature.transaction.ui.model.TransactionListUiState
+import ru.workinprogress.feature.transaction.ui.model.TransactionUiItem
 import ru.workinprogress.feature.transaction.ui.model.TransactionUiState
 import ru.workinprogress.feature.welcome.WelcomeContent
 import ru.workinprogress.feature.welcome.WelcomeUiState
 import ru.workinprogress.mani.AddRuleFab
+import ru.workinprogress.mani.components.Action
+import ru.workinprogress.mani.components.MainAppBarState
+import ru.workinprogress.mani.components.ManiAppBar
+import ru.workinprogress.mani.navigation.ManiScreen
+import ru.workinprogress.mani.navigation.title
 import ru.workinprogress.mani.theme.AppTheme
 import ru.workinprogress.viddik.annotations.ViddikScreenshot
 
@@ -78,25 +78,20 @@ private fun Harness(content: @Composable () -> Unit) {
 
 private val demoDay = LocalDate(2026, 8, 16)
 
-private fun item(
-    comment: String,
-    amount: Int,
-    income: Boolean,
-    period: Transaction.Period,
-    until: LocalDate? = null,
-) = TransactionUiItem(
-    Transaction(
-        id = comment,
-        amount = amount.toBigDecimal(),
-        income = income,
-        date = demoDay,
-        until = until,
-        period = period,
-        comment = comment,
-        category = Category("1", "Home"),
-    ),
-    Currency.Usd,
-)
+private fun item(comment: String, amount: Int, income: Boolean, period: Transaction.Period, until: LocalDate? = null) =
+    TransactionUiItem(
+        Transaction(
+            id = comment,
+            amount = amount.toBigDecimal(),
+            income = income,
+            date = demoDay,
+            until = until,
+            period = period,
+            comment = comment,
+            category = Category("1", "Home"),
+        ),
+        Currency.Usd,
+    )
 
 /**
  * Экран целиком, вместе с обвязкой: шапка, содержимое и кнопка добавления в одном кадре.
@@ -249,43 +244,43 @@ fun HomeForecastWideScreenshot() {
 @Composable
 private fun WideHomeContent() {
     MainContent(
-            transactions = mapOf(
-                demoDay to persistentListOf(item("Rent", 1450, false, Transaction.Period.Month)),
-                LocalDate(2026, 8, 17) to
-                    persistentListOf(item("Groceries", 145, false, Transaction.Period.Week)),
-            ).toImmutableMap(),
-            filtersState = FiltersState(
-                upcoming = true,
-                categories = persistentSetOf(Category("1", "Home"), Category("2", "Food")),
-                loading = false,
-            ),
-            // Дно и его день — из тех же данных, что рисует график ниже: он уходит в минус
-            // на 55 в последний день горизонта.
-            forecast = ForecastUiState.RunsOut(
-                runsOutOn = "12 October",
-                daysLeft = 60,
-                balanceToday = "4 895 $",
-                lowestPoint = "\u221255 $",
-                lowestOn = "13 October",
-            ),
-            dayBalances = mapOf(
-                demoDay to "3 445 $",
-                LocalDate(2026, 8, 17) to "3 300 $",
-            ).toImmutableMap(),
-            chart = { expanded ->
-                ChartComponent(
-                    ChartUi(
-                        days = (0..90)
-                            .associate {
-                                LocalDate(2026, 7, 15).plus(it, DateTimeUnit.DAY) to
-                                    (4895 - it * 55).toBigDecimal()
-                            }.toImmutableMap(),
-                        currency = Currency.Usd,
-                        todayIndexProvider = { 30 },
-                    ),
-                    expanded = expanded,
-                )
-            },
+        transactions = mapOf(
+            demoDay to persistentListOf(item("Rent", 1450, false, Transaction.Period.Month)),
+            LocalDate(2026, 8, 17) to
+                persistentListOf(item("Groceries", 145, false, Transaction.Period.Week)),
+        ).toImmutableMap(),
+        filtersState = FiltersState(
+            upcoming = true,
+            categories = persistentSetOf(Category("1", "Home"), Category("2", "Food")),
+            loading = false,
+        ),
+        // Дно и его день — из тех же данных, что рисует график ниже: он уходит в минус
+        // на 55 в последний день горизонта.
+        forecast = ForecastUiState.RunsOut(
+            runsOutOn = "12 October",
+            daysLeft = 60,
+            balanceToday = "4 895 $",
+            lowestPoint = "\u221255 $",
+            lowestOn = "13 October",
+        ),
+        dayBalances = mapOf(
+            demoDay to "3 445 $",
+            LocalDate(2026, 8, 17) to "3 300 $",
+        ).toImmutableMap(),
+        chart = { expanded ->
+            ChartComponent(
+                ChartUi(
+                    days = (0..90)
+                        .associate {
+                            LocalDate(2026, 7, 15).plus(it, DateTimeUnit.DAY) to
+                                (4895 - it * 55).toBigDecimal()
+                        }.toImmutableMap(),
+                    currency = Currency.Usd,
+                    todayIndexProvider = { 30 },
+                ),
+                expanded = expanded,
+            )
+        },
     )
 }
 
@@ -313,7 +308,7 @@ fun RuleFormScreenshot() {
                 period = Transaction.Period.Month,
                 date = DateDataUiState(LocalDate(2026, 8, 20)),
                 futureInformation = AnnotatedString(
-                    "\u2212340 $ from 20 Aug 2026. In 1 year's repeat 12 times, total: \u22124\u00A0080 $"
+                    "\u2212340 $ from 20 Aug 2026. In 1 year's repeat 12 times, total: \u22124\u00A0080 $",
                 ),
                 runsOutShift = RunsOutShift("money runs out 12 days earlier \u00B7 19 Nov 2026", worse = true),
             ),
@@ -331,7 +326,7 @@ fun ServerUnreachableScreenshot() {
             ServerUnreachableUiState(
                 cause = "HTTP 503 · mani.kotlin.website · 11:42:07",
                 retryInSeconds = 8,
-            )
+            ),
         )
     }
 }
@@ -370,7 +365,7 @@ fun HistoryScreenshot() {
                     // У «Course» есть конец — в ленте он дописывается к строке повторения.
                     LocalDate(2026, 7, 28) to
                         persistentListOf(
-                            item("Course", 350, false, Transaction.Period.Month, LocalDate(2027, 3, 28))
+                            item("Course", 350, false, Transaction.Period.Month, LocalDate(2027, 3, 28)),
                         ),
                 ).toImmutableMap(),
                 dayBalances = mapOf(

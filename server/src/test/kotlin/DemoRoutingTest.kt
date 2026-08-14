@@ -13,9 +13,9 @@ import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.install
 import io.ktor.server.routing.routing
-import kotlinx.serialization.json.Json
 import io.ktor.server.testing.ApplicationTestBuilder
 import io.ktor.server.testing.testApplication
+import kotlinx.serialization.json.Json
 import org.koin.core.context.stopKoin
 import org.koin.ktor.ext.get
 import org.koin.ktor.plugin.Koin
@@ -67,19 +67,18 @@ class DemoRoutingTest {
         running.close()
     }
 
-    private fun demoTest(block: suspend ApplicationTestBuilder.() -> Unit) =
-        testApplication {
-            val maniConfig = config
-            application {
-                configureManiPlugins(maniConfig)
-                install(Koin) {
-                    modules(coreModule(maniConfig), mongoStorageModule(maniConfig.mongo))
-                }
-                configureManiAuth(maniConfig, get<TokenService>())
-                routing { maniApiRouting() }
+    private fun demoTest(block: suspend ApplicationTestBuilder.() -> Unit) = testApplication {
+        val maniConfig = config
+        application {
+            configureManiPlugins(maniConfig)
+            install(Koin) {
+                modules(coreModule(maniConfig), mongoStorageModule(maniConfig.mongo))
             }
-            block()
+            configureManiAuth(maniConfig, get<TokenService>())
+            routing { maniApiRouting() }
         }
+        block()
+    }
 
     /**
      * Тело разбирается сериализатором вручную: клиентский content-negotiation в зависимостях
@@ -99,55 +98,52 @@ class DemoRoutingTest {
     }
 
     @Test
-    fun `sandbox request returns working tokens`() =
-        demoTest {
-            val client = createClient { }
-            val tokens = client.post("/demo").tokens()
+    fun `sandbox request returns working tokens`() = demoTest {
+        val client = createClient { }
+        val tokens = client.post("/demo").tokens()
 
-            assertTrue(tokens.accessToken.isNotBlank())
-            assertTrue(tokens.refreshToken.isNotBlank())
+        assertTrue(tokens.accessToken.isNotBlank())
+        assertTrue(tokens.refreshToken.isNotBlank())
 
-            val transactions = client.transactions(tokens.accessToken)
+        val transactions = client.transactions(tokens.accessToken)
 
-            assertEquals(DemoSeed.rules.size, transactions.size)
-            assertEquals(
-                DemoSeed.rules.map { it.comment }.toSet(),
-                transactions.map { it.comment }.toSet(),
-            )
-        }
-
-    @Test
-    fun `seeded transactions carry real categories`() =
-        demoTest {
-            val client = createClient { }
-            val tokens = client.post("/demo").tokens()
-
-            val transactions = client.transactions(tokens.accessToken)
-
-            // Категория, не найденная у владельца, молча подменяется на `Category.default`:
-            // ничего не падает, а песочница выглядит так, будто категорий в продукте нет.
-            assertTrue(
-                transactions.none { it.category == Category.default },
-                "категории сида не доехали до транзакций",
-            )
-            assertEquals(
-                DemoSeed.categories.toSet(),
-                transactions.map { it.category.name }.toSet(),
-            )
-        }
+        assertEquals(DemoSeed.rules.size, transactions.size)
+        assertEquals(
+            DemoSeed.rules.map { it.comment }.toSet(),
+            transactions.map { it.comment }.toSet(),
+        )
+    }
 
     @Test
-    fun `two visitors get separate sandboxes`() =
-        demoTest {
-            val client = createClient { }
+    fun `seeded transactions carry real categories`() = demoTest {
+        val client = createClient { }
+        val tokens = client.post("/demo").tokens()
 
-            val first = client.post("/demo").tokens()
-            val second = client.post("/demo").tokens()
+        val transactions = client.transactions(tokens.accessToken)
 
-            assertNotEquals(first.accessToken, second.accessToken)
+        // Категория, не найденная у владельца, молча подменяется на `Category.default`:
+        // ничего не падает, а песочница выглядит так, будто категорий в продукте нет.
+        assertTrue(
+            transactions.none { it.category == Category.default },
+            "категории сида не доехали до транзакций",
+        )
+        assertEquals(
+            DemoSeed.categories.toSet(),
+            transactions.map { it.category.name }.toSet(),
+        )
+    }
 
-            // Ради этого всё и затевалось: витрина на общем аккаунте позволяла любому посетителю
-            // править и удалять чужие данные.
-            assertEquals(DemoSeed.rules.size, client.transactions(second.accessToken).size)
-        }
+    @Test
+    fun `two visitors get separate sandboxes`() = demoTest {
+        val client = createClient { }
+
+        val first = client.post("/demo").tokens()
+        val second = client.post("/demo").tokens()
+
+        assertNotEquals(first.accessToken, second.accessToken)
+
+        // Ради этого всё и затевалось: витрина на общем аккаунте позволяла любому посетителю
+        // править и удалять чужие данные.
+        assertEquals(DemoSeed.rules.size, client.transactions(second.accessToken).size)
+    }
 }

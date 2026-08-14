@@ -25,10 +25,7 @@ import ru.workinprogress.feature.chart.ui.model.ChartUi
 
 @OptIn(KoinExperimentalAPI::class)
 @Composable
-fun ChartComponent(
-    modifier: Modifier = Modifier,
-    expanded: Boolean = false,
-) {
+fun ChartComponent(modifier: Modifier = Modifier, expanded: Boolean = false) {
     val viewModel = koinViewModel<ChartViewModel>()
     val state: ChartUi by viewModel.observe.collectAsStateWithLifecycle(ChartUi.Loading)
 
@@ -36,11 +33,7 @@ fun ChartComponent(
 }
 
 @Composable
-fun ChartComponent(
-    state: ChartUi,
-    modifier: Modifier = Modifier,
-    expanded: Boolean = false,
-) {
+fun ChartComponent(state: ChartUi, modifier: Modifier = Modifier, expanded: Boolean = false) {
     Box(
         contentAlignment = Alignment.Center,
         modifier = modifier.padding(16.dp).testTag("chartBox"),
@@ -53,7 +46,7 @@ fun ChartComponent(
             todayIndexProvider = state.todayIndexProvider,
             currency = state.currency,
             loading = state.loading,
-            expanded = expanded
+            expanded = expanded,
         )
     }
 }

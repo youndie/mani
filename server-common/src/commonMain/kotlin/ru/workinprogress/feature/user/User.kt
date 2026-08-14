@@ -8,13 +8,9 @@ import kotlinx.serialization.Serializable
 import ru.workinprogress.mani.security.ManiPrincipal
 
 @Serializable
-data class User(
-    val id: String = "",
-    val username: String = "unknown",
-)
+data class User(val id: String = "", val username: String = "unknown")
 
-suspend fun ApplicationCall.currentUserId(): String =
-    principal<ManiPrincipal>()?.id ?: run {
-        respond(HttpStatusCode.Unauthorized)
-        ""
-    }
+suspend fun ApplicationCall.currentUserId(): String = principal<ManiPrincipal>()?.id ?: run {
+    respond(HttpStatusCode.Unauthorized)
+    ""
+}

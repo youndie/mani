@@ -50,7 +50,14 @@ object DemoSeed {
 
     val rules: List<DemoRule> =
         listOf(
-            DemoRule("Savings", 9500.toBigDecimal(), true, Transaction.Period.OneTime, -HISTORY_STARTS_DAYS_AGO, SAVINGS),
+            DemoRule(
+                "Savings",
+                9500.toBigDecimal(),
+                true,
+                Transaction.Period.OneTime,
+                -HISTORY_STARTS_DAYS_AGO,
+                SAVINGS,
+            ),
             DemoRule("Groceries", 145.toBigDecimal(), false, Transaction.Period.Week, -59, FOOD),
             DemoRule("Rent", 1450.toBigDecimal(), false, Transaction.Period.Month, -58, HOME),
             DemoRule("Utilities", 130.toBigDecimal(), false, Transaction.Period.Month, -55, HOME),
@@ -75,17 +82,16 @@ object DemoSeed {
     fun transactions(
         today: LocalDate = today(),
         category: (String) -> Category = { Category(it, it) },
-    ): List<Transaction> =
-        rules.mapIndexed { index, rule ->
-            Transaction(
-                id = index.toString(),
-                amount = rule.amount,
-                income = rule.income,
-                date = today.plus(rule.startsInDays, DateTimeUnit.DAY),
-                until = null,
-                period = rule.period,
-                comment = rule.comment,
-                category = category(rule.category),
-            )
-        }
+    ): List<Transaction> = rules.mapIndexed { index, rule ->
+        Transaction(
+            id = index.toString(),
+            amount = rule.amount,
+            income = rule.income,
+            date = today.plus(rule.startsInDays, DateTimeUnit.DAY),
+            until = null,
+            period = rule.period,
+            comment = rule.comment,
+            category = category(rule.category),
+        )
+    }
 }

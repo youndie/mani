@@ -1,10 +1,10 @@
 package ru.workinprogress.feature.transaction.domain
 
 import kotlinx.coroutines.flow.StateFlow
-import kotlin.time.ExperimentalTime
-import kotlin.time.Instant
 import ru.workinprogress.feature.transaction.StateFlowRepository
 import ru.workinprogress.feature.transaction.Transaction
+import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
 
 @OptIn(ExperimentalTime::class)
 interface TransactionRepository : StateFlowRepository<Transaction> {

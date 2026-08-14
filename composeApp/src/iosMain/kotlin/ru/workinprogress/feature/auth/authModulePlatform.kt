@@ -7,4 +7,3 @@ import ru.workinprogress.feature.auth.data.TokenStorage
 actual val authModulePlatform: Module = module {
     single<TokenStorage> { TokenStorageImpl() }
 }
-

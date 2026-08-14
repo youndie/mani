@@ -47,7 +47,7 @@ class EditTransactionViewModel(
                 currency = getCurrentCurrencyUseCase.get(),
             ).copy(
                 edit = true,
-                periods = Transaction.Period.entries.toImmutableList()
+                periods = Transaction.Period.entries.toImmutableList(),
             )
 
             observeCategories()

@@ -26,7 +26,7 @@ fun LoadingButton(
     enabled: Boolean = true,
     buttonText: String,
     icon: ImageVector? = null,
-    onButtonClicked: () -> Unit
+    onButtonClicked: () -> Unit,
 ) {
     Button(
         {
@@ -42,7 +42,8 @@ fun LoadingButton(
         ) {
             if (loading) {
                 CircularProgressIndicator(
-                    modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.primary
+                    modifier = Modifier.size(24.dp),
+                    color = MaterialTheme.colorScheme.primary,
                 )
             } else {
                 icon?.let {

@@ -20,135 +20,134 @@ import ru.workinprogress.feature.user.data.UserDb
 import ru.workinprogress.mani.db.deleteById
 import kotlin.test.*
 
-
 class MongoCategoryRepositoryTest {
 
-	lateinit var running: TransitionWalker.ReachedState<RunningMongodProcess>
-	private val url get() = "mongodb://${running.current().serverAddress}"
-	private val databaseName = "test"
-	private val collectionName = "users"
-	private val client by lazy { MongoClient.create(url) }
-	private val db by lazy { client.getDatabase(databaseName) }
-	private val collection get() = db.getCollection<UserDb>(collectionName)
-	private val categoryRepository: CategoryRepository by lazy { MongoCategoryRepository(db) }
-	private val testUser = UserDb(ObjectId(), "test", "", "", emptyList(), emptyList())
+    lateinit var running: TransitionWalker.ReachedState<RunningMongodProcess>
+    private val url get() = "mongodb://${running.current().serverAddress}"
+    private val databaseName = "test"
+    private val collectionName = "users"
+    private val client by lazy { MongoClient.create(url) }
+    private val db by lazy { client.getDatabase(databaseName) }
+    private val collection get() = db.getCollection<UserDb>(collectionName)
+    private val categoryRepository: CategoryRepository by lazy { MongoCategoryRepository(db) }
+    private val testUser = UserDb(ObjectId(), "test", "", "", emptyList(), emptyList())
 
-	@BeforeTest
-	fun setup() {
-		running = Mongod.instance().start(Version.V8_0_3)
+    @BeforeTest
+    fun setup() {
+        running = Mongod.instance().start(Version.V8_0_3)
 
-		runBlocking {
-			db.createCollection(collectionName)
-		}
-	}
+        runBlocking {
+            db.createCollection(collectionName)
+        }
+    }
 
-	private fun dbTest(
-		before: suspend () -> Unit = {
-			collection.insertOne(testUser)
-		},
-		after: suspend () -> Unit = {
-			collection.deleteById(testUser.id.toHexString())
-		},
-		test: suspend () -> Unit,
-	) {
-		runBlocking {
-			try {
-				before()
+    private fun dbTest(
+        before: suspend () -> Unit = {
+            collection.insertOne(testUser)
+        },
+        after: suspend () -> Unit = {
+            collection.deleteById(testUser.id.toHexString())
+        },
+        test: suspend () -> Unit,
+    ) {
+        runBlocking {
+            try {
+                before()
 
-				test()
-			} catch (e: Throwable) {
-				println("Error: ${e.message}")
-				throw e
-			}
-			after()
-		}
-	}
+                test()
+            } catch (e: Throwable) {
+                println("Error: ${e.message}")
+                throw e
+            }
+            after()
+        }
+    }
 
-	@Test
-	fun `Category create test`() {
-		dbTest {
-			val category = Category("Test", "Create")
-			categoryRepository.create(category, testUser.id.toHexString())
+    @Test
+    fun `Category create test`() {
+        dbTest {
+            val category = Category("Test", "Create")
+            categoryRepository.create(category, testUser.id.toHexString())
 
-			val user = collection.find(
-				Filters.eq("_id", testUser.id)
-			).firstOrNull()
+            val user = collection.find(
+                Filters.eq("_id", testUser.id),
+            ).firstOrNull()
 
-			assertNotNull(user)
-			assertTrue(
-				user.categories.orEmpty()
-					.any {
-						it.name == category.name
-					}
-			)
-		}
-	}
+            assertNotNull(user)
+            assertTrue(
+                user.categories.orEmpty()
+                    .any {
+                        it.name == category.name
+                    },
+            )
+        }
+    }
 
-	@Test
-	fun `Category read test`() {
-		dbTest {
-			val category = Category("", "Read")
-			val categoryDb = CategoryDb(ObjectId(), category.name)
+    @Test
+    fun `Category read test`() {
+        dbTest {
+            val category = Category("", "Read")
+            val categoryDb = CategoryDb(ObjectId(), category.name)
 
-			collection.findOneAndUpdate(
-				Filters.eq("_id", testUser.id),
-				Updates.addToSet(UserDb::categories.name, categoryDb)
-			)
+            collection.findOneAndUpdate(
+                Filters.eq("_id", testUser.id),
+                Updates.addToSet(UserDb::categories.name, categoryDb),
+            )
 
-			assertEquals(
-				category.name,
-				categoryRepository.getById(categoryDb.id.toHexString())?.name
-			)
+            assertEquals(
+                category.name,
+                categoryRepository.getById(categoryDb.id.toHexString())?.name,
+            )
 
-			assertEquals(
-				category.name,
-				categoryRepository.getByUser(testUser.id.toHexString()).firstOrNull()?.name
-			)
-		}
-	}
+            assertEquals(
+                category.name,
+                categoryRepository.getByUser(testUser.id.toHexString()).firstOrNull()?.name,
+            )
+        }
+    }
 
-	@Test
-	fun `Category update test`() {
-		dbTest {
-			val category = Category("", "Create")
-			val categoryDb = CategoryDb(ObjectId(), category.name)
-			val updatedDb = categoryDb.copy(name = "Update")
-			val updated = Category(updatedDb.id.toHexString(), updatedDb.name)
+    @Test
+    fun `Category update test`() {
+        dbTest {
+            val category = Category("", "Create")
+            val categoryDb = CategoryDb(ObjectId(), category.name)
+            val updatedDb = categoryDb.copy(name = "Update")
+            val updated = Category(updatedDb.id.toHexString(), updatedDb.name)
 
-			collection.findOneAndUpdate(
-				Filters.eq("_id", testUser.id),
-				Updates.addToSet(UserDb::categories.name, categoryDb)
-			)
+            collection.findOneAndUpdate(
+                Filters.eq("_id", testUser.id),
+                Updates.addToSet(UserDb::categories.name, categoryDb),
+            )
 
-			categoryRepository.update(updated)
-			val actualUser = collection.find(Filters.eq("_id", testUser.id)).firstOrNull()
-			val actualCategory = actualUser?.categories?.firstOrNull()
+            categoryRepository.update(updated)
+            val actualUser = collection.find(Filters.eq("_id", testUser.id)).firstOrNull()
+            val actualCategory = actualUser?.categories?.firstOrNull()
 
-			assertEquals(updated.name, actualCategory?.name)
-		}
-	}
+            assertEquals(updated.name, actualCategory?.name)
+        }
+    }
 
-	@Test
-	fun `Category delete test`() {
-		dbTest {
-			val category = Category("", "Create")
-			val categoryDb = CategoryDb(ObjectId(), category.name)
+    @Test
+    fun `Category delete test`() {
+        dbTest {
+            val category = Category("", "Create")
+            val categoryDb = CategoryDb(ObjectId(), category.name)
 
-			collection.findOneAndUpdate(
-				Filters.eq("_id", testUser.id),
-				Updates.addToSet(UserDb::categories.name, categoryDb)
-			)
+            collection.findOneAndUpdate(
+                Filters.eq("_id", testUser.id),
+                Updates.addToSet(UserDb::categories.name, categoryDb),
+            )
 
-			assertNotNull(collection.find(Filters.eq("_id", testUser.id)).firstOrNull()?.categories?.firstOrNull())
+            assertNotNull(collection.find(Filters.eq("_id", testUser.id)).firstOrNull()?.categories?.firstOrNull())
 
-			categoryRepository.delete(categoryDb.id.toHexString())
+            categoryRepository.delete(categoryDb.id.toHexString())
 
-			assertNull(collection.find(Filters.eq("_id", testUser.id)).firstOrNull()?.categories?.firstOrNull())
-		}
-	}
+            assertNull(collection.find(Filters.eq("_id", testUser.id)).firstOrNull()?.categories?.firstOrNull())
+        }
+    }
 
-	@AfterTest
-	fun tearDown() {
-		stopKoin()
-	}
+    @AfterTest
+    fun tearDown() {
+        stopKoin()
+    }
 }

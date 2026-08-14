@@ -139,6 +139,13 @@ Screen layouts are checked separately, against screenshots recorded by
 VIDDIK_RECORD_MODE=true ./gradlew :composeApp:screenshotTest --rerun-tasks
 ```
 
+Style is checked by [ktlint](https://github.com/pinterest/ktlint) against `.editorconfig`, which
+holds every deviation with a reason next to it:
+
+```bash
+ktlint '**/src/**/*.kt' '!**/build/**'
+```
+
 **Record and verify these on Linux.** The goldens in `composeApp/src/desktopTest/snapshots` were
 recorded there, and the same code on macOS renders text differently enough to differ by 1–4% of
 the pixels — far past any tolerance worth keeping. That is also why this task is not part of the

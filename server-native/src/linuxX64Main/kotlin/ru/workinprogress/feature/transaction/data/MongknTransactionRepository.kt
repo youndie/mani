@@ -11,15 +11,10 @@ import ru.workinprogress.mongkn.bson.BsonObjectId
 import ru.workinprogress.mongkn.ext.filter
 import ru.workinprogress.mongkn.ext.find
 
-class MongknTransactionRepository(
-    mongoDatabase: MongoDatabase,
-) : TransactionRepository {
+class MongknTransactionRepository(mongoDatabase: MongoDatabase) : TransactionRepository {
     private val db = mongoDatabase.getCollection<TransactionDb>(TRANSACTION_COLLECTION)
 
-    override suspend fun create(
-        transaction: Transaction,
-        userId: String,
-    ): String {
+    override suspend fun create(transaction: Transaction, userId: String): String {
         val id = BsonObjectId.generate().hex
         db.insertOne(mapToDb(transaction, id, userId))
         return id
@@ -27,16 +22,12 @@ class MongknTransactionRepository(
 
     override suspend fun getById(id: String): TransactionRecord? = db.find { "_id" eq id }.firstOrNull()?.toRecord()
 
-    override suspend fun getByUser(userId: String): List<TransactionRecord> =
-        db
-            .find { TransactionDb::userId eq userId }
-            .toList()
-            .map { it.toRecord() }
+    override suspend fun getByUser(userId: String): List<TransactionRecord> = db
+        .find { TransactionDb::userId eq userId }
+        .toList()
+        .map { it.toRecord() }
 
-    override suspend fun update(
-        transaction: Transaction,
-        userId: String,
-    ) {
+    override suspend fun update(transaction: Transaction, userId: String) {
         db.replaceOne(
             filter = filter<TransactionDb> { "_id" eq transaction.id },
             replacement = mapToDb(transaction, transaction.id, userId),
@@ -50,11 +41,7 @@ class MongknTransactionRepository(
         db.deleteMany(filter<TransactionDb> { TransactionDb::userId eq userId })
     }
 
-    private fun mapToDb(
-        transaction: Transaction,
-        id: String,
-        userId: String,
-    ) = TransactionDb(
+    private fun mapToDb(transaction: Transaction, id: String, userId: String) = TransactionDb(
         id = id,
         amount = transaction.amount,
         income = transaction.income,
@@ -66,16 +53,15 @@ class MongknTransactionRepository(
         categoryId = transaction.category.id,
     )
 
-    private fun TransactionDb.toRecord() =
-        TransactionRecord(
-            id = id,
-            amount = amount,
-            income = income,
-            date = LocalDate.parse(date),
-            until = until?.let(LocalDate::parse),
-            period = Transaction.Period.valueOf(period),
-            comment = comment,
-            userId = userId,
-            categoryId = categoryId,
-        )
+    private fun TransactionDb.toRecord() = TransactionRecord(
+        id = id,
+        amount = amount,
+        income = income,
+        date = LocalDate.parse(date),
+        until = until?.let(LocalDate::parse),
+        period = Transaction.Period.valueOf(period),
+        comment = comment,
+        userId = userId,
+        categoryId = categoryId,
+    )
 }

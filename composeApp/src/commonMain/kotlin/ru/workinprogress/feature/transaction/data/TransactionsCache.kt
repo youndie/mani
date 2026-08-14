@@ -8,10 +8,7 @@ import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
 /** Последний удачный ответ сервера и когда он был получен. */
-data class CachedTransactions(
-    val transactions: List<Transaction>,
-    val takenAt: Instant,
-)
+data class CachedTransactions(val transactions: List<Transaction>, val takenAt: Instant)
 
 /**
  * Последний известный список правил.
@@ -24,10 +21,7 @@ data class CachedTransactions(
  * записей заводить незачем.
  */
 @OptIn(ExperimentalTime::class)
-class TransactionsCache(
-    private val settings: Settings,
-    private val json: Json = Json { ignoreUnknownKeys = true },
-) {
+class TransactionsCache(private val settings: Settings, private val json: Json = Json { ignoreUnknownKeys = true }) {
     fun save(transactions: List<Transaction>) {
         settings.putString(KEY_DATA, json.encodeToString(transactions))
         settings.putLong(KEY_TAKEN_AT, Clock.System.now().toEpochMilliseconds())

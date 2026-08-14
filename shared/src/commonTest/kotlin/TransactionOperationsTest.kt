@@ -40,24 +40,26 @@ class TransactionOperationsTest {
                 LocalDate(2000, 1, 1),
                 null,
                 Transaction.Period.OneTime,
-                "Start"
-            )
+                "Start",
+            ),
         ).defaultPeriod()
 
         assertEquals(
-            (kotlin.time.Clock.System.now()
-                .toLocalDateTime(TimeZone.currentSystemDefault()).date.monthNumber + 3) % 12,
-            results.second.monthNumber
+            (
+                kotlin.time.Clock.System.now()
+                    .toLocalDateTime(TimeZone.currentSystemDefault()).date.monthNumber + 3
+                ) % 12,
+            results.second.monthNumber,
         )
 
         assertEquals(
             2000,
-            results.first.year
+            results.first.year,
         )
 
         assertEquals(
             2026,
-            results.second.year
+            results.second.year,
         )
     }
 
@@ -71,7 +73,7 @@ class TransactionOperationsTest {
                 LocalDate(2000, 1, 1),
                 null,
                 Transaction.Period.OneTime,
-                "Start"
+                "Start",
             ),
             Transaction(
                 "",
@@ -80,7 +82,7 @@ class TransactionOperationsTest {
                 LocalDate(2000, 1, 5),
                 null,
                 Transaction.Period.OneTime,
-                "Start"
+                "Start",
             ),
             Transaction(
                 "TAG",
@@ -89,7 +91,7 @@ class TransactionOperationsTest {
                 LocalDate(2000, 1, 1),
                 LocalDate(2000, 1, 17),
                 Transaction.Period.Week,
-                "3 Times 1000"
+                "3 Times 1000",
             ),
         ).simulate(LocalDate(2000, 1, 1) to LocalDate(2000, 3, 1))
 
@@ -97,7 +99,8 @@ class TransactionOperationsTest {
         assertEquals(1000.0.toBigDecimal(), result[LocalDate(2000, 1, 8)]?.firstOrNull()?.amount)
         assertEquals(
             3000.0.toBigDecimal(),
-            result.flatMap { it.value }.sumOf { transaction -> transaction.amountSigned })
+            result.flatMap { it.value }.sumOf { transaction -> transaction.amountSigned },
+        )
     }
 
     @Test
@@ -110,7 +113,7 @@ class TransactionOperationsTest {
                 LocalDate(2000, 1, 1),
                 null,
                 Transaction.Period.Month,
-                "3 Times 1000"
+                "3 Times 1000",
             ),
         ).simulate(LocalDate(2000, 1, 1) to defaultPeriodAppend(LocalDate(2000, 1, 1)))
 
@@ -132,7 +135,7 @@ class TransactionOperationsTest {
                 now.minus(1, DateTimeUnit.WEEK),
                 null,
                 Transaction.Period.OneTime,
-                "Start"
+                "Start",
             ),
             Transaction(
                 "TAG",
@@ -141,12 +144,11 @@ class TransactionOperationsTest {
                 now.minus(1, DateTimeUnit.WEEK),
                 now.plus(1, DateTimeUnit.WEEK),
                 Transaction.Period.Week,
-                "3 Times 1000"
+                "3 Times 1000",
             ),
         ).toChartInternal()
 
         assertEquals(3100.0.toBigDecimal(), result.days.values.last())
-
     }
 
     @Test
@@ -159,15 +161,16 @@ class TransactionOperationsTest {
                 LocalDate(2000, 1, 2),
                 null,
                 Transaction.Period.OneTime,
-                ""
-            ), Transaction(
+                "",
+            ),
+            Transaction(
                 "",
                 100.0.toBigDecimal(),
                 true,
                 LocalDate(2000, 1, 3),
                 null,
                 Transaction.Period.OneTime,
-                ""
+                "",
             ),
             Transaction(
                 "",
@@ -176,7 +179,7 @@ class TransactionOperationsTest {
                 LocalDate(2000, 1, 3),
                 null,
                 Transaction.Period.OneTime,
-                ""
+                "",
             ),
             Transaction(
                 "",
@@ -185,11 +188,11 @@ class TransactionOperationsTest {
                 LocalDate(2000, 2, 3),
                 null,
                 Transaction.Period.OneTime,
-                ""
-            )
+                "",
+            ),
         ).simulate(
             LocalDate(2000, 1, 1)
-                    to LocalDate(2000, 3, 1)
+                to LocalDate(2000, 3, 1),
         ).findZeroEvents()
 
         assertTrue(positive == null)
@@ -207,15 +210,16 @@ class TransactionOperationsTest {
                 LocalDate(2000, 1, 2),
                 null,
                 Transaction.Period.OneTime,
-                ""
-            ), Transaction(
+                "",
+            ),
+            Transaction(
                 "",
                 100.0.toBigDecimal(),
                 true,
                 LocalDate(2000, 1, 3),
                 null,
                 Transaction.Period.OneTime,
-                ""
+                "",
             ),
             Transaction(
                 "",
@@ -224,7 +228,7 @@ class TransactionOperationsTest {
                 targetDate,
                 null,
                 Transaction.Period.OneTime,
-                ""
+                "",
             ),
             Transaction(
                 "",
@@ -233,11 +237,11 @@ class TransactionOperationsTest {
                 LocalDate(2000, 2, 3),
                 null,
                 Transaction.Period.OneTime,
-                ""
-            )
+                "",
+            ),
         ).simulate(
             LocalDate(2000, 1, 1)
-                    to LocalDate(2000, 3, 1)
+                to LocalDate(2000, 3, 1),
         ).findZeroEvents()
 
         assertEquals(positive, targetDate)
@@ -255,15 +259,16 @@ class TransactionOperationsTest {
                 LocalDate(2000, 1, 2),
                 null,
                 Transaction.Period.OneTime,
-                ""
-            ), Transaction(
+                "",
+            ),
+            Transaction(
                 "",
                 100.0.toBigDecimal(),
                 true,
                 LocalDate(2000, 1, 3),
                 null,
                 Transaction.Period.OneTime,
-                ""
+                "",
             ),
             Transaction(
                 "",
@@ -272,7 +277,7 @@ class TransactionOperationsTest {
                 LocalDate(2000, 1, 4),
                 null,
                 Transaction.Period.OneTime,
-                ""
+                "",
             ),
             Transaction(
                 "",
@@ -281,7 +286,7 @@ class TransactionOperationsTest {
                 targetDate,
                 null,
                 Transaction.Period.OneTime,
-                ""
+                "",
             ),
             Transaction(
                 "",
@@ -290,11 +295,11 @@ class TransactionOperationsTest {
                 LocalDate(2000, 1, 1),
                 null,
                 Transaction.Period.OneTime,
-                ""
-            )
+                "",
+            ),
         ).simulate(
             LocalDate(2000, 1, 1)
-                    to LocalDate(2000, 3, 1)
+                to LocalDate(2000, 3, 1),
         ).findZeroEvents()
 
         assertEquals(negative, targetDate)
@@ -313,7 +318,7 @@ class TransactionOperationsTest {
                 ruleStart,
                 null,
                 Transaction.Period.OneTime,
-                "Savings"
+                "Savings",
             ),
             Transaction(
                 "",
@@ -322,7 +327,7 @@ class TransactionOperationsTest {
                 ruleStart,
                 null,
                 Transaction.Period.Week,
-                "Weekly spend"
+                "Weekly spend",
             ),
         ).simulate(ruleStart to LocalDate(2000, 3, 1)).findZeroEvents()
 
@@ -345,15 +350,16 @@ class TransactionOperationsTest {
                 LocalDate(2000, 1, 2),
                 null,
                 Transaction.Period.OneTime,
-                ""
-            ), Transaction(
+                "",
+            ),
+            Transaction(
                 "",
                 100.0.toBigDecimal(),
                 true,
                 LocalDate(2000, 1, 3),
                 null,
                 Transaction.Period.OneTime,
-                ""
+                "",
             ),
             Transaction(
                 "",
@@ -362,7 +368,7 @@ class TransactionOperationsTest {
                 LocalDate(2000, 1, 4),
                 null,
                 Transaction.Period.OneTime,
-                ""
+                "",
             ),
             Transaction(
                 "",
@@ -371,7 +377,7 @@ class TransactionOperationsTest {
                 targetNegative,
                 null,
                 Transaction.Period.OneTime,
-                ""
+                "",
             ),
             Transaction(
                 "",
@@ -380,11 +386,11 @@ class TransactionOperationsTest {
                 targetPositive,
                 null,
                 Transaction.Period.OneTime,
-                ""
-            )
+                "",
+            ),
         ).simulate(
             LocalDate(2000, 1, 1)
-                    to LocalDate(2000, 3, 1)
+                to LocalDate(2000, 3, 1),
         ).findZeroEvents()
 
         assertEquals(targetPositive, positive)

@@ -18,10 +18,7 @@ data class WelcomeUiState(
     val server: String? = null,
 )
 
-class WelcomeViewModel(
-    private val demoUseCase: DemoUseCase,
-    private val healthUseCase: HealthUseCase,
-) : ViewModel() {
+class WelcomeViewModel(private val demoUseCase: DemoUseCase, private val healthUseCase: HealthUseCase) : ViewModel() {
     private val state = MutableStateFlow(WelcomeUiState())
     val observe = state.asStateFlow()
 
@@ -43,6 +40,7 @@ class WelcomeViewModel(
 
             when (val result = demoUseCase()) {
                 is UseCase.Result.Success -> state.update { it.copy(success = true) }
+
                 is UseCase.Result.Error ->
                     state.update {
                         it.copy(loading = false, errorMessage = result.throwable.message.orEmpty())

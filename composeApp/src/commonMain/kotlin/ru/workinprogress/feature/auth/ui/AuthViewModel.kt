@@ -13,11 +13,7 @@ import ru.workinprogress.feature.auth.domain.DemoUseCase
 import ru.workinprogress.feature.auth.ui.model.AuthUiState
 import ru.workinprogress.useCase.UseCase
 
-
-class AuthViewModel(
-    private val authUseCase: AuthUseCase,
-    private val startDemoUseCase: DemoUseCase,
-) : ViewModel() {
+class AuthViewModel(private val authUseCase: AuthUseCase, private val startDemoUseCase: DemoUseCase) : ViewModel() {
 
     private val state = MutableStateFlow(AuthUiState())
     val observe = state.asStateFlow()
@@ -82,4 +78,3 @@ class AuthViewModel(
         }
     }
 }
-

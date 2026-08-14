@@ -17,31 +17,26 @@ import ru.workinprogress.feature.user.data.UserDb.Companion.fromDb
 
 const val USER_COLLECTION = "users"
 
-class MongoUserRepository(
-    mongoDatabase: MongoDatabase,
-    private val hashingService: HashingService,
-) : UserRepository {
+class MongoUserRepository(mongoDatabase: MongoDatabase, private val hashingService: HashingService) : UserRepository {
     private val db = mongoDatabase.getCollection<UserDb>(USER_COLLECTION)
 
-    override suspend fun save(user: LoginParams): String? {
-        return try {
-            val saltedHash = hashingService.generateSaltedHash(user.password)
-            val result =
-                db.insertOne(
-                    UserDb(
-                        id = ObjectId(),
-                        username = user.name,
-                        password = saltedHash.hash,
-                        salt = saltedHash.salt,
-                        tokens = emptyList(),
-                        categories = emptyList(),
-                    ),
-                )
-            result.insertedId?.asObjectId()?.value?.toHexString()
-        } catch (e: MongoException) {
-            logger.error("Unable to insert user", e)
-            null
-        }
+    override suspend fun save(user: LoginParams): String? = try {
+        val saltedHash = hashingService.generateSaltedHash(user.password)
+        val result =
+            db.insertOne(
+                UserDb(
+                    id = ObjectId(),
+                    username = user.name,
+                    password = saltedHash.hash,
+                    salt = saltedHash.salt,
+                    tokens = emptyList(),
+                    categories = emptyList(),
+                ),
+            )
+        result.insertedId?.asObjectId()?.value?.toHexString()
+    } catch (e: MongoException) {
+        logger.error("Unable to insert user", e)
+        null
     }
 
     override suspend fun findUserByCredentials(credentials: LoginParams): User? {
@@ -58,11 +53,10 @@ class MongoUserRepository(
 
     // Префикс приходит константой из общего кода, не от пользователя, поэтому экранировать в
     // регулярном выражении нечего.
-    override suspend fun findByUsernamePrefix(prefix: String): List<User> =
-        db
-            .find<UserDb>(Filters.regex("username", "^$prefix"))
-            .map { it.fromDb() }
-            .toList()
+    override suspend fun findByUsernamePrefix(prefix: String): List<User> = db
+        .find<UserDb>(Filters.regex("username", "^$prefix"))
+        .map { it.fromDb() }
+        .toList()
 
     override suspend fun delete(userId: String) {
         db.deleteOne(Filters.eq("_id", ObjectId(userId)))
@@ -73,15 +67,10 @@ class MongoUserRepository(
     }
 }
 
-class MongoTokenRepository(
-    mongoDatabase: MongoDatabase,
-) : TokenRepository {
+class MongoTokenRepository(mongoDatabase: MongoDatabase) : TokenRepository {
     private val db = mongoDatabase.getCollection<UserDb>(USER_COLLECTION)
 
-    override suspend fun addToken(
-        token: String,
-        userId: String,
-    ) {
+    override suspend fun addToken(token: String, userId: String) {
         db.updateOne(
             Filters.eq("_id", ObjectId(userId)),
             Updates.addToSet(UserDb::tokens.name, token),
@@ -91,10 +80,7 @@ class MongoTokenRepository(
     override suspend fun findUserByToken(refreshToken: String): User? =
         db.find<UserDb>(Filters.eq(UserDb::tokens.name, refreshToken)).firstOrNull()?.fromDb()
 
-    override suspend fun removeToken(
-        token: String,
-        userId: String,
-    ) {
+    override suspend fun removeToken(token: String, userId: String) {
         db.updateOne(
             Filters.eq("_id", ObjectId(userId)),
             Updates.pull(UserDb::tokens.name, token),

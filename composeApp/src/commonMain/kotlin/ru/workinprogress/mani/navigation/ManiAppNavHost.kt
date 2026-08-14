@@ -28,9 +28,9 @@ import ru.workinprogress.feature.main.ui.MainComponent
 import ru.workinprogress.feature.transaction.ui.component.AddTransactionComponent
 import ru.workinprogress.feature.transaction.ui.component.EditTransactionComponent
 import ru.workinprogress.feature.transaction.ui.component.TransactionsListComponent
+import ru.workinprogress.feature.welcome.WelcomeComponent
 import ru.workinprogress.mani.components.MainAppBarState
 import kotlin.math.roundToInt
-import ru.workinprogress.feature.welcome.WelcomeComponent
 
 @Composable
 @NonRestartableComposable
@@ -39,7 +39,7 @@ fun ManiAppNavHost(
     navController: NavHostController,
     appBarState: MainAppBarState,
     snackbarHostState: SnackbarHostState,
-    onBackClicked: () -> Unit
+    onBackClicked: () -> Unit,
 ) {
     val tokenRepository = koinInject<TokenRepository>()
     val tokenState = tokenRepository.observeToken().collectAsStateWithLifecycle()
@@ -48,7 +48,7 @@ fun ManiAppNavHost(
     NavHost(
         navController = navController,
         startDestination = if (isAuth.value) ManiScreen.Main.name else ManiScreen.Welcome.name,
-        modifier = Modifier.fillMaxSize().then(modifier)
+        modifier = Modifier.fillMaxSize().then(modifier),
     ) {
         composable(ManiScreen.Main.name) {
             MainComponent(
@@ -84,22 +84,21 @@ fun ManiAppNavHost(
                 navController.navigateAndClean(ManiScreen.Main.name)
             }
         }
-        composable(
-            ManiScreen.Signup.name, enterTransition = {
-                slideIn(initialOffset = {
-                    IntOffset(
-                        0,
-                        (it.height / 2f).roundToInt()
-                    )
-                }) + fadeIn()
-            }, exitTransition = {
-                fadeOut() + slideOut(targetOffset = {
-                    IntOffset(
-                        0,
-                        (it.height / 2f).roundToInt()
-                    )
-                })
+        composable(ManiScreen.Signup.name, enterTransition = {
+            slideIn(initialOffset = {
+                IntOffset(
+                    0,
+                    (it.height / 2f).roundToInt(),
+                )
+            }) + fadeIn()
+        }, exitTransition = {
+            fadeOut() + slideOut(targetOffset = {
+                IntOffset(
+                    0,
+                    (it.height / 2f).roundToInt(),
+                )
             })
+        })
         {
             SignupComponent(onBackClicked) {
                 navController.navigate(ManiScreen.Login.name)
@@ -108,7 +107,7 @@ fun ManiAppNavHost(
         composable(ManiScreen.Preload.name) {
             Box(
                 modifier.fillMaxSize()
-                    .background(MaterialTheme.colorScheme.surfaceContainerLowest)
+                    .background(MaterialTheme.colorScheme.surfaceContainerLowest),
             )
         }
         composable(ManiScreen.History.name) {
@@ -116,7 +115,8 @@ fun ManiAppNavHost(
                 appBarState = appBarState,
                 onTransactionClicked = {
                     navController.navigate(TransactionRoute(it))
-                })
+                },
+            )
         }
 
         composable<TransactionRoute> {

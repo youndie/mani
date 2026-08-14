@@ -33,21 +33,17 @@ data class TransactionUiItem(
     val amountText get() = buildColoredAmount(amount, currency, income, negativeColor = Color.Unspecified)
 
     companion object {
-        operator fun invoke(
-            transaction: Transaction,
-            currency: Currency,
-        ): TransactionUiItem =
-            TransactionUiItem(
-                id = transaction.id,
-                amount = transaction.amount,
-                income = transaction.income,
-                date = transaction.date,
-                until = transaction.until,
-                period = transaction.period,
-                comment = transaction.comment,
-                currency = currency,
-                category = transaction.category,
-            )
+        operator fun invoke(transaction: Transaction, currency: Currency): TransactionUiItem = TransactionUiItem(
+            id = transaction.id,
+            amount = transaction.amount,
+            income = transaction.income,
+            date = transaction.date,
+            until = transaction.until,
+            period = transaction.period,
+            comment = transaction.comment,
+            currency = currency,
+            category = transaction.category,
+        )
     }
 }
 
@@ -68,7 +64,7 @@ fun buildColoredAmount(
         } catch (e: Exception) {
             BigDecimal.ZERO
         }
-    ),
+        ),
     currency: Currency,
     sign: Boolean = amountValue > 0,
 ) = buildColoredAmount(amountValue, currency, sign)
@@ -79,29 +75,22 @@ fun buildColoredAmount(
     sign: Boolean = amount > 0,
     useSign: Boolean = true,
     negativeColor: Color = NegativeColor,
-): AnnotatedString =
-    buildAnnotatedString {
-        if (amount != BigDecimal.ZERO) {
-            withStyle(style = SpanStyle(color = if (sign) PositiveColor else negativeColor)) {
-                if (useSign) {
-                    append(if (sign) "+" else "−")
-                }
-                append(formatMoneyAbsolute(amount, currency))
+): AnnotatedString = buildAnnotatedString {
+    if (amount != BigDecimal.ZERO) {
+        withStyle(style = SpanStyle(color = if (sign) PositiveColor else negativeColor)) {
+            if (useSign) {
+                append(if (sign) "+" else "−")
             }
-        } else {
             append(formatMoneyAbsolute(amount, currency))
         }
+    } else {
+        append(formatMoneyAbsolute(amount, currency))
     }
+}
 
-fun formatMoneyAbsolute(
-    amount: BigDecimal,
-    currency: Currency,
-) = formatMoney(amount.abs(), currency)
+fun formatMoneyAbsolute(amount: BigDecimal, currency: Currency) = formatMoney(amount.abs(), currency)
 
-fun formatMoney(
-    amount: BigDecimal,
-    currency: Currency,
-) = "${groupThousands(amount.toPlainString())} ${currency.symbol}"
+fun formatMoney(amount: BigDecimal, currency: Currency) = "${groupThousands(amount.toPlainString())} ${currency.symbol}"
 
 /** Неразрывный: «4 895» не должно разъезжаться по двум строкам. */
 private const val GROUP_SEPARATOR = '\u00A0'
@@ -135,7 +124,4 @@ internal fun groupThousands(plain: String): String {
     }
 }
 
-fun formatMoneyAbsolute(
-    amount: String,
-    currency: Currency,
-) = formatMoneyAbsolute(amount.toBigDecimal(), currency)
+fun formatMoneyAbsolute(amount: String, currency: Currency) = formatMoneyAbsolute(amount.toBigDecimal(), currency)

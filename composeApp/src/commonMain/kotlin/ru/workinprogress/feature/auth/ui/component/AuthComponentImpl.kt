@@ -22,7 +22,6 @@ import org.jetbrains.compose.ui.tooling.preview.Preview
 import ru.workinprogress.feature.auth.ui.model.AuthComponentUiState
 import ru.workinprogress.mani.components.LoadingButton
 
-
 @Composable
 @Preview
 internal fun AuthComponentImpl(
@@ -37,12 +36,13 @@ internal fun AuthComponentImpl(
     Box(modifier, contentAlignment = Alignment.Center) {
         Card(Modifier) {
             Column(
-                verticalArrangement = Arrangement.Center, modifier = Modifier.padding(24.dp)
+                verticalArrangement = Arrangement.Center,
+                modifier = Modifier.padding(24.dp),
             ) {
                 Text(
                     text = state.title,
                     style = MaterialTheme.typography.headlineMedium,
-                    modifier = Modifier.padding(horizontal = 16.dp).testTag("title")
+                    modifier = Modifier.padding(horizontal = 16.dp).testTag("title"),
                 )
 
                 Spacer(Modifier.height(24.dp))
@@ -54,14 +54,14 @@ internal fun AuthComponentImpl(
                     enabled = !state.loading,
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Text,
-                        imeAction = ImeAction.Next
+                        imeAction = ImeAction.Next,
                     ),
                     singleLine = true,
-                    keyboardActions = KeyboardActions(
-                        onNext = {
-                            focusManager.moveFocus(FocusDirection.Down)
-                        }),
-                    label = { Text("Username") })
+                    keyboardActions = KeyboardActions(onNext = {
+                        focusManager.moveFocus(FocusDirection.Down)
+                    }),
+                    label = { Text("Username") },
+                )
 
                 Spacer(Modifier.height(8.dp))
 
@@ -71,14 +71,16 @@ internal fun AuthComponentImpl(
                     modifier = Modifier.testTag("password"),
                     enabled = !state.loading,
                     keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Password, imeAction = ImeAction.Done
+                        keyboardType = KeyboardType.Password,
+                        imeAction = ImeAction.Done,
                     ),
                     keyboardActions = KeyboardActions(onDone = {
                         onButtonClicked()
                     }),
                     singleLine = true,
                     visualTransformation = PasswordVisualTransformation(),
-                    label = { Text("Password") })
+                    label = { Text("Password") },
+                )
 
                 Spacer(Modifier.height(24.dp))
 
@@ -86,7 +88,7 @@ internal fun AuthComponentImpl(
                     Text(
                         it,
                         modifier = Modifier.padding(horizontal = 8.dp).testTag("errorMessage"),
-                        style = MaterialTheme.typography.labelMedium
+                        style = MaterialTheme.typography.labelMedium,
                     )
                     Spacer(Modifier.height(24.dp))
                 }
@@ -97,7 +99,7 @@ internal fun AuthComponentImpl(
                     loading = state.loading,
                     buttonText = state.buttonText,
                     modifier = Modifier.align(Alignment.CenterHorizontally).testTag("login"),
-                    onButtonClicked = onButtonClicked
+                    onButtonClicked = onButtonClicked,
                 )
 
                 Spacer(Modifier.height(8.dp))
@@ -105,4 +107,3 @@ internal fun AuthComponentImpl(
         }
     }
 }
-

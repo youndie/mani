@@ -35,12 +35,11 @@ class MainActivity : ComponentActivity() {
                 platformModules = listOf(
                     module {
                         single<Context> { this@MainActivity }
-                    }
-                )
+                    },
+                ),
             )
         }
     }
-
 
     override fun onResume() {
         super.onResume()

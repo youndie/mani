@@ -72,7 +72,6 @@ class AuthViewModelTest : KoinTest {
         assertEquals(errorMessage, viewModel.observe.value.errorMessage)
     }
 
-
     @Test
     fun testDemoSuccess() = runTest {
         useCaseSuccess = true

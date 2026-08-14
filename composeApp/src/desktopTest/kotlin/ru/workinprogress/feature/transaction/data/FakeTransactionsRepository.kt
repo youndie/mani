@@ -9,11 +9,19 @@ import ru.workinprogress.feature.transaction.domain.TransactionRepository
 import ru.workinprogress.feature.transaction.toDelete
 
 class FakeTransactionsRepository(
-    private val shouldCrash: () -> Boolean = { false }, private val transactions: List<Transaction> = listOf(
+    private val shouldCrash: () -> Boolean = { false },
+    private val transactions: List<Transaction> = listOf(
         Transaction(
-            "", 500.0.toBigDecimal(), true, LocalDate(2000, 1, 1), null, Transaction.Period.OneTime, ""
-        ), toDelete
-    )
+            "",
+            500.0.toBigDecimal(),
+            true,
+            LocalDate(2000, 1, 1),
+            null,
+            Transaction.Period.OneTime,
+            "",
+        ),
+        toDelete,
+    ),
 ) : TransactionRepository {
 
     private val data = MutableStateFlow(emptyList<Transaction>())
@@ -25,9 +33,7 @@ class FakeTransactionsRepository(
         data.value = transactions
     }
 
-    override fun getById(transactionId: String): Transaction {
-        return data.value.first { it.id == transactionId }
-    }
+    override fun getById(transactionId: String): Transaction = data.value.first { it.id == transactionId }
 
     override suspend fun create(params: Transaction): Transaction {
         if (shouldCrash()) throw RuntimeException("fake")

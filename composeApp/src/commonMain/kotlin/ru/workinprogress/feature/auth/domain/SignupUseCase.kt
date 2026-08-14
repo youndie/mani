@@ -14,9 +14,7 @@ interface UserService {
     suspend fun signin(params: LoginParams): Tokens
 }
 
-class SignupUseCase(
-    private val httpClient: HttpClient,
-) : AuthUseCase() {
+class SignupUseCase(private val httpClient: HttpClient) : AuthUseCase() {
     override suspend fun invoke(params: LoginParams) = try {
         val response = httpClient.post(UserResource()) {
             setBody(params)

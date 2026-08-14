@@ -25,15 +25,10 @@ class WebAsset(
  * wasm-бандл целиком на каждый заход — `no-cache` означает «перепроверь», а перепроверять было
  * бы нечем.
  */
-class WebAssets(
-    private val byName: Map<String, WebAsset>,
-) {
+class WebAssets(private val byName: Map<String, WebAsset>) {
     val size: Int get() = byName.size
 
-    fun find(
-        name: String,
-        acceptsGzip: Boolean,
-    ): WebAsset? {
+    fun find(name: String, acceptsGzip: Boolean): WebAsset? {
         if (acceptsGzip) byName["$name.gz"]?.let { return it }
         return byName[name]
     }
@@ -57,11 +52,7 @@ class WebAssets(
             return WebAssets(found)
         }
 
-        private fun walk(
-            dir: Path,
-            prefix: String,
-            found: (relative: String, path: Path, size: Long) -> Unit,
-        ) {
+        private fun walk(dir: Path, prefix: String, found: (relative: String, path: Path, size: Long) -> Unit) {
             for (entry in SystemFileSystem.list(dir)) {
                 val metadata = SystemFileSystem.metadataOrNull(entry) ?: continue
                 val relative = if (prefix.isEmpty()) entry.name else "$prefix/${entry.name}"

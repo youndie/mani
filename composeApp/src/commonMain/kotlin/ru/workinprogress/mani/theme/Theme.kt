@@ -236,12 +236,11 @@ private val highContrastDarkColorScheme = darkColorScheme(
     surfaceContainerHighest = surfaceContainerHighestDarkHighContrast,
 )
 
-
 @Composable
 fun AppTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     dynamicColor: Boolean = true,
-    content: @Composable() () -> Unit
+    content: @Composable () -> Unit,
 ) {
     val fonts = ManiFonts(sans = sansFamily(), mono = monoFamily())
 
@@ -249,8 +248,7 @@ fun AppTheme(
         MaterialTheme(
             colorScheme = if (darkTheme) darkScheme else lightScheme,
             typography = createTypography(typography, fonts.sans, fonts.mono),
-            content = content
+            content = content,
         )
     }
 }
-

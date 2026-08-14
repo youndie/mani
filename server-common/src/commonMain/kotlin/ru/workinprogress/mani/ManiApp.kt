@@ -37,17 +37,16 @@ import ru.workinprogress.mani.security.maniJwt
  * Хранилище сюда не входит — его модуль каждая сборка приносит свой. Всё остальное обязано быть
  * одним: разъехавшийся `TokenService` означал бы, что токен одной сборки не принимает другая.
  */
-fun coreModule(config: ManiConfig): Module =
-    module {
-        single<ManiConfig> { config }
-        single<JWTConfig> { config.jwt }
-        single<MongoConfig> { config.mongo }
-        single<TokenService> { TokenService(config.jwt) }
-        single<HashingService> { Sha256HashingService() }
-        single<AuthService> { AuthService(get(), get(), get()) }
-        single<DemoSandboxCleaner> { DemoSandboxCleaner(get(), get()) }
-        single<DemoService> { DemoService(get(), get(), get(), get(), get()) }
-    }
+fun coreModule(config: ManiConfig): Module = module {
+    single<ManiConfig> { config }
+    single<JWTConfig> { config.jwt }
+    single<MongoConfig> { config.mongo }
+    single<TokenService> { TokenService(config.jwt) }
+    single<HashingService> { Sha256HashingService() }
+    single<AuthService> { AuthService(get(), get(), get()) }
+    single<DemoSandboxCleaner> { DemoSandboxCleaner(get(), get()) }
+    single<DemoService> { DemoService(get(), get(), get(), get(), get()) }
+}
 
 /**
  * Плагины, одинаковые для обеих сборок.
@@ -87,10 +86,7 @@ fun Application.configureManiPlugins(config: ManiConfig) {
  * Проверка токенов. Ставится отдельным вызовом после Koin: [TokenService] берётся из графа, а не
  * собирается заново, — иначе секрет пришлось бы протаскивать во второе место.
  */
-fun Application.configureManiAuth(
-    config: ManiConfig,
-    tokenService: TokenService,
-) {
+fun Application.configureManiAuth(config: ManiConfig, tokenService: TokenService) {
     install(Authentication) {
         maniJwt(config.jwt.name, tokenService)
     }

@@ -13,8 +13,8 @@ import org.junit.Test
 import org.koin.core.context.startKoin
 import org.koin.core.context.stopKoin
 import org.koin.core.module.dsl.singleOf
-import org.koin.dsl.bind
 import org.koin.core.qualifier.named
+import org.koin.dsl.bind
 import org.koin.dsl.module
 import org.koin.test.KoinTest
 import org.koin.test.get
@@ -23,24 +23,23 @@ import ru.workinprogress.feature.auth.data.TokenRepositoryCommon
 import ru.workinprogress.feature.auth.data.TokenStorage
 import ru.workinprogress.feature.auth.data.TokenStorageImpl
 import ru.workinprogress.feature.auth.domain.LogoutUseCase
+import ru.workinprogress.feature.categories.CATEGORIES_SOURCE
 import ru.workinprogress.feature.categories.data.CategoriesRepository
 import ru.workinprogress.feature.categories.domain.GetCategoriesUseCase
-import ru.workinprogress.feature.categories.CATEGORIES_SOURCE
 import ru.workinprogress.feature.category.FakeCategoriesDataSource
 import ru.workinprogress.feature.currency.Currency
 import ru.workinprogress.feature.currency.GetCurrentCurrencyUseCase
 import ru.workinprogress.feature.currency.data.CurrentCurrencyRepository
+import ru.workinprogress.feature.demo.domain.SeedUseCase
+import ru.workinprogress.feature.main.ui.ForecastUiState
 import ru.workinprogress.feature.transaction.*
 import ru.workinprogress.feature.transaction.data.FakeTransactionsRepository
 import ru.workinprogress.feature.transaction.domain.DeleteTransactionsUseCase
 import ru.workinprogress.feature.transaction.domain.GetTransactionsUseCase
 import ru.workinprogress.feature.transaction.domain.TransactionRepository
 import ru.workinprogress.mani.today
-import kotlin.test.*
-import ru.workinprogress.feature.main.ui.ForecastUiState
-import ru.workinprogress.feature.demo.domain.SeedUseCase
 import ru.workinprogress.useCase.EmptyParams
-
+import kotlin.test.*
 
 class MainViewModelTest : KoinTest {
     private var shouldReturnError = false
@@ -108,7 +107,8 @@ class MainViewModelTest : KoinTest {
                 .flatMap { it.value }
                 .all { item ->
                     item.category.id == targetCategory.id
-                })
+                },
+        )
 
         get<TransactionRepository>().reset()
     }
@@ -125,13 +125,13 @@ class MainViewModelTest : KoinTest {
         viewModel.onTransactionSelected(firstTransaction)
         runCurrent()
         assertNotNull(
-            viewModel.observe.value.selectedTransactions.find { item -> item.id == firstTransaction.id }
+            viewModel.observe.value.selectedTransactions.find { item -> item.id == firstTransaction.id },
         )
 
         viewModel.onTransactionSelected(firstTransaction)
         runCurrent()
         assertNull(
-            viewModel.observe.value.selectedTransactions.find { item -> item.id == firstTransaction.id }
+            viewModel.observe.value.selectedTransactions.find { item -> item.id == firstTransaction.id },
         )
 
         get<TransactionRepository>().reset()
@@ -168,11 +168,11 @@ class MainViewModelTest : KoinTest {
         assertNull(
             viewModel.observe.value.transactions.flatMap {
                 it.value
-            }.find { item -> item.id == firstTransaction.id }
+            }.find { item -> item.id == firstTransaction.id },
         )
 
         assertNull(
-            viewModel.observe.value.selectedTransactions.find { item -> item.id == firstTransaction.id }
+            viewModel.observe.value.selectedTransactions.find { item -> item.id == firstTransaction.id },
         )
 
         get<TransactionRepository>().reset()
@@ -230,7 +230,7 @@ class MainViewModelTest : KoinTest {
         val forecast = MainViewModel.buildForecast(
             transactions.simulate(start, defaultPeriodAppend(start)),
             Currency.Usd,
-            start.plus(1, DateTimeUnit.DAY)
+            start.plus(1, DateTimeUnit.DAY),
         )
 
         assertEquals(ForecastUiState.Steady("100 $"), forecast)
@@ -243,13 +243,13 @@ class MainViewModelTest : KoinTest {
 
         val transactions = listOf(
             Transaction("0", 100.0.toBigDecimal(), true, start, null, Transaction.Period.OneTime, ""),
-            Transaction("1", 300.0.toBigDecimal(), false, runsOut, null, Transaction.Period.OneTime, "")
+            Transaction("1", 300.0.toBigDecimal(), false, runsOut, null, Transaction.Period.OneTime, ""),
         )
 
         val forecast = MainViewModel.buildForecast(
             transactions.simulate(start, defaultPeriodAppend(start)),
             Currency.Usd,
-            start.plus(1, DateTimeUnit.DAY)
+            start.plus(1, DateTimeUnit.DAY),
         )
 
         assertEquals(
@@ -261,7 +261,7 @@ class MainViewModelTest : KoinTest {
                 lowestPoint = "\u2212200 $",
                 lowestOn = "20 January",
             ),
-            forecast
+            forecast,
         )
     }
 
@@ -272,14 +272,19 @@ class MainViewModelTest : KoinTest {
         val transactions = listOf(
             Transaction("0", 100.0.toBigDecimal(), true, start, null, Transaction.Period.OneTime, ""),
             Transaction(
-                "1", 30.0.toBigDecimal(), false,
-                start.plus(2, DateTimeUnit.DAY), null, Transaction.Period.OneTime, ""
-            )
+                "1",
+                30.0.toBigDecimal(),
+                false,
+                start.plus(2, DateTimeUnit.DAY),
+                null,
+                Transaction.Period.OneTime,
+                "",
+            ),
         )
 
         val balances = MainViewModel.buildDayBalances(
             transactions.simulate(start, defaultPeriodAppend(start)),
-            Currency.Usd
+            Currency.Usd,
         )
 
         assertEquals("100 $", balances[start])
@@ -302,16 +307,21 @@ class MainViewModelTest : KoinTest {
         val transactions = listOf(
             Transaction("0", 100.0.toBigDecimal(), true, start, null, Transaction.Period.OneTime, ""),
             Transaction(
-                "1", 300.0.toBigDecimal(), false,
-                start.plus(2, DateTimeUnit.DAY), null, Transaction.Period.OneTime, ""
-            )
+                "1",
+                300.0.toBigDecimal(),
+                false,
+                start.plus(2, DateTimeUnit.DAY),
+                null,
+                Transaction.Period.OneTime,
+                "",
+            ),
         )
 
         // «Деньги кончатся вчера» — не прогноз, а бессмыслица: показываем баланс.
         val forecast = MainViewModel.buildForecast(
             transactions.simulate(start, defaultPeriodAppend(start)),
             Currency.Usd,
-            start.plus(10, DateTimeUnit.DAY)
+            start.plus(10, DateTimeUnit.DAY),
         )
 
         assertEquals(ForecastUiState.Steady("-200 $"), forecast)
@@ -323,13 +333,13 @@ class MainViewModelTest : KoinTest {
 
         val transactions = listOf(
             Transaction("0", 300.0.toBigDecimal(), true, ruleStart, null, Transaction.Period.OneTime, ""),
-            Transaction("1", 100.0.toBigDecimal(), false, ruleStart, null, Transaction.Period.Week, "")
+            Transaction("1", 100.0.toBigDecimal(), false, ruleStart, null, Transaction.Period.Week, ""),
         )
 
         val forecast = MainViewModel.buildForecast(
             transactions.simulate(ruleStart, defaultPeriodAppend(ruleStart)),
             Currency.Usd,
-            ruleStart.plus(1, DateTimeUnit.DAY)
+            ruleStart.plus(1, DateTimeUnit.DAY),
         )
 
         // Правило заведено 1 января, а знак меняется 22-го — показывать надо второе.
@@ -354,7 +364,7 @@ class MainViewModelTest : KoinTest {
                         date = today().plus(1, DateTimeUnit.DAY),
                         until = null,
                         period = Transaction.Period.OneTime,
-                        comment = ""
+                        comment = "",
                     ),
                     Transaction(
                         id = "past",
@@ -363,7 +373,7 @@ class MainViewModelTest : KoinTest {
                         date = LocalDate(2000, 1, 1),
                         until = null,
                         period = Transaction.Period.OneTime,
-                        comment = ""
+                        comment = "",
                     ),
                     Transaction(
                         id = "past2",
@@ -373,9 +383,9 @@ class MainViewModelTest : KoinTest {
                         until = null,
                         period = Transaction.Period.OneTime,
                         comment = "",
-                        category = targetCategory
-                    )
-                )
+                        category = targetCategory,
+                    ),
+                ),
             )
         }
         single<GetTransactionsUseCase> { GetTransactionsUseCase(get()) }
@@ -394,7 +404,6 @@ class MainViewModelTest : KoinTest {
         single<DataSource<Category>>(named(CATEGORIES_SOURCE)) { get<FakeCategoriesDataSource>() }
         single { CategoriesRepository(get(named(CATEGORIES_SOURCE))) }
     }
-
 }
 
 private class FakeSeedUseCase : SeedUseCase() {

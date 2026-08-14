@@ -75,10 +75,7 @@ internal fun ByteArray.toHex(): String {
  * рассказывает, сколько символов угадано. Здесь сравниваются хеши паролей — то место, где такая
  * подсказка дороже всего.
  */
-internal fun constantTimeEquals(
-    expected: String,
-    actual: String,
-): Boolean {
+internal fun constantTimeEquals(expected: String, actual: String): Boolean {
     if (expected.length != actual.length) return false
     var diff = 0
     for (i in expected.indices) {

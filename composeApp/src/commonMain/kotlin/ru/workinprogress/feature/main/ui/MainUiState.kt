@@ -25,4 +25,3 @@ data class MainUiState(
     /** Не `null` — сервер не ответил и показать нечего: ни свежего, ни сохранённого. */
     val unreachable: ServerUnreachableUiState? = null,
 )
-

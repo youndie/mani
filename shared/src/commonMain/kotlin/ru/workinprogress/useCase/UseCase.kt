@@ -13,10 +13,8 @@ abstract class UseCase<P, T> {
     }
 }
 
-inline fun <T> withTry(func: () -> T): UseCase.Result<T> {
-    return try {
-        UseCase.Result.Success(func())
-    } catch (e: Exception) {
-        UseCase.Result.Error(e)
-    }
+inline fun <T> withTry(func: () -> T): UseCase.Result<T> = try {
+    UseCase.Result.Success(func())
+} catch (e: Exception) {
+    UseCase.Result.Error(e)
 }

@@ -1,5 +1,6 @@
 package ru.workinprogress.feature.transaction
 
+import com.russhwolf.settings.Settings
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import org.koin.core.module.dsl.singleOf
@@ -7,7 +8,6 @@ import org.koin.core.module.dsl.viewModelOf
 import org.koin.core.qualifier.named
 import org.koin.dsl.bind
 import org.koin.dsl.module
-import com.russhwolf.settings.Settings
 import ru.workinprogress.feature.transaction.data.TransactionRepositoryImpl
 import ru.workinprogress.feature.transaction.data.TransactionsCache
 import ru.workinprogress.feature.transaction.data.TransactionsNetworkDataSource

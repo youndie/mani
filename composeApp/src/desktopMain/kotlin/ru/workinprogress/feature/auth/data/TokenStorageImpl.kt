@@ -13,15 +13,13 @@ class TokenStorageImpl : TokenStorage {
         }
     }
 
-    override fun load(): BearerTokens? {
-        return try {
-            file.readText().takeIf { it.isNotBlank() }
-        } catch (e: Exception) {
-            null
-        }?.split(SEPARATOR)?.let { tokens ->
-            val (access, refresh) = tokens
-            BearerTokens(access, refresh)
-        }
+    override fun load(): BearerTokens? = try {
+        file.readText().takeIf { it.isNotBlank() }
+    } catch (e: Exception) {
+        null
+    }?.split(SEPARATOR)?.let { tokens ->
+        val (access, refresh) = tokens
+        BearerTokens(access, refresh)
     }
 
     override fun save(bearerTokens: BearerTokens) {

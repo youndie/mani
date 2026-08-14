@@ -23,22 +23,25 @@ import kotlin.test.assertIs
 
 class AuthUseCaseTest {
 
-    private fun defaultHttpRequest(block: suspend MockRequestHandleScope.(HttpRequestData) -> HttpResponseData): HttpClient {
-        return HttpClient(
-            MockEngine { request ->
-                this.block(request)
-            }) {
-            install(Resources)
-            install(ContentNegotiation) {
-                json(Json {
+    private fun defaultHttpRequest(
+        block: suspend MockRequestHandleScope.(HttpRequestData) -> HttpResponseData,
+    ): HttpClient = HttpClient(
+        MockEngine { request ->
+            this.block(request)
+        },
+    ) {
+        install(Resources)
+        install(ContentNegotiation) {
+            json(
+                Json {
                     prettyPrint = true
                     ignoreUnknownKeys = true
                     isLenient = true
-                })
-            }
-            defaultRequest {
-                contentType(ContentType.Application.Json)
-            }
+                },
+            )
+        }
+        defaultRequest {
+            contentType(ContentType.Application.Json)
         }
     }
 
@@ -50,9 +53,10 @@ class AuthUseCaseTest {
                 respond(
                     content = ByteReadChannel(""""""),
                     status = HttpStatusCode.NotFound,
-                    headers = headersOf(HttpHeaders.ContentType, "application/json")
+                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
                 )
-            }, tokenRepository
+            },
+            tokenRepository,
         )
 
         val result = authUseCase(LoginParams("username", "password"))
@@ -70,7 +74,8 @@ class AuthUseCaseTest {
                     content = ByteReadChannel(""""""),
                     status = HttpStatusCode.InternalServerError,
                 )
-            }, tokenRepository
+            },
+            tokenRepository,
         )
 
         val result = authUseCase(LoginParams("username", "password"))
@@ -91,12 +96,13 @@ class AuthUseCaseTest {
                         "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJBdXRoZW50aWNhdGlvbiIsImF1ZCI6Imp3dC1hdWRpZW5jZSIsImlzcyI6Imp3dC1pc3N1ZXIiLCJpZCI6IjY3NDU4NGMxZTgzNDAyMmMxYzA3M2ZjZCIsInVzZXJuYW1lIjoidGVzdGVyIiwiZXhwIjoxNzMzMTk4MDc2fQ.q6_f2N_rKWrcOtopisHpS-CImU-aS6I_AAAGHGzN-j4",
                         "refreshToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJBdXRoZW50aWNhdGlvbiIsImF1ZCI6Imp3dC1hdWRpZW5jZSIsImlzcyI6Imp3dC1pc3N1ZXIiLCJpZCI6IjY3NDU4NGMxZTgzNDAyMmMxYzA3M2ZjZCIsInVzZXJuYW1lIjoidGVzdGVyIiwiZXhwIjoxNzM1ODcyODc2fQ.zOMfZOpt67FOjkWXNsKDwr6puGsHtmTsbIE1eP4gJBc"
                     }
-                """.trimIndent()
+                        """.trimIndent(),
                     ),
                     status = HttpStatusCode.OK,
-                    headers = headersOf(HttpHeaders.ContentType, "application/json")
+                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
                 )
-            }, tokenRepository
+            },
+            tokenRepository,
         )
 
         val result = authUseCase(LoginParams("username", "password"))
@@ -104,11 +110,11 @@ class AuthUseCaseTest {
         assertIs<UseCase.Result.Success<Boolean>>(result)
         assertEquals(
             "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJBdXRoZW50aWNhdGlvbiIsImF1ZCI6Imp3dC1hdWRpZW5jZSIsImlzcyI6Imp3dC1pc3N1ZXIiLCJpZCI6IjY3NDU4NGMxZTgzNDAyMmMxYzA3M2ZjZCIsInVzZXJuYW1lIjoidGVzdGVyIiwiZXhwIjoxNzMzMTk4MDc2fQ.q6_f2N_rKWrcOtopisHpS-CImU-aS6I_AAAGHGzN-j4",
-            tokenRepository.getToken().accessToken
+            tokenRepository.getToken().accessToken,
         )
         assertEquals(
             "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJBdXRoZW50aWNhdGlvbiIsImF1ZCI6Imp3dC1hdWRpZW5jZSIsImlzcyI6Imp3dC1pc3N1ZXIiLCJpZCI6IjY3NDU4NGMxZTgzNDAyMmMxYzA3M2ZjZCIsInVzZXJuYW1lIjoidGVzdGVyIiwiZXhwIjoxNzM1ODcyODc2fQ.zOMfZOpt67FOjkWXNsKDwr6puGsHtmTsbIE1eP4gJBc",
-            tokenRepository.getToken().refreshToken
+            tokenRepository.getToken().refreshToken,
         )
     }
 
@@ -119,9 +125,9 @@ class AuthUseCaseTest {
                 respond(
                     content = ByteReadChannel(""""""),
                     status = HttpStatusCode.BadRequest,
-                    headers = headersOf(HttpHeaders.ContentType, "application/json")
+                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
                 )
-            }
+            },
         )
 
         val result = authUseCase(LoginParams("username", "password"))
@@ -138,7 +144,7 @@ class AuthUseCaseTest {
                     content = ByteReadChannel(""""""),
                     status = HttpStatusCode.InternalServerError,
                 )
-            }
+            },
         )
 
         val result = authUseCase(LoginParams("username", "password"))
@@ -153,17 +159,16 @@ class AuthUseCaseTest {
             defaultHttpRequest { data ->
                 respond(
                     content = ByteReadChannel(
-                        """""".trimIndent()
+                        """""".trimIndent(),
                     ),
                     status = HttpStatusCode.Created,
-                    headers = headersOf(HttpHeaders.ContentType, "application/json")
+                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
                 )
-            }
+            },
         )
 
         val result = authUseCase(LoginParams("username", "password"))
 
         assertIs<UseCase.Result.Success<Boolean>>(result)
     }
-
 }

@@ -8,8 +8,8 @@ import ru.workinprogress.feature.auth.data.TokenRepository
 import ru.workinprogress.feature.auth.data.TokenRepositoryCommon
 import ru.workinprogress.feature.auth.data.TokenStorage
 import ru.workinprogress.feature.auth.data.TokenStorageCommon
-import ru.workinprogress.feature.auth.domain.LogoutUseCase
 import ru.workinprogress.feature.auth.domain.DemoUseCase
+import ru.workinprogress.feature.auth.domain.LogoutUseCase
 import ru.workinprogress.feature.auth.domain.StartDemoUseCase
 import ru.workinprogress.feature.demo.domain.SeedDemoDataUseCase
 import ru.workinprogress.feature.demo.domain.SeedUseCase
@@ -34,4 +34,3 @@ val authModule = module {
 
     singleOf(::GetHealthUseCase).bind<HealthUseCase>()
 }
-

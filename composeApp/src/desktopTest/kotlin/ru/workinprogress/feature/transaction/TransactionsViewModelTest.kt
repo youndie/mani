@@ -60,7 +60,7 @@ class TransactionsViewModelTest : KoinTest {
         assertTrue(viewModel.observe.value.errorMessage == null)
         assertTrue(
             viewModel.observe.value.data.isNotEmpty(),
-            "Expected transactions to be fetched but got an empty list."
+            "Expected transactions to be fetched but got an empty list.",
         )
     }
 
@@ -95,7 +95,7 @@ class TransactionsViewModelErrorTest : KoinTest {
         assertTrue(viewModel.observe.value.errorMessage == "Network Error")
         assertTrue(
             viewModel.observe.value.data.isEmpty(),
-            "Expected an empty list due to API failure but got ${viewModel.observe.value.data.size} items."
+            "Expected an empty list due to API failure but got ${viewModel.observe.value.data.size} items.",
         )
     }
 
@@ -113,6 +113,5 @@ val toDelete = Transaction(
     LocalDate(2000, 1, 1),
     null,
     Transaction.Period.OneTime,
-    ""
+    "",
 )
-

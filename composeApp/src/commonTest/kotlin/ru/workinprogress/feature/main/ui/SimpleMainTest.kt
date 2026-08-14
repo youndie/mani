@@ -48,9 +48,11 @@ class SimpleMainTest {
                         ChartComponent(
                             ChartUi(
                                 days = persistentMapOf(LocalDate(2000, 1, 1) to 0.0.toBigDecimal()),
-                                todayIndexProvider = { 0 }),
+                                todayIndexProvider = { 0 },
+                            ),
                         )
-                    })
+                    },
+                )
             }
             onNodeWithTag("chartBox").assertIsDisplayed()
             onNodeWithTag("futureInfo").assertIsDisplayed()

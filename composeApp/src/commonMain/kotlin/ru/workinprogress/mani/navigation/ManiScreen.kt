@@ -1,6 +1,5 @@
 package ru.workinprogress.mani.navigation
 
-
 enum class ManiScreen {
     Preload,
     Main,

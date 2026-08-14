@@ -18,10 +18,7 @@ import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
 /** Что сервер кладёт в токен и что достаёт из него обратно. */
-data class TokenClaims(
-    val id: String,
-    val username: String,
-)
+data class TokenClaims(val id: String, val username: String)
 
 /**
  * Выдача и проверка JWT — **одним кодом на обеих сборках**.
@@ -36,9 +33,7 @@ data class TokenClaims(
  * `java-jwt`, обязан проходить эту проверку — в базе лежат выданные им refresh-токены.
  */
 @OptIn(ExperimentalTime::class)
-class TokenService(
-    private val config: JWTConfig,
-) {
+class TokenService(private val config: JWTConfig) {
     private val hmac = CryptographyProvider.Default.get(HMAC)
 
     private val key by lazy {
@@ -129,12 +124,11 @@ class TokenService(
      * одного значения и массив для нескольких. Разбирать надо оба вида, иначе однажды
      * добавленная вторая аудитория тихо перестанет проходить проверку.
      */
-    private fun JsonObject.stringOrArray(key: String): List<String> =
-        when (val value = this[key]) {
-            is JsonPrimitive -> listOfNotNull(value.contentOrNull)
-            is JsonArray -> value.mapNotNull { (it as? JsonPrimitive)?.contentOrNull }
-            else -> emptyList()
-        }
+    private fun JsonObject.stringOrArray(key: String): List<String> = when (val value = this[key]) {
+        is JsonPrimitive -> listOfNotNull(value.contentOrNull)
+        is JsonArray -> value.mapNotNull { (it as? JsonPrimitive)?.contentOrNull }
+        else -> emptyList()
+    }
 
     private companion object {
         const val ALGORITHM = "HS256"

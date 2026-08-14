@@ -15,10 +15,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import kotlinx.coroutines.delay
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.unit.dp
 import com.ionspin.kotlin.bignum.decimal.toBigDecimal
@@ -26,6 +25,7 @@ import ir.ehsannarmani.compose_charts.LineChart
 import ir.ehsannarmani.compose_charts.extensions.format
 import ir.ehsannarmani.compose_charts.models.*
 import kotlinx.collections.immutable.ImmutableList
+import kotlinx.coroutines.delay
 import ru.workinprogress.feature.currency.Currency
 import ru.workinprogress.feature.transaction.ui.model.formatMoney
 import ru.workinprogress.utilz.bigdecimal.BigDecimalSerializable
@@ -104,34 +104,34 @@ fun ChartImpl(
                     firstGradientFillColor = color.copy(alpha = .5f),
                     secondGradientFillColor = Color.Transparent,
                     strokeAnimationSpec =
-                        if (alreadyShown) tween(0) else tween(ANIMATION_MS, easing = EaseInOutCubic),
+                    if (alreadyShown) tween(0) else tween(ANIMATION_MS, easing = EaseInOutCubic),
                     gradientAnimationDelay = 0,
                     drawStyle = DrawStyle.Stroke(2.dp),
                     curvedEdges = false,
                     dotPointProperties =
-                        DotPointProperties(
-                            true,
-                            color = SolidColor(color),
-                            outlineColor = SolidColor(secondary),
-                            points = listOf(todayIndexProvider()),
-                        ),
+                    DotPointProperties(
+                        true,
+                        color = SolidColor(color),
+                        outlineColor = SolidColor(secondary),
+                        points = listOf(todayIndexProvider()),
+                    ),
                 ),
             )
         }
 
     Card(
         colors =
-            CardDefaults
-                .cardColors()
-                .copy(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+        CardDefaults
+            .cardColors()
+            .copy(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
         // Ширину задаёт родитель, высоту — раскладка. Пропорция здесь была неуместна: при
         // ограниченной сверху высоте `aspectRatio` возвращает размер, нарушающий ограничения,
         // и карточка наезжала на соседей. Фиксированная высота предсказуема.
         modifier =
-            Modifier
-                .fillMaxWidth()
-                .height((if (expanded) CHART_HEIGHT_EXPANDED else CHART_HEIGHT_COMPACT).dp)
-                .border(2.dp, Color.Transparent, RoundedCornerShape(12.dp)),
+        Modifier
+            .fillMaxWidth()
+            .height((if (expanded) CHART_HEIGHT_EXPANDED else CHART_HEIGHT_COMPACT).dp)
+            .border(2.dp, Color.Transparent, RoundedCornerShape(12.dp)),
         elevation = CardDefaults.elevatedCardElevation(2.dp),
     ) {
         Box(
@@ -145,60 +145,66 @@ fun ChartImpl(
                         // Серия здесь одна, и каскад по 300 мс на индекс только откладывал показ.
                         animationMode = AnimationMode.Together(delayBuilder = { 0L }),
                         zeroLineProperties =
-                            ZeroLineProperties(
-                                enabled = true,
-                                color = SolidColor(secondary),
-                            ),
+                        ZeroLineProperties(
+                            enabled = true,
+                            color = SolidColor(secondary),
+                        ),
                         // Пунктирная вертикаль в день обнуления и кружок на нулевой линии — та
                         // самая отметка из макета.
                         zeroCrossingProperties =
-                            ZeroCrossingProperties(
-                                enabled = true,
-                                index = crossingIndex,
-                                color = SolidColor(error),
-                                markerFill = MaterialTheme.colorScheme.surfaceContainerHigh,
-                                underZeroFill = error.copy(alpha = .22f),
-                            ),
+                        ZeroCrossingProperties(
+                            enabled = true,
+                            index = crossingIndex,
+                            color = SolidColor(error),
+                            markerFill = MaterialTheme.colorScheme.surfaceContainerHigh,
+                            underZeroFill = error.copy(alpha = .22f),
+                        ),
                         dividerProperties = DividerProperties(enabled = false),
                         gridProperties =
-                            GridProperties(
-                                xAxisProperties =
-                                    GridProperties.AxisProperties(
-                                        thickness = .2.dp,
-                                        color = SolidColor(color.copy(alpha = .3f)),
-                                        style = StrokeStyle.Dashed(intervals = floatArrayOf(15f, 15f), phase = 10f),
-                                    ),
-                                yAxisProperties =
-                                    GridProperties.AxisProperties(
-                                        thickness = .2.dp,
-                                        color = SolidColor(color.copy(alpha = .2f)),
-                                        style = StrokeStyle.Dashed(intervals = floatArrayOf(15f, 15f), phase = 10f),
-                                    ),
+                        GridProperties(
+                            xAxisProperties =
+                            GridProperties.AxisProperties(
+                                thickness = .2.dp,
+                                color = SolidColor(color.copy(alpha = .3f)),
+                                style = StrokeStyle.Dashed(intervals = floatArrayOf(15f, 15f), phase = 10f),
                             ),
+                            yAxisProperties =
+                            GridProperties.AxisProperties(
+                                thickness = .2.dp,
+                                color = SolidColor(color.copy(alpha = .2f)),
+                                style = StrokeStyle.Dashed(intervals = floatArrayOf(15f, 15f), phase = 10f),
+                            ),
+                        ),
                         labelProperties =
-                            LabelProperties(
-                                enabled = true,
-                                labels = labels,
-                                textStyle = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.secondary),
+                        LabelProperties(
+                            enabled = true,
+                            labels = labels,
+                            textStyle = MaterialTheme.typography.bodySmall.copy(
+                                color = MaterialTheme.colorScheme.secondary,
                             ),
+                        ),
                         popupProperties =
-                            PopupProperties(
-                                textStyle = MaterialTheme.typography.labelSmall.copy(color = MaterialTheme.colorScheme.inverseOnSurface),
-                                contentBuilder = {
-                                    formatMoney(it.toBigDecimal(), currency)
-                                },
-                                containerColor = MaterialTheme.colorScheme.inverseSurface,
+                        PopupProperties(
+                            textStyle = MaterialTheme.typography.labelSmall.copy(
+                                color = MaterialTheme.colorScheme.inverseOnSurface,
                             ),
+                            contentBuilder = {
+                                formatMoney(it.toBigDecimal(), currency)
+                            },
+                            containerColor = MaterialTheme.colorScheme.inverseSurface,
+                        ),
                         indicatorProperties =
-                            HorizontalIndicatorProperties(
-                                enabled = true,
-                                contentBuilder = {
-                                    it.format(0).compactFormat().orEmpty()
-                                },
-                                padding = 16.dp,
-                                count = IndicatorCount.CountBased(3),
-                                textStyle = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.secondary),
+                        HorizontalIndicatorProperties(
+                            enabled = true,
+                            contentBuilder = {
+                                it.format(0).compactFormat().orEmpty()
+                            },
+                            padding = 16.dp,
+                            count = IndicatorCount.CountBased(3),
+                            textStyle = MaterialTheme.typography.bodySmall.copy(
+                                color = MaterialTheme.colorScheme.secondary,
                             ),
+                        ),
                         labelHelperProperties = LabelHelperProperties(enabled = false),
                         curvedEdges = false,
                     )

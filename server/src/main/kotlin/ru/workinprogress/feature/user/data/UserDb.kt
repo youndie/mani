@@ -11,7 +11,7 @@ data class UserDb(
     val password: String,
     val salt: String?,
     val tokens: List<String>,
-    val categories: List<CategoryDb>?
+    val categories: List<CategoryDb>?,
 ) {
     companion object {
         fun UserDb.fromDb() = User(this.id.toHexString(), this.username)

@@ -46,17 +46,16 @@ class AuthService(
         }
     }
 
-    private suspend fun newTokens(user: User): Tokens =
-        Tokens(
-            accessToken = tokenService.issue(user.id, user.username),
-            refreshToken =
-                tokenService.issue(
-                    user.id,
-                    user.username,
-                    expiration =
-                        Clock.System
-                            .now()
-                            .plus(1, DateTimeUnit.MONTH, TimeZone.currentSystemDefault()),
-                ),
-        )
+    private suspend fun newTokens(user: User): Tokens = Tokens(
+        accessToken = tokenService.issue(user.id, user.username),
+        refreshToken =
+        tokenService.issue(
+            user.id,
+            user.username,
+            expiration =
+            Clock.System
+                .now()
+                .plus(1, DateTimeUnit.MONTH, TimeZone.currentSystemDefault()),
+        ),
+    )
 }

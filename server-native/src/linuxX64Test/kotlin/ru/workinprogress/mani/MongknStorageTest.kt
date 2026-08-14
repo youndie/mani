@@ -50,133 +50,126 @@ class MongknStorageTest {
     private val rawTransactions = database.getCollection(TRANSACTION_COLLECTION)
 
     @AfterTest
-    fun tearDown() =
-        runTest {
-            database.drop()
-            client.close()
-        }
+    fun tearDown() = runTest {
+        database.drop()
+        client.close()
+    }
 
     @Test
-    fun `user id lands in mongo as ObjectId`() =
-        runTest {
-            val id = assertNotNull(users.save(LoginParams("vasya", "hunter2")))
+    fun `user id lands in mongo as ObjectId`() = runTest {
+        val id = assertNotNull(users.save(LoginParams("vasya", "hunter2")))
 
-            val raw = assertNotNull(rawUsers.find(BsonDocument("_id" to BsonObjectId.parse(id))).firstOrNull())
-            assertTrue(raw["_id"] is BsonObjectId, "_id должен быть ObjectId, а не ${raw["_id"]}")
+        val raw = assertNotNull(rawUsers.find(BsonDocument("_id" to BsonObjectId.parse(id))).firstOrNull())
+        assertTrue(raw["_id"] is BsonObjectId, "_id должен быть ObjectId, а не ${raw["_id"]}")
 
-            // Обратный ход: фильтр строкой по тому же значению обязан находить документ —
-            // именно это ломалось молча, когда сериализатор поля не применялся.
-            assertEquals("vasya", users.findUserById(id)?.username)
-        }
-
-    @Test
-    fun `password is stored hashed`() =
-        runTest {
-            val id = assertNotNull(users.save(LoginParams("petya", "hunter2")))
-
-            val raw = assertNotNull(rawUsers.find(BsonDocument("_id" to BsonObjectId.parse(id))).firstOrNull())
-            val stored = (raw["password"] as BsonString).value
-
-            assertFalse(stored == "hunter2", "пароль лежит открытым текстом")
-            assertEquals(64, stored.length, "sha256 в hex")
-            assertNotNull(raw["salt"])
-
-            assertNotNull(users.findUserByCredentials(LoginParams("petya", "hunter2")))
-            assertNull(users.findUserByCredentials(LoginParams("petya", "wrong")))
-        }
+        // Обратный ход: фильтр строкой по тому же значению обязан находить документ —
+        // именно это ломалось молча, когда сериализатор поля не применялся.
+        assertEquals("vasya", users.findUserById(id)?.username)
+    }
 
     @Test
-    fun `refresh tokens are added and removed`() =
-        runTest {
-            val id = assertNotNull(users.save(LoginParams("tokenized", "pass")))
+    fun `password is stored hashed`() = runTest {
+        val id = assertNotNull(users.save(LoginParams("petya", "hunter2")))
 
-            tokens.addToken("token-a", id)
-            tokens.addToken("token-b", id)
+        val raw = assertNotNull(rawUsers.find(BsonDocument("_id" to BsonObjectId.parse(id))).firstOrNull())
+        val stored = (raw["password"] as BsonString).value
 
-            assertEquals("tokenized", tokens.findUserByToken("token-a")?.username)
-            assertEquals("tokenized", tokens.findUserByToken("token-b")?.username)
+        assertFalse(stored == "hunter2", "пароль лежит открытым текстом")
+        assertEquals(64, stored.length, "sha256 в hex")
+        assertNotNull(raw["salt"])
 
-            tokens.removeToken("token-a", id)
-
-            assertNull(tokens.findUserByToken("token-a"))
-            assertNotNull(tokens.findUserByToken("token-b"))
-        }
+        assertNotNull(users.findUserByCredentials(LoginParams("petya", "hunter2")))
+        assertNull(users.findUserByCredentials(LoginParams("petya", "wrong")))
+    }
 
     @Test
-    fun `categories live inside the user document`() =
-        runTest {
-            val userId = assertNotNull(users.save(LoginParams("cats", "pass")))
+    fun `refresh tokens are added and removed`() = runTest {
+        val id = assertNotNull(users.save(LoginParams("tokenized", "pass")))
 
-            val created = categories.create(Category("", "Еда"), userId)
+        tokens.addToken("token-a", id)
+        tokens.addToken("token-b", id)
 
-            val raw = assertNotNull(rawUsers.find(BsonDocument("_id" to BsonObjectId.parse(userId))).firstOrNull())
-            val embedded = (raw["categories"] as ru.workinprogress.mongkn.bson.BsonArray)[0] as Document
-            assertTrue(embedded["_id"] is BsonObjectId, "_id категории должен быть ObjectId")
+        assertEquals("tokenized", tokens.findUserByToken("token-a")?.username)
+        assertEquals("tokenized", tokens.findUserByToken("token-b")?.username)
 
-            assertEquals(listOf("Еда"), categories.getByUser(userId).map { it.name })
-            assertEquals("Еда", categories.getById(created.id)?.name)
+        tokens.removeToken("token-a", id)
 
-            categories.update(created.copy(name = "Продукты"))
-            assertEquals(listOf("Продукты"), categories.getByUser(userId).map { it.name })
-
-            categories.delete(created.id)
-            assertEquals(emptyList(), categories.getByUser(userId))
-        }
+        assertNull(tokens.findUserByToken("token-a"))
+        assertNotNull(tokens.findUserByToken("token-b"))
+    }
 
     @Test
-    fun `transaction amount lands in mongo as decimal128`() =
-        runTest {
-            val userId = assertNotNull(users.save(LoginParams("money", "pass")))
-            val category = categories.create(Category("", "Еда"), userId)
+    fun `categories live inside the user document`() = runTest {
+        val userId = assertNotNull(users.save(LoginParams("cats", "pass")))
 
-            val id =
-                transactions.create(
-                    Transaction(
-                        id = "",
-                        amount = "1234.56".toBigDecimal(),
-                        income = false,
-                        date = LocalDate.parse("2026-08-11"),
-                        period = Transaction.Period.OneTime,
-                        until = null,
-                        comment = "обед",
-                        category = category,
-                    ),
-                    userId,
-                )
+        val created = categories.create(Category("", "Еда"), userId)
 
-            val raw = assertNotNull(rawTransactions.find(BsonDocument("_id" to BsonObjectId.parse(id))).firstOrNull())
-            assertTrue(raw["amount"] is BsonDecimal128, "amount должен быть decimal128, а не ${raw["amount"]}")
+        val raw = assertNotNull(rawUsers.find(BsonDocument("_id" to BsonObjectId.parse(userId))).firstOrNull())
+        val embedded = (raw["categories"] as ru.workinprogress.mongkn.bson.BsonArray)[0] as Document
+        assertTrue(embedded["_id"] is BsonObjectId, "_id категории должен быть ObjectId")
 
-            val record = assertNotNull(transactions.getById(id))
-            assertEquals("1234.56", record.amount.toPlainString())
-            assertEquals(category.id, record.categoryId)
-            assertEquals(userId, record.userId)
-        }
+        assertEquals(listOf("Еда"), categories.getByUser(userId).map { it.name })
+        assertEquals("Еда", categories.getById(created.id)?.name)
+
+        categories.update(created.copy(name = "Продукты"))
+        assertEquals(listOf("Продукты"), categories.getByUser(userId).map { it.name })
+
+        categories.delete(created.id)
+        assertEquals(emptyList(), categories.getByUser(userId))
+    }
 
     @Test
-    fun `transaction is updated and deleted`() =
-        runTest {
-            val userId = assertNotNull(users.save(LoginParams("crud", "pass")))
-            val transaction =
+    fun `transaction amount lands in mongo as decimal128`() = runTest {
+        val userId = assertNotNull(users.save(LoginParams("money", "pass")))
+        val category = categories.create(Category("", "Еда"), userId)
+
+        val id =
+            transactions.create(
                 Transaction(
                     id = "",
-                    amount = "10".toBigDecimal(),
-                    income = true,
-                    date = LocalDate.parse("2026-01-01"),
+                    amount = "1234.56".toBigDecimal(),
+                    income = false,
+                    date = LocalDate.parse("2026-08-11"),
                     period = Transaction.Period.OneTime,
                     until = null,
-                    comment = "было",
-                    category = Category.default,
-                )
+                    comment = "обед",
+                    category = category,
+                ),
+                userId,
+            )
 
-            val id = transactions.create(transaction, userId)
-            transactions.update(transaction.copy(id = id, comment = "стало"), userId)
+        val raw = assertNotNull(rawTransactions.find(BsonDocument("_id" to BsonObjectId.parse(id))).firstOrNull())
+        assertTrue(raw["amount"] is BsonDecimal128, "amount должен быть decimal128, а не ${raw["amount"]}")
 
-            assertEquals("стало", transactions.getById(id)?.comment)
-            assertEquals(1, transactions.getByUser(userId).size)
+        val record = assertNotNull(transactions.getById(id))
+        assertEquals("1234.56", record.amount.toPlainString())
+        assertEquals(category.id, record.categoryId)
+        assertEquals(userId, record.userId)
+    }
 
-            assertTrue(transactions.delete(id))
-            assertNull(transactions.getById(id))
-            assertFalse(transactions.delete(id), "повторное удаление ничего не удаляет")
-        }
+    @Test
+    fun `transaction is updated and deleted`() = runTest {
+        val userId = assertNotNull(users.save(LoginParams("crud", "pass")))
+        val transaction =
+            Transaction(
+                id = "",
+                amount = "10".toBigDecimal(),
+                income = true,
+                date = LocalDate.parse("2026-01-01"),
+                period = Transaction.Period.OneTime,
+                until = null,
+                comment = "было",
+                category = Category.default,
+            )
+
+        val id = transactions.create(transaction, userId)
+        transactions.update(transaction.copy(id = id, comment = "стало"), userId)
+
+        assertEquals("стало", transactions.getById(id)?.comment)
+        assertEquals(1, transactions.getByUser(userId).size)
+
+        assertTrue(transactions.delete(id))
+        assertNull(transactions.getById(id))
+        assertFalse(transactions.delete(id), "повторное удаление ничего не удаляет")
+    }
 }

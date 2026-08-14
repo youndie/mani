@@ -12,4 +12,3 @@ actual val authModulePlatform: Module = module {
         TokenStorageImpl(PreferenceManager.getDefaultSharedPreferences(get<Context>()))
     }
 }
-

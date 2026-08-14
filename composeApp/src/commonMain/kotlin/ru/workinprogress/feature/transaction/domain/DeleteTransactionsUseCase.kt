@@ -25,5 +25,4 @@ class DeleteTransactionsUseCase(
 
         return Result.Success(true)
     }
-
 }

@@ -36,32 +36,34 @@ import kotlin.math.roundToInt
 @Composable
 @Preview
 fun App(
-	modifier: Modifier = Modifier,
-	platformModules: List<Module> = emptyList(),
-	navController: NavHostController = rememberNavController(),
-	onNavHostReady: suspend (NavController) -> Unit = {},
-	onBackClicked: () -> Unit = {
+    modifier: Modifier = Modifier,
+    platformModules: List<Module> = emptyList(),
+    navController: NavHostController = rememberNavController(),
+    onNavHostReady: suspend (NavController) -> Unit = {},
+    onBackClicked: () -> Unit = {
         navController.popBackStack()
-	},
+    },
 ) {
-	LaunchedEffect(Unit) {
-		onNavHostReady(navController)
-	}
+    LaunchedEffect(Unit) {
+        onNavHostReady(navController)
+    }
 
-	KoinApplication({
-		modules(appModules + platformModules)
-	}) {
-		val keyboardController = LocalSoftwareKeyboardController.current
+    KoinApplication({
+        modules(appModules + platformModules)
+    }) {
+        val keyboardController = LocalSoftwareKeyboardController.current
 
-		AppTheme {
-			ManiApp(
-				modifier, navController,
-				onBackClicked = {
-					keyboardController?.hide()
-					onBackClicked()
-				})
-		}
-	}
+        AppTheme {
+            ManiApp(
+                modifier,
+                navController,
+                onBackClicked = {
+                    keyboardController?.hide()
+                    onBackClicked()
+                },
+            )
+        }
+    }
 }
 
 @Composable
@@ -70,66 +72,69 @@ fun ManiApp(
     navController: NavHostController = rememberNavController(),
     appBarState: MainAppBarState = remember { MainAppBarState() },
     snackBarHostState: SnackbarHostState = remember { SnackbarHostState() },
-	onBackClicked: () -> Unit,
+    onBackClicked: () -> Unit,
 ) {
-	val backStackEntry by navController.currentBackStackEntryAsState()
+    val backStackEntry by navController.currentBackStackEntryAsState()
 
-	val currentScreen = try {
-		ManiScreen.valueOf(backStackEntry?.destination?.route ?: ManiScreen.Preload.name)
-	} catch (e: Exception) {
-		ManiScreen.Transaction
-	}
+    val currentScreen = try {
+        ManiScreen.valueOf(backStackEntry?.destination?.route ?: ManiScreen.Preload.name)
+    } catch (e: Exception) {
+        ManiScreen.Transaction
+    }
 
-	val labels = Transaction.Period.entries.map { period -> stringResource(period.stringResource) }
+    val labels = Transaction.Period.entries.map { period -> stringResource(period.stringResource) }
 
-	LaunchedEffect(backStackEntry) {
-		appBarState.showBack.value = navController.previousBackStackEntry != null
-		appBarState.closeContextMenu()
-	}
+    LaunchedEffect(backStackEntry) {
+        appBarState.showBack.value = navController.previousBackStackEntry != null
+        appBarState.closeContextMenu()
+    }
 
-	LaunchedEffect(currentScreen) {
-		appBarState.title.value = currentScreen.title()
-	}
+    LaunchedEffect(currentScreen) {
+        appBarState.title.value = currentScreen.title()
+    }
 
-	Scaffold(
-		modifier = modifier.fillMaxSize(),
-		topBar = {
-			Column(modifier = Modifier.animateContentSize()) {
-				ManiAppBar(appBarState) {
-					onBackClicked()
-				}
-			}
-		},
-		containerColor = MaterialTheme.colorScheme.surface,
-		snackbarHost = { SnackbarHost(snackBarHostState) },
-		floatingActionButton = {
-			AnimatedVisibility(
-				currentScreen == ManiScreen.Main, exit = fadeOut() + slideOut(
-					targetOffset = {
-						IntOffset(
-							0, (it.height / 2f).roundToInt()
-						)
-					}), enter = fadeIn() + slideIn(
-					initialOffset = {
-						IntOffset(
-							0, (it.height / 2f).roundToInt()
-						)
-					})
-			) {
-				AddRuleFab(
-					onClick = { navController.navigate(ManiScreen.Add.name) },
-					modifier = Modifier.navigationBarsPadding(),
-				)
-			}
-		}) { padding ->
-		ManiAppNavHost(
-			modifier = Modifier.consumeWindowInsets(padding).padding(top = padding.calculateTopPadding()),
-			navController = navController,
-			appBarState = appBarState,
-			snackbarHostState = snackBarHostState,
-			onBackClicked
-		)
-	}
+    Scaffold(
+        modifier = modifier.fillMaxSize(),
+        topBar = {
+            Column(modifier = Modifier.animateContentSize()) {
+                ManiAppBar(appBarState) {
+                    onBackClicked()
+                }
+            }
+        },
+        containerColor = MaterialTheme.colorScheme.surface,
+        snackbarHost = { SnackbarHost(snackBarHostState) },
+        floatingActionButton = {
+            AnimatedVisibility(
+                currentScreen == ManiScreen.Main,
+                exit = fadeOut() + slideOut(targetOffset = {
+                    IntOffset(
+                        0,
+                        (it.height / 2f).roundToInt(),
+                    )
+                }),
+                enter = fadeIn() + slideIn(initialOffset = {
+                    IntOffset(
+                        0,
+                        (it.height / 2f).roundToInt(),
+                    )
+                }),
+            ) {
+                AddRuleFab(
+                    onClick = { navController.navigate(ManiScreen.Add.name) },
+                    modifier = Modifier.navigationBarsPadding(),
+                )
+            }
+        },
+    ) { padding ->
+        ManiAppNavHost(
+            modifier = Modifier.consumeWindowInsets(padding).padding(top = padding.calculateTopPadding()),
+            navController = navController,
+            appBarState = appBarState,
+            snackbarHostState = snackBarHostState,
+            onBackClicked,
+        )
+    }
 }
 
 /**
@@ -140,20 +145,17 @@ fun ManiApp(
  * чем нажимают на кнопку.
  */
 @Composable
-fun AddRuleFab(
-	onClick: () -> Unit,
-	modifier: Modifier = Modifier,
-) {
-	FloatingActionButton(
-		onClick = onClick,
-		shape = RoundedCornerShape(16.dp),
-		containerColor = MaterialTheme.colorScheme.primaryContainer,
-		contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-		modifier = modifier.testTag("fab"),
-	) {
-		Icon(
-			imageVector = Icons.Filled.Add,
-			contentDescription = "Add",
-		)
-	}
+fun AddRuleFab(onClick: () -> Unit, modifier: Modifier = Modifier) {
+    FloatingActionButton(
+        onClick = onClick,
+        shape = RoundedCornerShape(16.dp),
+        containerColor = MaterialTheme.colorScheme.primaryContainer,
+        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+        modifier = modifier.testTag("fab"),
+    ) {
+        Icon(
+            imageVector = Icons.Filled.Add,
+            contentDescription = "Add",
+        )
+    }
 }

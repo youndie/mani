@@ -7,5 +7,4 @@ class AuthResource {
 
     @Resource("refresh")
     class Refresh(val parent: AuthResource = AuthResource())
-
 }

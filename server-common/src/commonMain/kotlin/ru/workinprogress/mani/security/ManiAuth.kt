@@ -10,10 +10,7 @@ import io.ktor.server.auth.parseAuthorizationHeader
 import io.ktor.server.response.respond
 
 /** Кто пришёл. Кладётся в call после успешной проверки токена. */
-data class ManiPrincipal(
-    val id: String,
-    val username: String,
-)
+data class ManiPrincipal(val id: String, val username: String)
 
 /**
  * Проверка Bearer-токена — своя, вместо `ktor-server-auth-jwt`.
@@ -22,14 +19,14 @@ data class ManiPrincipal(
  * поведение поверх [TokenService]: неверный или просроченный токен даёт 401 с прежним текстом,
  * а не 500 и не пустой ответ.
  */
-class ManiJwtProvider internal constructor(
-    config: Config,
-) : AuthenticationProvider(config) {
+class ManiJwtProvider internal constructor(config: Config) : AuthenticationProvider(config) {
     private val tokenService = config.tokenService
 
     override suspend fun onAuthenticate(context: AuthenticationContext) {
         val header = context.call.request.parseAuthorizationHeader()
-        val token = (header as? HttpAuthHeader.Single)?.takeIf { it.authScheme.equals("Bearer", ignoreCase = true) }?.blob
+        val token = (header as? HttpAuthHeader.Single)?.takeIf {
+            it.authScheme.equals("Bearer", ignoreCase = true)
+        }?.blob
 
         val claims = token?.let { tokenService.verify(it) }
         if (claims != null) {
@@ -43,19 +40,14 @@ class ManiJwtProvider internal constructor(
         }
     }
 
-    class Config internal constructor(
-        name: String,
-        internal val tokenService: TokenService,
-    ) : AuthenticationProvider.Config(name)
+    class Config internal constructor(name: String, internal val tokenService: TokenService) :
+        AuthenticationProvider.Config(name)
 
     internal companion object {
         const val CHALLENGE_KEY = "ManiJwtAuth"
     }
 }
 
-fun AuthenticationConfig.maniJwt(
-    name: String,
-    tokenService: TokenService,
-) {
+fun AuthenticationConfig.maniJwt(name: String, tokenService: TokenService) {
     register(ManiJwtProvider(ManiJwtProvider.Config(name, tokenService)))
 }

@@ -4,40 +4,40 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import com.valentinilk.shimmer.ShimmerBounds
 import com.valentinilk.shimmer.rememberShimmer
 import com.valentinilk.shimmer.shimmer
-import org.jetbrains.compose.resources.stringResource
-import ru.workinprogress.feature.transaction.ui.model.TransactionUiItem
-import ru.workinprogress.feature.transaction.ui.model.stringResource
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.size
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material3.Icon
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.unit.dp
-import ru.workinprogress.feature.transaction.Transaction
-import ru.workinprogress.mani.theme.LocalManiFonts
-import kotlinx.datetime.format
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.format
 import kotlinx.datetime.format.MonthNames
 import kotlinx.datetime.format.Padding
 import kotlinx.datetime.format.char
+import org.jetbrains.compose.resources.stringResource
+import ru.workinprogress.feature.transaction.Transaction
+import ru.workinprogress.feature.transaction.ui.model.TransactionUiItem
+import ru.workinprogress.feature.transaction.ui.model.stringResource
+import ru.workinprogress.mani.theme.LocalManiFonts
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -56,7 +56,7 @@ fun TransactionItem(
             MaterialTheme.colorScheme.surfaceContainerHigh
         } else {
             ListItemDefaults.containerColor
-        }
+        },
     )
 
     val shimmerInstance = rememberShimmer(shimmerBounds = ShimmerBounds.Window)
@@ -64,7 +64,7 @@ fun TransactionItem(
         Modifier.shimmer(shimmerInstance)
             .background(
                 MaterialTheme.colorScheme.surfaceContainerHigh,
-                shape = MaterialTheme.shapes.small
+                shape = MaterialTheme.shapes.small,
             )
     } else {
         Modifier
@@ -100,14 +100,14 @@ fun TransactionItem(
             {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(5.dp)
+                    horizontalArrangement = Arrangement.spacedBy(5.dp),
                 ) {
                     if (!loadingMode) {
                         Icon(
                             Icons.Default.Refresh,
                             contentDescription = null,
                             modifier = Modifier.size(13.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                     Text(
@@ -138,12 +138,11 @@ fun TransactionItem(
         headlineContent = {
             Text(
                 transaction.comment.takeIf { !loadingMode } ?: "                  ",
-                loadingModifier
+                loadingModifier,
             )
-        })
+        },
+    )
 }
-
-
 
 /** «28 Mar» — в ленте год не нужен: он уже стоит в разделителе месяца. */
 private val dayMonthFormat = LocalDate.Format {

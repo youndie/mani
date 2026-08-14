@@ -20,28 +20,27 @@ data class ManiConfig(
     val development: Boolean,
 ) {
     companion object {
-        fun fromEnv(): ManiConfig =
-            ManiConfig(
-                port = readEnv("PORT")?.toIntOrNull() ?: 8080,
-                mongo =
-                    MongoConfig(
-                        userName = readEnv("MONGO_USERNAME") ?: "root",
-                        password = readEnv("MONGO_PASSWORD") ?: "example",
-                        host = readEnv("MONGO_HOST") ?: "localhost",
-                        database = readEnv("MONGO_DATABASE") ?: "mani",
-                    ),
-                jwt =
-                    JWTConfig(
-                        name = readEnv("JWT_NAME") ?: "auth-jwt",
-                        realm = readEnv("JWT_REALM") ?: "mani",
-                        secret = readEnv("JWT_SECRET") ?: "secret",
-                        audience = readEnv("JWT_AUDIENCE") ?: "jwt-audience",
-                        issuer = readEnv("JWT_ISSUER") ?: "jwt-issuer",
-                        expirationSeconds = readEnv("JWT_EXPIRATION_SECONDS")?.toLongOrNull() ?: 3600L,
-                    ),
-                webRoot = readEnv("MANI_WEB_ROOT"),
-                development = readEnv("MANI_DEVELOPMENT")?.toBooleanStrictOrNull() ?: false,
-            )
+        fun fromEnv(): ManiConfig = ManiConfig(
+            port = readEnv("PORT")?.toIntOrNull() ?: 8080,
+            mongo =
+            MongoConfig(
+                userName = readEnv("MONGO_USERNAME") ?: "root",
+                password = readEnv("MONGO_PASSWORD") ?: "example",
+                host = readEnv("MONGO_HOST") ?: "localhost",
+                database = readEnv("MONGO_DATABASE") ?: "mani",
+            ),
+            jwt =
+            JWTConfig(
+                name = readEnv("JWT_NAME") ?: "auth-jwt",
+                realm = readEnv("JWT_REALM") ?: "mani",
+                secret = readEnv("JWT_SECRET") ?: "secret",
+                audience = readEnv("JWT_AUDIENCE") ?: "jwt-audience",
+                issuer = readEnv("JWT_ISSUER") ?: "jwt-issuer",
+                expirationSeconds = readEnv("JWT_EXPIRATION_SECONDS")?.toLongOrNull() ?: 3600L,
+            ),
+            webRoot = readEnv("MANI_WEB_ROOT"),
+            development = readEnv("MANI_DEVELOPMENT")?.toBooleanStrictOrNull() ?: false,
+        )
     }
 }
 

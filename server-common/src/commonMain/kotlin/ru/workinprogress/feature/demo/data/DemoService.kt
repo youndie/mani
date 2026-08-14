@@ -64,24 +64,22 @@ class DemoService(
      * именем не сохранится, а посетитель увидит отказ на пустом месте, — поэтому имя проверяется,
      * и попыток несколько.
      */
-    private suspend fun freeCredentials(): LoginParams? =
-        (1..CREDENTIALS_ATTEMPTS)
-            .asSequence()
-            .map {
-                LoginParams(
-                    name = DEMO_USERNAME_PREFIX + randomHex(NAME_BYTES),
-                    password = randomHex(PASSWORD_BYTES),
-                )
-            }
-            .firstOrNull { userRepository.findByUsername(it.name) == null }
-
-    private fun randomHex(bytes: Int): String =
-        (1..bytes).joinToString("") {
-            Random
-                .nextInt(BYTE_VALUES)
-                .toString(HEX)
-                .padStart(2, '0')
+    private suspend fun freeCredentials(): LoginParams? = (1..CREDENTIALS_ATTEMPTS)
+        .asSequence()
+        .map {
+            LoginParams(
+                name = DEMO_USERNAME_PREFIX + randomHex(NAME_BYTES),
+                password = randomHex(PASSWORD_BYTES),
+            )
         }
+        .firstOrNull { userRepository.findByUsername(it.name) == null }
+
+    private fun randomHex(bytes: Int): String = (1..bytes).joinToString("") {
+        Random
+            .nextInt(BYTE_VALUES)
+            .toString(HEX)
+            .padStart(2, '0')
+    }
 
     private companion object {
         const val CREDENTIALS_ATTEMPTS = 5
