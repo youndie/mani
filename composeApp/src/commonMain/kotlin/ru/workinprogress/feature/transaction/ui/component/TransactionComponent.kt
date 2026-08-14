@@ -691,57 +691,65 @@ internal fun TransactionComponentImpl(
         // Итог и кнопка — одной полосой: сколько раз повторится и во что обойдётся, читается
         // прямо над тем действием, которое это подтверждает.
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.surfaceContainer)
-                .padding(horizontal = 20.dp, vertical = 20.dp),
-            verticalArrangement = spacedBy(12.dp),
+            modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceContainer),
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            AnimatedVisibility(state.amount.isNotBlank() && state.date.value != null) {
-                CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.secondary) {
+            // Полоса тянется во всю ширину — это низ экрана, — но содержимое её стоит в той же
+            // колонке, что и поля: иначе на широком окне итог и кнопка уезжали к левому краю,
+            // отдельно от формы, к которой относятся.
+            Column(
+                modifier = Modifier
+                    .widthIn(max = 640.dp)
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp, vertical = 20.dp),
+                verticalArrangement = spacedBy(12.dp),
+            ) {
+                AnimatedVisibility(state.amount.isNotBlank() && state.date.value != null) {
+                    CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.secondary) {
+                        Text(
+                            state.futureInformation,
+                            modifier = Modifier.testTag("futureInformation"),
+                            style = MaterialTheme.typography.labelMedium.copy(
+                                fontFamily = LocalManiFonts.current.mono,
+                            ),
+                        )
+                    }
+                }
+
+                // Главное последствие правила — не его собственная сумма, а то, на сколько оно
+                // сдвигает день, когда деньги кончатся. Без этой строки цену решения приходилось
+                // узнавать, сохранив его и вернувшись на главный экран.
+                state.runsOutShift?.let { shift ->
                     Text(
-                        state.futureInformation,
-                        modifier = Modifier.testTag("futureInformation"),
+                        shift.text,
+                        modifier = Modifier.testTag("runsOutShift"),
                         style = MaterialTheme.typography.labelMedium.copy(
                             fontFamily = LocalManiFonts.current.mono,
                         ),
+                        color = if (shift.worse) {
+                            NegativeColor
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
                     )
                 }
-            }
 
-            // Главное последствие правила — не его собственная сумма, а то, на сколько оно
-            // сдвигает день, когда деньги кончатся. Без этой строки цену решения приходилось
-            // узнавать, сохранив его и вернувшись на главный экран.
-            state.runsOutShift?.let { shift ->
-                Text(
-                    shift.text,
-                    modifier = Modifier.testTag("runsOutShift"),
-                    style = MaterialTheme.typography.labelMedium.copy(
-                        fontFamily = LocalManiFonts.current.mono,
-                    ),
-                    color = if (shift.worse) {
-                        NegativeColor
-                    } else {
-                        MaterialTheme.colorScheme.onSurfaceVariant
-                    },
-                )
-            }
+                state.errorMessage?.let {
+                    Text(
+                        it,
+                        modifier = Modifier.testTag("errorMessage"),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
 
-            state.errorMessage?.let {
-                Text(
-                    it,
-                    modifier = Modifier.testTag("errorMessage"),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.error,
-                )
+                LoadingButton(
+                    Modifier.fillMaxWidth().testTag("submit"),
+                    loading = state.loading,
+                    enabled = state.valid,
+                    if (state.edit) "Save" else "Create",
+                ) { onAction(SubmitClicked) }
             }
-
-            LoadingButton(
-                Modifier.fillMaxWidth().testTag("submit"),
-                loading = state.loading,
-                enabled = state.valid,
-                if (state.edit) "Save" else "Create",
-            ) { onAction(SubmitClicked) }
         }
     }
 }
