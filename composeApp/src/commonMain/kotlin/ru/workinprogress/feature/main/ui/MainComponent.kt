@@ -541,7 +541,9 @@ private fun ForecastAndChart(
 
         ForecastHero(forecast, expanded = expanded)
 
-        Spacer(Modifier.height(18.dp))
+        // На широком экране между подписью и графиком воздуха больше: там герой крупнее, и
+        // прежние 18 читались как слипшиеся строки одного блока.
+        Spacer(Modifier.height(if (expanded) 28.dp else 18.dp))
 
         // Настоящий график здесь рисовать нечем, пока нет ни одного правила, — на его месте
         // пунктирная рамка вместо пустоты.

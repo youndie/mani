@@ -15,8 +15,10 @@ import ru.workinprogress.mani.components.ManiAppBar
 import ru.workinprogress.mani.navigation.ManiScreen
 import ru.workinprogress.mani.navigation.title
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.AnnotatedString
 import com.ionspin.kotlin.bignum.decimal.toBigDecimal
@@ -45,6 +47,7 @@ import ru.workinprogress.feature.transaction.ui.model.RunsOutShift
 import ru.workinprogress.feature.transaction.ui.model.TransactionUiState
 import ru.workinprogress.feature.welcome.WelcomeContent
 import ru.workinprogress.feature.welcome.WelcomeUiState
+import ru.workinprogress.mani.AddRuleFab
 import ru.workinprogress.mani.theme.AppTheme
 import ru.workinprogress.viddik.annotations.ViddikScreenshot
 
@@ -94,6 +97,50 @@ private fun item(
     ),
     Currency.Usd,
 )
+
+/**
+ * Снимок для README: приложение целиком — шапка, прогноз, лента и кнопка.
+ *
+ * Собирается тем же кодом и теми же демо-данными, что и остальные снимки, поэтому картинка в
+ * репозитории не разъедется с интерфейсом: обновляется одной командой вместе с голденами.
+ */
+@ViddikScreenshot(name = "readme", group = "screens", width = WIDE_WIDTH, height = WIDE_HEIGHT)
+@Composable
+fun ReadmeScreenshot() {
+    Harness {
+        Box(Modifier.fillMaxSize()) {
+            Column {
+                ManiAppBar(
+                    appbarState = remember {
+                        MainAppBarState().apply {
+                            title.value = ManiScreen.Main.title()
+                            showAction(Action("Profile", Icons.Default.Person) {})
+                        }
+                    },
+                    onBack = {},
+                )
+
+                WideHomeContent()
+            }
+
+            AddRuleFab(
+                onClick = {},
+                modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
+            )
+        }
+    }
+}
+
+/** Кнопка добавления правила: скруглённый квадрат в цвете контейнера, как в макете. */
+@ViddikScreenshot(name = "fab", group = "screens", width = 120, height = 120)
+@Composable
+fun FabScreenshot() {
+    Harness {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            AddRuleFab(onClick = {})
+        }
+    }
+}
 
 /**
  * Шапка в двух своих видах: на корневом экране — словесный знак, на вложенном — «назад» и
@@ -194,7 +241,14 @@ fun HomeForecastScreenshot() {
 @Composable
 fun HomeForecastWideScreenshot() {
     Harness {
-        MainContent(
+        WideHomeContent()
+    }
+}
+
+/** Главная с демо-данными — общая для снимка широкой раскладки и картинки в README. */
+@Composable
+private fun WideHomeContent() {
+    MainContent(
             transactions = mapOf(
                 demoDay to persistentListOf(item("Rent", 1450, false, Transaction.Period.Month)),
                 LocalDate(2026, 8, 17) to
@@ -232,8 +286,7 @@ fun HomeForecastWideScreenshot() {
                     expanded = expanded,
                 )
             },
-        )
-    }
+    )
 }
 
 @ViddikScreenshot(name = "home empty", group = "screens", width = WIDTH, height = HEIGHT)

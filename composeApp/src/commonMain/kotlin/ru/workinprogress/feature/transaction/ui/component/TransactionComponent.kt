@@ -511,9 +511,13 @@ internal fun TransactionComponentImpl(
             categoryToRemove.value = null
         })
 
-    Column(
-        modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(bottom = 24.dp),
-    ) {
+    // Прокручивается только верхняя часть; полоса с итогом и кнопкой прижата к низу экрана, как
+    // в макете. Раньше она ехала следом за полями, и под ней оставалась полоска фона —
+    // выглядело как недорисованный блок.
+    Column(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState()),
+        ) {
         // Поля лежат на общем фоне экрана: в макете приподнята только нижняя полоса с итогом, а
         // карточка вокруг всей формы делала из неё отдельный предмет внутри экрана.
         Column(
@@ -660,6 +664,8 @@ internal fun TransactionComponentImpl(
             )
 
             Spacer(modifier = Modifier.height(24.dp))
+        }
+        }
 
             // Итог и кнопка — одной полосой: сколько раз повторится и во что обойдётся, читается
             // прямо над тем действием, которое это подтверждает.
@@ -716,9 +722,6 @@ internal fun TransactionComponentImpl(
                     if (state.edit) "Save" else "Create"
                 ) { onAction(SubmitClicked) }
             }
-
-            Spacer(Modifier.height(24.dp))
-        }
     }
 }
 
