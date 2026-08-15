@@ -10,6 +10,7 @@
 [![Tests](https://github.com/youndie/mani/actions/workflows/main.yml/badge.svg)](https://github.com/youndie/mani/actions/workflows/main.yml)
 [![Desktop](https://github.com/youndie/mani/actions/workflows/build_desktop.yml/badge.svg)](https://github.com/youndie/mani/actions/workflows/build_desktop.yml)
 [![Android](https://github.com/youndie/mani/actions/workflows/build_android.yml/badge.svg)](https://github.com/youndie/mani/actions/workflows/build_android.yml)
+[![license](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 A budget planner written end to end in Kotlin: [Compose Multiplatform](https://www.jetbrains.com/compose-multiplatform/)
 clients for Android, iOS, desktop and the browser, a [Ktor](https://ktor.io/) server that compiles
