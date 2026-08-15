@@ -176,7 +176,16 @@ fun AppBarScreenshot() {
 @Composable
 fun WelcomeScreenshot() {
     Harness {
-        WelcomeContent(WelcomeUiState(server = "ktor · kotlin/native · 1.4.2"))
+        WelcomeContent(WelcomeUiState(server = "ktor · kotlin/native · 1.4.2"), sampleToday = demoDay)
+    }
+}
+
+/** Та же витрина на широком мониторе: проверяет, что карточка не растягивается без меры. */
+@ViddikScreenshot(name = "welcome ultrawide", group = "screens", width = 1920, height = 900)
+@Composable
+fun WelcomeUltrawideScreenshot() {
+    Harness {
+        WelcomeContent(WelcomeUiState(server = "ktor · kotlin/native · 1.4.2"), sampleToday = demoDay)
     }
 }
 
@@ -185,7 +194,7 @@ fun WelcomeScreenshot() {
 @Composable
 fun WelcomeWideScreenshot() {
     Harness {
-        WelcomeContent(WelcomeUiState(server = "ktor · kotlin/native · 1.4.2"))
+        WelcomeContent(WelcomeUiState(server = "ktor · kotlin/native · 1.4.2"), sampleToday = demoDay)
     }
 }
 

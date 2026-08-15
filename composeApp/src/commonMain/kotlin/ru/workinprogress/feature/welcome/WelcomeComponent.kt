@@ -37,6 +37,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.datetime.LocalDate
 import org.koin.compose.module.rememberKoinModules
 import org.koin.compose.viewmodel.koinViewModel
 import org.koin.core.module.dsl.viewModelOf
@@ -52,6 +53,7 @@ import ru.workinprogress.mani.components.LoadingButton
 import ru.workinprogress.mani.components.MainAppBarState
 import ru.workinprogress.mani.demo.DemoSeed
 import ru.workinprogress.mani.theme.LocalManiFonts
+import ru.workinprogress.mani.today
 
 /**
  * Первое, что видит посетитель витрины.
@@ -97,15 +99,18 @@ fun WelcomeContent(
     onTryDemoClicked: () -> Unit = {},
     onSignInClicked: () -> Unit = {},
     onSignupClicked: () -> Unit = {},
+    // День, от которого считается образец прогноза. Параметром — ради снимков: с «сегодня»
+    // внутри картинка в репозитории менялась бы каждые сутки и голден краснел бы сам собой.
+    sampleToday: LocalDate = today(),
 ) {
     // На ноутбуке витрина — не растянутая узкая колонка, а разворот: слева обещание, справа
     // сразу видно, как выглядит выполненное. Порог взят по левой колонке макета (470) плюс
     // место, на котором график ещё читается.
     BoxWithConstraints {
         if (maxWidth < 900.dp) {
-            CompactWelcome(state, onTryDemoClicked, onSignInClicked, onSignupClicked)
+            CompactWelcome(state, onTryDemoClicked, onSignInClicked, onSignupClicked, sampleToday)
         } else {
-            WideWelcome(state, onTryDemoClicked, onSignInClicked, onSignupClicked)
+            WideWelcome(state, onTryDemoClicked, onSignInClicked, onSignupClicked, sampleToday)
         }
     }
 }
@@ -116,6 +121,7 @@ private fun CompactWelcome(
     onTryDemoClicked: () -> Unit,
     onSignInClicked: () -> Unit,
     onSignupClicked: () -> Unit,
+    sampleToday: LocalDate,
 ) {
     Column(
         modifier = Modifier
@@ -148,7 +154,7 @@ private fun CompactWelcome(
                 modifier = Modifier.padding(top = 12.dp, bottom = 28.dp),
             )
 
-            SampleForecast()
+            SampleForecast(sampleToday)
 
             LoadingButton(
                 loading = state.loading,
@@ -204,6 +210,9 @@ private fun CompactWelcome(
     }
 }
 
+/** Ширина разворота из макета R10. Шире растягиваться нечему — добавляются поля по краям. */
+private val WIDE_CONTENT_WIDTH = 1280.dp
+
 /**
  * Разворот для широкого экрана: слева обещание, справа образец прогноза.
  *
@@ -217,13 +226,25 @@ private fun WideWelcome(
     onTryDemoClicked: () -> Unit,
     onSignInClicked: () -> Unit,
     onSignupClicked: () -> Unit,
+    sampleToday: LocalDate,
 ) {
-    val sample = rememberSample()
+    val sample = rememberSample(sampleToday)
     val mono = LocalManiFonts.current.mono
 
-    Column(modifier = Modifier.fillMaxSize().testTag("welcome")) {
+    // Ширина разворота ограничена макетным 1280 и центрируется: дальше растягивать нечего —
+    // левая колонка фиксированная, и без потолка карточка с графиком расползалась в плоскую
+    // ленту, уезжая от текста. На мониторе шире просто добавляются поля по краям.
+    Column(
+        modifier = Modifier.fillMaxSize().testTag("welcome"),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
         Row(
-            modifier = Modifier.fillMaxWidth().height(72.dp).padding(horizontal = 32.dp),
+            modifier =
+            Modifier
+                .widthIn(max = WIDE_CONTENT_WIDTH)
+                .fillMaxWidth()
+                .height(72.dp)
+                .padding(horizontal = 32.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Logo()
@@ -236,7 +257,12 @@ private fun WideWelcome(
         }
 
         Row(
-            modifier = Modifier.weight(1f).padding(start = 32.dp, end = 32.dp, bottom = 40.dp),
+            modifier =
+            Modifier
+                .widthIn(max = WIDE_CONTENT_WIDTH)
+                .fillMaxWidth()
+                .weight(1f)
+                .padding(start = 32.dp, end = 32.dp, bottom = 40.dp),
             horizontalArrangement = Arrangement.spacedBy(64.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -388,11 +414,11 @@ private data class Sample(val chart: ChartUi, val headline: String, val caption:
  * показывало другое.
  */
 @Composable
-private fun rememberSample(): Sample = remember {
-    val transactions = DemoSeed.transactions()
+private fun rememberSample(today: LocalDate): Sample = remember(today) {
+    val transactions = DemoSeed.transactions(today)
     val chart = ChartUi(transactions.toChartInternal(), Currency.Usd)
 
-    when (val forecast = MainViewModel.buildForecast(transactions.simulate(), Currency.Usd)) {
+    when (val forecast = MainViewModel.buildForecast(transactions.simulate(), Currency.Usd, today)) {
         is ForecastUiState.RunsOut -> Sample(
             chart = chart,
             headline = forecast.runsOutOn,
@@ -416,8 +442,8 @@ private fun rememberSample(): Sample = remember {
  * «для красоты»: ровно это и появится на экране после «Try the demo».
  */
 @Composable
-private fun SampleForecast() {
-    val chart = rememberSample().chart
+private fun SampleForecast(today: LocalDate) {
+    val chart = rememberSample(today).chart
 
     Column(
         modifier = Modifier
