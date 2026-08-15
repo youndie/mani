@@ -29,6 +29,7 @@ import ru.workinprogress.mani.components.MainAppBarState
 import ru.workinprogress.mani.components.ManiAppBar
 import ru.workinprogress.mani.navigation.ManiAppNavHost
 import ru.workinprogress.mani.navigation.ManiScreen
+import ru.workinprogress.mani.navigation.shouldShowBack
 import ru.workinprogress.mani.navigation.title
 import ru.workinprogress.mani.theme.AppTheme
 import kotlin.math.roundToInt
@@ -85,7 +86,7 @@ fun ManiApp(
     val labels = Transaction.Period.entries.map { period -> stringResource(period.stringResource) }
 
     LaunchedEffect(backStackEntry) {
-        appBarState.showBack.value = navController.previousBackStackEntry != null
+        appBarState.showBack.value = shouldShowBack(currentScreen, navController.previousBackStackEntry != null)
         appBarState.closeContextMenu()
     }
 

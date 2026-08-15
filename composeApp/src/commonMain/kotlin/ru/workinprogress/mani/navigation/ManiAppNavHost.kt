@@ -12,6 +12,7 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.NonRestartableComposable
 import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.IntOffset
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -45,9 +46,15 @@ fun ManiAppNavHost(
     val tokenState = tokenRepository.observeToken().collectAsStateWithLifecycle()
     val isAuth = derivedStateOf { tokenState.value.refreshToken?.isNotEmpty() == true }
 
+    // Точка входа выбирается один раз, при первой отрисовке. Иначе она менялась прямо во время
+    // перехода: «Try the demo» кладёт токен, `isAuth` переключается, граф пересобирается с другим
+    // корнем — и под главным экраном оставалась лишняя запись, из-за которой появлялась стрелка
+    // «назад», ведущая в никуда. Дальнейшие переходы делает навигация, а не эта строка.
+    val startDestination = remember { if (isAuth.value) ManiScreen.Main.name else ManiScreen.Welcome.name }
+
     NavHost(
         navController = navController,
-        startDestination = if (isAuth.value) ManiScreen.Main.name else ManiScreen.Welcome.name,
+        startDestination = startDestination,
         modifier = Modifier.fillMaxSize().then(modifier),
     ) {
         composable(ManiScreen.Main.name) {
