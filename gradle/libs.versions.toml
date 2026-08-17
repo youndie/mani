@@ -21,7 +21,7 @@ deFlapdoodleEmbedMongo = "4.33.0"
 desugar_jdk_libs = "2.1.5"
 junit = "4.13.2"
 ksp = "2.3.11"
-ktlintPlugin = "13.1.0"
+ktlintPlugin = "14.2.0"
 ktlintTool = "1.8.0"
 # Одна версия и на Gradle-плагин, и на артефакты: плагин подставляет им свою собственную,
 # чем и держит KSP-процессор и движок съёмки в одной паре.
