@@ -1,0 +1,34 @@
+# ВРЕМЕННО. Замер частоты падения FiltersTest.filterChipsTest на настоящем раннере: локально
+# тест не запустить вовсе — на Linux-машине нет браузера, на маке нет Android SDK, а без него
+# не конфигурируется модуль composeApp. Десять параллельных прогонов дают выборку за то же
+# время, что один.
+#
+# `--rerun-tasks` обязателен: иначе Gradle отдаст закэшированный результат, и все десять
+# «пройдут», не запустив ни одного теста.
+#
+# Удалить перед вливанием — эта джоба нужна только чтобы сравнить «до» и «после».
+name: Flake probe
+
+on:
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  probe:
+    runs-on: [ ubuntu-latest ]
+    strategy:
+      fail-fast: false
+      matrix:
+        attempt: [ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 ]
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v7
+      - name: Setup Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: 21
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v6
+      - name: Run wasm tests
+        run: ./gradlew :composeApp:wasmJsTest --rerun-tasks --no-daemon
