@@ -58,8 +58,21 @@ class FiltersTest {
         waitUntil(timeoutMillis = AWAIT_TIMEOUT_MILLIS, condition = condition)
     }
 
+    // ВРЕМЕННО, вместе с джобой flake-probe: браузерный раннер теряет сообщение исключения и
+    // печатает голое `Error`, поэтому вытаскиваем его изнутри теста в консоль — karma её
+    // пробрасывает в лог сборки. Убрать, когда причина падения будет известна.
     @Test
     fun filterChipsTest() = runComposeUiTest {
+        try {
+            filterChips()
+        } catch (error: Throwable) {
+            println("FILTERS_TEST_FAILURE ${error::class.simpleName}: ${error.message}")
+            println(error.stackTraceToString())
+            throw error
+        }
+    }
+
+    private suspend fun ComposeUiTest.filterChips() {
         val targetCategory = Category("1", "Test1")
         val stateFlow = MutableStateFlow(
             FiltersState(

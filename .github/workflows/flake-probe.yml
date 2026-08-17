@@ -38,3 +38,12 @@ jobs:
         uses: gradle/actions/setup-gradle@v6
       - name: Run tests
         run: ./gradlew :shared:jvmTest :server-common:jvmTest :server:test :composeApp:desktopTest :composeApp:wasmJsTest --rerun-tasks --no-daemon
+      - name: Archive test reports
+        uses: actions/upload-artifact@v7
+        if: ${{ failure() }}
+        with:
+          name: probe-reports-${{ matrix.attempt }}
+          path: |
+            **/build/reports/tests/**
+            **/build/test-results/**
+          retention-days: 3
