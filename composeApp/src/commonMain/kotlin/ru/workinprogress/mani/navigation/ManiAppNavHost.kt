@@ -11,11 +11,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.NonRestartableComposable
-import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.IntOffset
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -43,14 +41,18 @@ fun ManiAppNavHost(
     onBackClicked: () -> Unit,
 ) {
     val tokenRepository = koinInject<TokenRepository>()
-    val tokenState = tokenRepository.observeToken().collectAsStateWithLifecycle()
-    val isAuth = derivedStateOf { tokenState.value.refreshToken?.isNotEmpty() == true }
 
-    // Точка входа выбирается один раз, при первой отрисовке. Иначе она менялась прямо во время
-    // перехода: «Try the demo» кладёт токен, `isAuth` переключается, граф пересобирается с другим
-    // корнем — и под главным экраном оставалась лишняя запись, из-за которой появлялась стрелка
-    // «назад», ведущая в никуда. Дальнейшие переходы делает навигация, а не эта строка.
-    val startDestination = remember { if (isAuth.value) ManiScreen.Main.name else ManiScreen.Welcome.name }
+    // Токен читается **однажды и без подписки**: он решает только, с какого экрана начать.
+    //
+    // Подписка здесь стоила дорого. Граф пересобирается на каждую перерисовку этого места, а
+    // новый граф сбрасывает навигацию на свою точку входа — то есть каждый приход токена (вход,
+    // демо, выход) молча перекидывал экран. Пока точка входа считалась от того же токена, это
+    // выглядело как работающая навигация; стоило её зафиксировать — вход стал возвращать на
+    // витрину. Переходы между входом и выходом делаются явно, ниже и в `MainComponent`.
+    val startDestination = remember {
+        val authorized = tokenRepository.observeToken().value.refreshToken?.isNotEmpty() == true
+        if (authorized) ManiScreen.Main.name else ManiScreen.Welcome.name
+    }
 
     NavHost(
         navController = navController,
@@ -63,6 +65,7 @@ fun ManiAppNavHost(
                 snackbarHostState,
                 onTransactionClicked = { navController.navigate(TransactionRoute(it)) },
                 onAddTransactionClicked = { navController.navigate(ManiScreen.Add.name) },
+                onLoggedOut = { navController.navigateAndClean(ManiScreen.Welcome.name) },
             )
         }
         composable(ManiScreen.Welcome.name) {
@@ -70,11 +73,9 @@ fun ManiAppNavHost(
                 appBarState,
                 onSignInClicked = { navController.navigate(ManiScreen.Login.name) },
                 onSignupClicked = { navController.navigate(ManiScreen.Signup.name) },
-                onSuccess = {
-                    navController.navigate(ManiScreen.Main.name) {
-                        popUpTo(ManiScreen.Welcome.name) { inclusive = true }
-                    }
-                },
+                // Тем же способом, что и вход: витрина уходит из стека, а точка входа графа
+                // переезжает на главную — иначе выход потом искал бы в стеке несуществующее.
+                onSuccess = { navController.navigateAndClean(ManiScreen.Main.name) },
             )
         }
         composable(ManiScreen.Add.name) {

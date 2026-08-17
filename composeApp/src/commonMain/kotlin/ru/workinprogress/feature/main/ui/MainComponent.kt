@@ -58,6 +58,7 @@ fun MainComponent(
     snackbarHostState: SnackbarHostState,
     onTransactionClicked: (String) -> Unit,
     onAddTransactionClicked: () -> Unit = {},
+    onLoggedOut: () -> Unit = {},
 ) {
     rememberKoinModules {
         listOf(
@@ -71,6 +72,14 @@ fun MainComponent(
     val state: State<MainUiState> = viewModel.observe.collectAsStateWithLifecycle()
     val lifecycleOwner = LocalLifecycleOwner.current
     val coroutineScope = rememberCoroutineScope()
+
+    // Выход уводит на витрину явным переходом: раньше это делал сброс графа при пропаже токена,
+    // то есть побочный эффект, а не решение экрана.
+    val loggedOut = viewModel.loggedOut.collectAsStateWithLifecycle()
+
+    LaunchedEffect(loggedOut.value) {
+        if (loggedOut.value) onLoggedOut()
+    }
 
     connectToAppBarState(
         state.value.selectedTransactions,
