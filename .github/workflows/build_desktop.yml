@@ -11,7 +11,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
       - name: Setup Java
         uses: actions/setup-java@v5
         with:
@@ -19,11 +19,11 @@ jobs:
           java-version: 21
           cache: 'gradle'
       - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v5
+        uses: gradle/actions/setup-gradle@v6
       - name: Build
         run: ./gradlew :composeApp:packageUberJarForCurrentOS --no-daemon
       - name: Archive APK
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: mani-desktop-${{ matrix.os }}
           retention-days: 1
