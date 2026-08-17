@@ -6,6 +6,12 @@
 # `--rerun-tasks` обязателен: иначе Gradle отдаст закэшированный результат, и все десять
 # «пройдут», не запустив ни одного теста.
 #
+# Команда — ровно та же, что в джобе test-common, и это не формальность. Первый вариант пробы
+# запускал только `:composeApp:wasmJsTest` и дал 10 зелёных из 10 на неисправленном тесте:
+# при `org.gradle.parallel=true` настоящая джоба гоняет пять наборов сразу, рядом молотит
+# binaryen на `compileProductionExecutableKotlinWasmJsOptimize`, и на четырёх ядрах раннера
+# браузеру не достаётся кадра. Убрав эту нагрузку, проба перестала видеть то, что мерила.
+#
 # Удалить перед вливанием — эта джоба нужна только чтобы сравнить «до» и «после».
 name: Flake probe
 
@@ -30,5 +36,5 @@ jobs:
           java-version: 21
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v6
-      - name: Run wasm tests
-        run: ./gradlew :composeApp:wasmJsTest --rerun-tasks --no-daemon
+      - name: Run tests
+        run: ./gradlew :shared:jvmTest :server-common:jvmTest :server:test :composeApp:desktopTest :composeApp:wasmJsTest --rerun-tasks --no-daemon
