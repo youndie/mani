@@ -13,6 +13,7 @@ plugins {
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.pluginSerialization)
     alias(libs.plugins.ksp)
+    alias(libs.plugins.viddik)
 }
 
 composeCompiler {
@@ -90,11 +91,8 @@ kotlin {
 
                 // Скриншот-тесты: viddik рисует Compose в настоящем Skiko-окне и пишет PNG.
                 // Иначе сверять экраны с макетом нечем — приложение headless не запускается.
-                implementation(libs.viddik.annotations)
-                implementation(libs.viddik.testingCore)
-                runtimeOnly(libs.junitJupiter.engine)
-                // Без launcher'а задача падает с «Failed to load JUnit Platform».
-                runtimeOnly(libs.junitPlatform.launcher)
+                // Сами артефакты, процессор и рантайм JUnit 5 приезжают с плагином
+                // `ru.workinprogress.viddik`, здесь их объявлять больше не нужно.
             }
         }
 
@@ -187,36 +185,15 @@ compose.desktop {
     }
 }
 
-// Процессор viddik кладёт сюда реестр компонентов и сам класс тестов.
-kotlin.sourceSets.named("desktopTest") {
-    kotlin.srcDir("build/generated/ksp/desktop/desktopTest/kotlin")
-}
-
-dependencies {
-    add("kspDesktopTest", libs.viddik.processor)
-}
-
-// Скриншоты живут отдельной задачей, а не в `desktopTest`: голдены, записанные на macOS,
-// отличаются попиксельно от Linux, и `build` из-за этого не должен краснеть.
-tasks.register<Test>("screenshotTest") {
-    val testCompilation =
-        kotlin.targets
-            .getByName("desktop")
-            .compilations
-            .getByName("test")
-
-    description = "Сверяет записанные скриншоты экранов с макетом."
-    group = LifecycleBasePlugin.VERIFICATION_GROUP
-    dependsOn(tasks.named("desktopTestClasses"))
-    testClassesDirs = testCompilation.output.classesDirs
-    classpath = files(testCompilation.output.allOutputs, testCompilation.runtimeDependencyFiles)
-    useJUnitPlatform()
-    filter { includeTestsMatching("*GeneratedViddikTests*") }
-    systemProperty("viddik.snapshotsDir", "src/desktopTest/snapshots")
-    // Свой шрифт и выключенное сглаживание — чтобы снимок с macOS сходился на Linux.
-    systemProperty("viddik.consistentRendering", "true")
-    // По умолчанию viddik прощает 0.5% пикселей — на экране 393×852 это 1670 точек, то есть
-    // целая надпись. Смена цвета сумм прошла мимо сверки именно так. Здесь сверяем строже:
-    // снимки пишутся и проверяются на одной машине с отключённым сглаживанием, разброса нет.
-    systemProperty("viddik.tolerancePercent", "0.01")
+// Скриншоты живут отдельной задачей (`viddikVerify`), а не в `desktopTest` — умолчание плагина.
+// Записываются и сверяются на одной машине: в CI они не гоняются вовсе, поэтому переносимость
+// голденов между ОС здесь ни при чём.
+viddik {
+    // По умолчанию viddik прощает 0.05% пикселей — на экране 393×852 это 167 точек. Смена цвета
+    // сумм однажды прошла мимо сверки именно так (тогда порог был 0.5%). Сверяем строже, благо
+    // разброса между прогонами на одной машине нет.
+    tolerancePercent = 0.01
+    // И без поканального допуска: ±2 на канал — это ровно тот сдвиг оттенка, который здесь и
+    // нужно ловить.
+    channelTolerance = 0
 }
