@@ -43,6 +43,18 @@ jobs:
           report_paths: |
             **/build/test-results/**/TEST-*.xml
             **/build/outputs/androidTest-results/**/TEST-*.xml
+      # Браузерный раннер wasm пишет в лог голое `Error` — без сообщения и без стека. Подробности
+      # остаются только в отчёте на диске раннера и исчезают вместе с ним, поэтому редкое падение
+      # разбирать нечем. Выгружаем отчёт, чтобы следующий раз был разбираемым с первого захода.
+      - name: Archive test reports
+        uses: actions/upload-artifact@v7
+        if: ${{ failure() }}
+        with:
+          name: test-reports-common
+          path: |
+            **/build/reports/tests/**
+            **/build/test-results/**
+          retention-days: 14
 
   # Нативная сборка проверяется отдельной джобой: ей нужен и C-драйвер, и настоящий mongod.
   # Без неё зелёный CI ничего не говорит об образе, который едет на стенд, — JVM-сборка

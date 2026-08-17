@@ -16,6 +16,16 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 
+/**
+ * Своя граница ожидания вместо стандартной.
+ *
+ * У `waitUntil` она равна секунде, и на загруженном headless-раннере wasm со Skia в секунду
+ * укладывается не всегда — поэтому ожидание ниже флак приглушило, но не убрало. Настоящая
+ * поломка всё равно валит тест по этой границе, и заметно раньше, чем karma сочтёт браузер
+ * зависшим.
+ */
+private const val AWAIT_TIMEOUT_MILLIS = 5_000L
+
 class FiltersTest {
 
     /**
@@ -24,10 +34,28 @@ class FiltersTest {
      * Выпадающее меню живёт в отдельном окне и въезжает анимацией: на медленном headless-браузере
      * очередной кадр не успевал до проверки, и тест падал через раз — на разных ветках, включая
      * те, что меню вообще не трогали.
+     *
+     * Узел возвращается, чтобы нажимать по тому же ожиданию: «дождались и сразу нажали» одним
+     * выражением не оставляет места обращению, забывшему подождать.
      */
-    private fun ComposeUiTest.awaitText(text: String) {
-        waitUntil { onAllNodesWithText(text).fetchSemanticsNodes().isNotEmpty() }
-        onNodeWithText(text).assertIsDisplayed()
+    private fun ComposeUiTest.awaitNode(matcher: SemanticsMatcher): SemanticsNodeInteraction {
+        waitUntil(timeoutMillis = AWAIT_TIMEOUT_MILLIS) {
+            onAllNodes(matcher).fetchSemanticsNodes().isNotEmpty()
+        }
+        return onNode(matcher).apply { assertIsDisplayed() }
+    }
+
+    private fun ComposeUiTest.awaitText(text: String) = awaitNode(hasText(text))
+
+    private fun ComposeUiTest.awaitTag(tag: String) = awaitNode(hasTestTag(tag))
+
+    /**
+     * Состояние меняет обработчик нажатия, а не само нажатие. Читать флаг сразу после клика —
+     * значит требовать, чтобы обработчик успел в тот же кадр, а на медленном браузере он
+     * успевает не всегда.
+     */
+    private fun ComposeUiTest.awaitState(condition: () -> Boolean) {
+        waitUntil(timeoutMillis = AWAIT_TIMEOUT_MILLIS, condition = condition)
     }
 
     @Test
@@ -57,22 +85,23 @@ class FiltersTest {
             }
         }
 
-        onNodeWithTag("filtersShimmer").assertIsDisplayed()
+        awaitTag("filtersShimmer")
 
         stateFlow.update { state ->
             state.copy(loading = false)
         }
+
         awaitText("Upcoming")
-        onNodeWithText("All categories").assertIsDisplayed()
+        awaitText("All categories")
 
-        onNodeWithText("Upcoming").performClick()
-        awaitText("Past")
-
-        onNodeWithText("Past").performClick()
+        awaitText("Upcoming").performClick()
+        awaitText("Past").performClick()
+        awaitState { !stateFlow.value.upcoming }
         assertFalse(stateFlow.value.upcoming)
-        onNodeWithText("All categories").performClick()
-        awaitText(targetCategory.name)
-        onNodeWithText(targetCategory.name).performClick()
+
+        awaitText("All categories").performClick()
+        awaitText(targetCategory.name).performClick()
+        awaitState { stateFlow.value.category == targetCategory }
         assertEquals(targetCategory, stateFlow.value.category)
     }
 }
