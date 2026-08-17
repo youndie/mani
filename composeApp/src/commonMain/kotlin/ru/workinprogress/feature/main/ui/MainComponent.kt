@@ -50,6 +50,7 @@ import ru.workinprogress.feature.transaction.ui.component.transactionsDay
 import ru.workinprogress.feature.transaction.ui.model.TransactionUiItem
 import ru.workinprogress.mani.components.Action
 import ru.workinprogress.mani.components.MainAppBarState
+import ru.workinprogress.mani.today
 
 @Composable
 fun MainComponent(
@@ -287,6 +288,9 @@ internal fun MainContent(
     onFillWithDemoData: (() -> Unit)? = null,
     unreachable: ServerUnreachableUiState? = null,
     onRetry: () -> Unit = {},
+    // См. TransactionsListContent: день «сегодня» приходит снаружи, чтобы экран не зависел от
+    // того, в какой день его снимают.
+    today: LocalDate = today(),
     chart: @Composable (
     (
         Boolean,
@@ -362,6 +366,7 @@ internal fun MainContent(
                     dayBalances,
                     onAddFirstRule,
                     onFillWithDemoData,
+                    today,
                 )
             }
         } else {
@@ -402,6 +407,7 @@ internal fun MainContent(
                         dayBalances,
                         onAddFirstRule,
                         onFillWithDemoData,
+                        today,
                     )
 
                     item {
@@ -423,6 +429,7 @@ private fun LazyListScope.transactionItemsOrEmpty(
     dayBalances: ImmutableMap<LocalDate, String>,
     onAddFirstRule: (() -> Unit)?,
     onFillWithDemoData: (() -> Unit)?,
+    today: LocalDate,
 ) {
     if (!loading && transactions.isEmpty()) {
         item {
@@ -441,6 +448,7 @@ private fun LazyListScope.transactionItemsOrEmpty(
             onTransactionClicked = onTransactionClicked,
             onTransactionSelected = onTransactionSelected,
             dayBalances = dayBalances,
+            today = today,
         )
     }
 }
@@ -453,6 +461,7 @@ fun LazyListScope.transactionItems(
     contextMode: Boolean,
     onTransactionClicked: (TransactionUiItem) -> Unit,
     onTransactionSelected: (TransactionUiItem) -> Unit,
+    today: LocalDate = today(),
 ) {
     transactions.forEach { day ->
         val (date, list) = day
@@ -465,6 +474,7 @@ fun LazyListScope.transactionItems(
             loadingMode = loading,
             onSelected = onTransactionSelected,
             onClick = onTransactionClicked,
+            today = today,
         )
     }
 }

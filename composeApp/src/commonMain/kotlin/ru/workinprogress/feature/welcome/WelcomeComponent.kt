@@ -47,6 +47,7 @@ import ru.workinprogress.feature.chart.ui.model.ChartUi
 import ru.workinprogress.feature.currency.Currency
 import ru.workinprogress.feature.main.MainViewModel
 import ru.workinprogress.feature.main.ui.ForecastUiState
+import ru.workinprogress.feature.transaction.defaultPeriod
 import ru.workinprogress.feature.transaction.simulate
 import ru.workinprogress.feature.transaction.toChartInternal
 import ru.workinprogress.mani.components.LoadingButton
@@ -416,9 +417,17 @@ private data class Sample(val chart: ChartUi, val headline: String, val caption:
 @Composable
 private fun rememberSample(today: LocalDate): Sample = remember(today) {
     val transactions = DemoSeed.transactions(today)
-    val chart = ChartUi(transactions.toChartInternal(), Currency.Usd)
+    // Отметка «сегодня» на графике ставится по тому же дню, что и весь остальной образец. По
+    // умолчанию ChartUi ищет его системными часами, и тогда пунктир ездит по картинке каждые
+    // сутки, хотя данные образца прибиты параметром — на голдене это видно как уехавшая линия.
+    val sample = ChartUi(transactions.toChartInternal(today), Currency.Usd)
+    val chart = sample.copy(
+        todayIndexProvider = { sample.days.entries.indexOfFirst { entry -> entry.key == today } },
+    )
 
-    when (val forecast = MainViewModel.buildForecast(transactions.simulate(), Currency.Usd, today)) {
+    val simulated = transactions.simulate(transactions.defaultPeriod(today))
+
+    when (val forecast = MainViewModel.buildForecast(simulated, Currency.Usd, today)) {
         is ForecastUiState.RunsOut -> Sample(
             chart = chart,
             headline = forecast.runsOutOn,

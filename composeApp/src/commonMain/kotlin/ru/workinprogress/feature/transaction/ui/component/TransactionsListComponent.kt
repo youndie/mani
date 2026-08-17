@@ -77,7 +77,12 @@ fun TransactionsListComponent(
         viewModel::onContextMenuClosed,
     )
 
-    TransactionsListContent(state, modifier, appBarState.contextMode, viewModel::onTransactionSelected) {
+    TransactionsListContent(
+        state,
+        modifier,
+        appBarState.contextMode,
+        onTransactionSelected = viewModel::onTransactionSelected,
+    ) {
         onTransactionClicked(it.id)
     }
 }
@@ -88,6 +93,10 @@ fun TransactionsListContent(
     state: TransactionListUiState,
     modifier: Modifier = Modifier,
     contextMode: Boolean = false,
+    // Сегодняшний день приходит параметром, а не из часов внутри заголовка: иначе экран рисуется
+    // по-разному в зависимости от того, в какой день его снимают, и скриншот-голден живёт сутки.
+    // Стоит до колбэков, чтобы вызов с trailing lambda не привязывал её сюда.
+    today: LocalDate = today(),
     onTransactionSelected: (TransactionUiItem) -> Unit = {},
     onTransactionClicked: (TransactionUiItem) -> Unit = {},
 ) {
@@ -120,6 +129,7 @@ fun TransactionsListContent(
                 contextMode = contextMode,
                 onSelected = onTransactionSelected,
                 onClick = onTransactionClicked,
+                today = today,
             )
         }
     }
@@ -140,6 +150,7 @@ private fun LazyListScope.transactionMonths(
     contextMode: Boolean,
     onSelected: (TransactionUiItem) -> Unit,
     onClick: (TransactionUiItem) -> Unit,
+    today: LocalDate = today(),
 ) {
     val totals = transactions.entries
         .groupBy { it.key.monthKey }
@@ -170,6 +181,7 @@ private fun LazyListScope.transactionMonths(
             loadingMode = loading,
             onSelected = onSelected,
             onClick = onClick,
+            today = today,
         )
     }
 }
@@ -233,6 +245,7 @@ fun LazyListScope.transactionsDay(
     loadingMode: Boolean,
     onSelected: (TransactionUiItem) -> Unit,
     onClick: (TransactionUiItem) -> Unit,
+    today: LocalDate = today(),
 ) {
     stickyHeader(date.toString()) {
         val loadingModifier = if (loadingMode) {
@@ -254,7 +267,7 @@ fun LazyListScope.transactionsDay(
             ) {
                 // Сегодняшний день назван словом и выделен цветом: в ленте будущих трат это
                 // единственная точка отсчёта, и искать её по дате — лишняя работа.
-                val isToday = date == today()
+                val isToday = date == today
 
                 Text(
                     date.format(dayHeaderFormat).uppercase()

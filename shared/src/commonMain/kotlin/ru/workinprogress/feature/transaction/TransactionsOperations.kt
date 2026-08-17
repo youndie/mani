@@ -24,19 +24,23 @@ fun createDates(from: LocalDate, to: LocalDate): List<LocalDate> = buildList {
     }
 }
 
-fun List<Transaction>.defaultPeriod(): Pair<LocalDate, LocalDate> {
-    val from = this.minOfOrNull { transaction -> transaction.date } ?: today()
-    val to = defaultPeriodAppend(today())
+/**
+ * День отсчёта — параметром: витрина рисует образец прогноза от прибитой даты, и если конец
+ * периода брать из часов, диапазон графика уезжает каждые сутки вместе со снимком.
+ */
+fun List<Transaction>.defaultPeriod(today: LocalDate = today()): Pair<LocalDate, LocalDate> {
+    val from = this.minOfOrNull { transaction -> transaction.date } ?: today
+    val to = defaultPeriodAppend(today)
     return from to to
 }
 
 fun defaultPeriodAppend(date: LocalDate) = date.plus(DEFAULT_PERIOD_VALUE, DEFAULT_PERIOD_UNIT)
 fun largePeriodAppend(date: LocalDate) = date.plus(LARGE_PERIOD_VALUE, LARGE_PERIOD_UNIT)
 
-fun List<Transaction>.toChartInternal(): ChartResponse {
+fun List<Transaction>.toChartInternal(today: LocalDate = today()): ChartResponse {
     if (isEmpty()) return ChartResponse.Empty
 
-    val (from, to) = defaultPeriod()
+    val (from, to) = defaultPeriod(today)
     val simulated = simulate(from, to)
     val chartData = simulated.entries.runningFold(from to 0.toBigDecimal()) { acc, list ->
         list.key to acc.second + list.value.sumOf { transaction ->
