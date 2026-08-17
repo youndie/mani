@@ -78,6 +78,16 @@ private fun Harness(content: @Composable () -> Unit) {
 
 private val demoDay = LocalDate(2026, 8, 16)
 
+/**
+ * «Сегодня» для снимков — прибито, а не взято из часов.
+ *
+ * Заголовок дня подписывает сегодняшнюю строку словом TODAY и красит её акцентом, так что без
+ * этого голдены жили бы ровно до полуночи: снятые 17 августа они содержат TODAY, а сверенные
+ * назавтра — уже нет. Совпадает с датой строки ниже намеренно, чтобы эта ветка вообще
+ * попадала на снимок.
+ */
+private val demoToday = LocalDate(2026, 8, 17)
+
 private fun item(comment: String, amount: Int, income: Boolean, period: Transaction.Period, until: LocalDate? = null) =
     TransactionUiItem(
         Transaction(
@@ -203,6 +213,7 @@ fun WelcomeWideScreenshot() {
 fun HomeForecastScreenshot() {
     Harness {
         MainContent(
+            today = demoToday,
             transactions = mapOf(
                 demoDay to persistentListOf(item("Rent", 1450, false, Transaction.Period.Month)),
                 LocalDate(2026, 8, 17) to
@@ -253,6 +264,7 @@ fun HomeForecastWideScreenshot() {
 @Composable
 private fun WideHomeContent() {
     MainContent(
+        today = demoToday,
         transactions = mapOf(
             demoDay to persistentListOf(item("Rent", 1450, false, Transaction.Period.Month)),
             LocalDate(2026, 8, 17) to
@@ -298,6 +310,7 @@ private fun WideHomeContent() {
 fun HomeEmptyScreenshot() {
     Harness {
         MainContent(
+            today = demoToday,
             forecast = ForecastUiState.Empty,
             onAddFirstRule = {},
             onFillWithDemoData = {},
@@ -376,6 +389,7 @@ fun RuleFormErrorScreenshot() {
 fun HistoryScreenshot() {
     Harness {
         TransactionsListContent(
+            today = demoToday,
             state = TransactionListUiState(
                 // Два месяца подряд — иначе разделитель месяца снимком не проверить.
                 data = mapOf(
