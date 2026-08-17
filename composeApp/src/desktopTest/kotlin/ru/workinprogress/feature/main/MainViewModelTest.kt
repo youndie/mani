@@ -205,6 +205,9 @@ class MainViewModelTest : KoinTest {
         viewModel.onLogoutClicked()
         runCurrent()
         assertTrue(viewModel.observe.value.transactions.isEmpty())
+        // Экран сообщает о выходе состоянием — по нему навигация уводит на витрину. Раньше это
+        // делал сброс графа при пропаже токена, то есть побочный эффект.
+        assertTrue(viewModel.loggedOut.value, "выход не объявлен — навигации некуда уводить")
     }
 
     @Test

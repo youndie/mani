@@ -26,7 +26,10 @@ class FiltersTest {
      * те, что меню вообще не трогали.
      */
     private fun ComposeUiTest.awaitText(text: String) {
-        waitUntil { onAllNodesWithText(text).fetchSemanticsNodes().isNotEmpty() }
+        // Пять секунд вместо секунды по умолчанию: в headless-браузере на общем раннере кадр с
+        // раскрытым меню не всегда успевает за секунду, и тест падал безо всякого сообщения —
+        // wasm отдаёт наружу пустое «Error».
+        waitUntil(timeoutMillis = 5_000) { onAllNodesWithText(text).fetchSemanticsNodes().isNotEmpty() }
         onNodeWithText(text).assertIsDisplayed()
     }
 

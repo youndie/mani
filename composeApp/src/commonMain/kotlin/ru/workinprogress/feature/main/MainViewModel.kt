@@ -259,10 +259,21 @@ class MainViewModel(
         }
     }
 
+    /**
+     * Выход — событие, а не состояние экрана.
+     *
+     * Отдельным потоком, потому что `state` живёт под подпиской на список правил: сброс токена
+     * заставляет её эмитить заново, и флаг внутри состояния тут же затирался. Проверено тестом —
+     * он и показал затирание.
+     */
+    private val loggedOutState = MutableStateFlow(false)
+    val loggedOut = loggedOutState.asStateFlow()
+
     fun onLogoutClicked() {
         viewModelScope.launch {
             logoutUseCase()
             state.value = MainUiState()
+            loggedOutState.value = true
         }
     }
 
