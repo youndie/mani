@@ -12,6 +12,8 @@ pluginManagement {
         }
         mavenCentral()
         gradlePluginPortal()
+        // Gradle-плагин viddik: на портале плагинов его нет.
+        maven("https://reposilite.kotlin.website/snapshots")
     }
 }
 
