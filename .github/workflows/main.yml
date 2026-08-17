@@ -18,7 +18,7 @@ jobs:
           distribution: 'temurin'
           java-version: 21
       - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v5
+        uses: gradle/actions/setup-gradle@v6
       - name: Check formatting
         run: ./gradlew ktlintCheck --no-daemon
 
@@ -33,7 +33,7 @@ jobs:
           distribution: 'temurin'
           java-version: 21
       - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v5
+        uses: gradle/actions/setup-gradle@v6
       - name: Run tests
         run: ./gradlew :shared:jvmTest :server-common:jvmTest :server:test :composeApp:desktopTest :composeApp:wasmJsTest --no-daemon
       - name: Summarize tests results
@@ -66,7 +66,7 @@ jobs:
           distribution: 'temurin'
           java-version: 21
       - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v5
+        uses: gradle/actions/setup-gradle@v6
       - name: Install MongoDB C driver
         run: |
           sudo apt-get update
@@ -107,7 +107,7 @@ jobs:
           cache: gradle
 
       - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v5
+        uses: gradle/actions/setup-gradle@v6
 
       - name: AVD cache
         uses: actions/cache@v4
@@ -147,6 +147,6 @@ jobs:
           java-version: 21
           cache: gradle
       - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v5
+        uses: gradle/actions/setup-gradle@v6
       - name: Run tests
         run: ./gradlew :composeApp:iosSimulatorArm64Test
