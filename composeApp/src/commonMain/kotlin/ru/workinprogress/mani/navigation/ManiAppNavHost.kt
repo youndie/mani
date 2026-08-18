@@ -15,7 +15,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.IntOffset
 import androidx.navigation.NavHostController
-import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.toRoute
 import kotlinx.serialization.Serializable
@@ -54,7 +53,7 @@ fun ManiAppNavHost(
         if (authorized) ManiScreen.Main.name else ManiScreen.Welcome.name
     }
 
-    NavHost(
+    StableNavHost(
         navController = navController,
         startDestination = startDestination,
         modifier = Modifier.fillMaxSize().then(modifier),
