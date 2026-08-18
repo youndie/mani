@@ -5,8 +5,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
-import androidx.navigation.createGraph
 import androidx.navigation.compose.NavHost
+import androidx.navigation.createGraph
 
 /**
  * `NavHost`, чей граф собирается один раз.
