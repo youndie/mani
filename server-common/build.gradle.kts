@@ -1,6 +1,8 @@
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.pluginSerialization)
+    id("ru.workinprogress.sborka.base")
+    id("ru.workinprogress.sborka.lint")
 }
 
 /*
@@ -19,7 +21,6 @@ plugins {
  */
 kotlin {
     jvm()
-    jvmToolchain(21)
 
     linuxX64()
 

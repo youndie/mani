@@ -12,31 +12,41 @@ pluginManagement {
         }
         mavenCentral()
         gradlePluginPortal()
-        // Gradle-плагин viddik: на портале плагинов его нет.
-        maven("https://reposilite.kotlin.website/snapshots")
+        // Gradle-плагин viddik: на портале плагинов его нет, как и общих соглашений сборки.
+        // Здесь это пишется руками: `pluginManagement` вычисляется до того, как применён хоть один
+        // settings-плагин, — включая тот, который через него же и достают.
+        //
+        // С фильтром, которого не было: без него репозиторий участвует в резолве КАЖДОГО плагина,
+        // то есть его спрашивают про координаты, которых он никогда не держал, — а в день, когда
+        // хост недоступен, Gradle его отключает и роняет плагины, которых там и не было.
+        maven("https://reposilite.kotlin.website/snapshots") {
+            name = "wip-snapshots"
+            content { includeGroupByRegex("ru\\.workinprogress.*") }
+        }
     }
+}
+
+plugins {
+    // Откуда берутся зависимости: google() и mavenCentral() со своими групповыми фильтрами и
+    // reposilite `/snapshots` — те же три, что этот файл объявлял сам, только фильтр на последнем
+    // теперь есть. Ниже остаётся то, что принадлежит этому репозиторию.
+    id("ru.workinprogress.sborka.settings") version "0.1.0.20"
 }
 
 dependencyResolutionManagement {
     repositories {
-        google {
-            mavenContent {
-                includeGroupAndSubgroups("androidx")
-                includeGroupAndSubgroups("com.android")
-                includeGroupAndSubgroups("com.google")
-            }
-        }
-        mavenCentral()
         // Desktop target has to add this repo.
         // Содержимое ограничено: репозиторий бывает недоступен, и без фильтра Gradle идёт в него
         // за **любой** новой зависимостью, отключает по сетевой ошибке и роняет резолв целиком.
         maven("https://jogamp.org/deployment/maven") {
             content { includeGroupByRegex("org\\.jogamp.*") }
         }
-        maven("https://reposilite.kotlin.website/releases")
-        // mongkn — драйвер MongoDB для Kotlin/Native. Публикуется в snapshots, релизной линии
-        // у него пока нет; версия в каталоге зафиксирована, поэтому сборка воспроизводима.
-        maven("https://reposilite.kotlin.website/snapshots")
+        // Релизная линия того же reposilite: соглашения объявляют только `/snapshots`, а viddik и
+        // соседние библиотеки лежат и здесь. Фильтр по той же причине, что у jogamp выше.
+        maven("https://reposilite.kotlin.website/releases") {
+            name = "wip-releases"
+            mavenContent { includeGroupByRegex("ru\\.workinprogress.*") }
+        }
     }
 }
 

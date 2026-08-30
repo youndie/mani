@@ -14,6 +14,8 @@ plugins {
     alias(libs.plugins.pluginSerialization)
     alias(libs.plugins.ksp)
     alias(libs.plugins.viddik)
+    id("ru.workinprogress.sborka.base")
+    id("ru.workinprogress.sborka.lint")
 }
 
 composeCompiler {
@@ -196,4 +198,31 @@ viddik {
     // И без поканального допуска: ±2 на канал — это ровно тот сдвиг оттенка, который здесь и
     // нужно ловить.
     channelTolerance = 0
+}
+
+// ПАКЕТ СГЕНЕРИРОВАННЫХ РЕСУРСОВ — ЗАКРЕПЛЁН, А НЕ ВЫВЕДЕН.
+//
+// По умолчанию compose-resources собирает его из группы проекта и имени модуля. Группы у модулей
+// здесь не было, и получалось `mani.composeapp.generated.resources` — от имени корневого проекта;
+// стоило соглашениям проставить группу всем модулям, как пакет уехал в
+// `ru.workinprogress.mani.composeapp.generated.resources`, и сотня импортов перестала разрешаться
+// с сообщением `Unresolved reference 'mani'` — про пакет, которого никто не переименовывал.
+//
+// Записан явно: пакет, в который смотрят исходники, не должен зависеть от координаты, под которой
+// модуль (не) публикуется.
+compose.resources {
+    packageOfResClass = "mani.composeapp.generated.resources"
+}
+
+// Вендоренная compose-charts: свой стиль, чужая история. Форматировать её — значит навсегда
+// испортить сравнение с апстримом ради строк, которые мы не писали. Исключается файлом, а не
+// правилом: плагин обходит исходники по путям, и `ktlint = disabled` из `.editorconfig` до неё уже
+// не доходит.
+//
+// Раньше это стояло в `allprojects { }` в корне и применялось ко всем восьми модулям; лежит она в
+// одном.
+configure<org.jlleitschuh.gradle.ktlint.KtlintExtension> {
+    filter {
+        exclude { it.file.path.contains("/ir/ehsannarmani/") }
+    }
 }

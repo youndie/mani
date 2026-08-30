@@ -12,13 +12,11 @@ jobs:
     steps:
       - name: Checkout sources
         uses: actions/checkout@v7
-      - name: Setup Java
-        uses: actions/setup-java@v5
-        with:
-          distribution: 'temurin'
-          java-version: 21
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v6
+      # Java и Gradle одним шагом и одной версией на весь портфель: действие ставит 21 и 25 и
+      # оставляет 25 по умолчанию, а модули собираются на `sborka.jvmToolchain=21`, который Gradle
+      # достаёт сам.
+      - name: Setup Java and Gradle
+        uses: youndie/sborka/.github/actions/setup-kotlin@main
       - name: Check formatting
         run: ./gradlew ktlintCheck --no-daemon
 
@@ -27,13 +25,8 @@ jobs:
     steps:
       - name: Checkout sources
         uses: actions/checkout@v7
-      - name: Setup Java
-        uses: actions/setup-java@v5
-        with:
-          distribution: 'temurin'
-          java-version: 21
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v6
+      - name: Setup Java and Gradle
+        uses: youndie/sborka/.github/actions/setup-kotlin@main
       - name: Run tests
         run: ./gradlew :shared:jvmTest :server-common:jvmTest :server:test :composeApp:desktopTest :composeApp:wasmJsTest --no-daemon
       - name: Summarize tests results
@@ -60,13 +53,8 @@ jobs:
     steps:
       - name: Checkout sources
         uses: actions/checkout@v7
-      - name: Setup Java
-        uses: actions/setup-java@v5
-        with:
-          distribution: 'temurin'
-          java-version: 21
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v6
+      - name: Setup Java and Gradle
+        uses: youndie/sborka/.github/actions/setup-kotlin@main
       - name: Install MongoDB C driver
         run: |
           sudo apt-get update
@@ -99,15 +87,8 @@ jobs:
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm  
 
-      - name: Setup Java
-        uses: actions/setup-java@v5
-        with:
-          distribution: 'temurin'
-          java-version: 21
-          cache: gradle
-
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v6
+      - name: Setup Java and Gradle
+        uses: youndie/sborka/.github/actions/setup-kotlin@main
 
       - name: AVD cache
         uses: actions/cache@v6
@@ -140,13 +121,7 @@ jobs:
     steps:
       - name: Checkout sources
         uses: actions/checkout@v7
-      - name: Setup Java
-        uses: actions/setup-java@v5
-        with:
-          distribution: 'temurin'
-          java-version: 21
-          cache: gradle
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v6
+      - name: Setup Java and Gradle
+        uses: youndie/sborka/.github/actions/setup-kotlin@main
       - name: Run tests
         run: ./gradlew :composeApp:iosSimulatorArm64Test
