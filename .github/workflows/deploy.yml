@@ -20,15 +20,8 @@ jobs:
         with:
           version: 'latest'
 
-      - name: Setup Java
-        uses: actions/setup-java@v5
-        with:
-          distribution: 'temurin'
-          java-version: 21
-          cache: 'gradle'
-
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v6
+      - name: Setup Java and Gradle
+        uses: youndie/sborka/.github/actions/setup-kotlin@main
 
       # Заголовки и .so-симлинки нужны линковке mongkn; в образ поедет только рантайм.
       - name: Install MongoDB C driver

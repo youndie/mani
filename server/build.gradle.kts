@@ -6,6 +6,8 @@ plugins {
     alias(libs.plugins.ktor)
     alias(libs.plugins.pluginSerialization)
     application
+    id("ru.workinprogress.sborka.base")
+    id("ru.workinprogress.sborka.lint")
 }
 
 /*

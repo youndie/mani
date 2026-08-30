@@ -3,6 +3,8 @@ import org.jetbrains.kotlin.gradle.plugin.mpp.NativeBuildType
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.pluginSerialization)
+    id("ru.workinprogress.sborka.base")
+    id("ru.workinprogress.sborka.lint")
 }
 
 /*

@@ -1,4 +1,7 @@
 [versions]
+# Общие соглашения сборки: координата, тулчейн, версия форматтера и репозитории. Меняет то, как
+# собираются все модули, поэтому пин обычный — как у любой другой зависимости.
+sborka = "0.1.0.20"
 agp = "9.3.0"
 android-compileSdk = "37"
 android-minSdk = "24"
@@ -166,3 +169,5 @@ androidTest = { id = "com.android.test", version.ref = "agp" }
 baselineprofile = { id = "androidx.baselineprofile", version.ref = "baselineprofile" }
 jib = { id = "com.google.cloud.tools.jib", version.ref = "jib" }
 ktlint = { id = "org.jlleitschuh.gradle.ktlint", version.ref = "ktlintPlugin" }
+sborkaBase = { id = "ru.workinprogress.sborka.base", version.ref = "sborka" }
+sborkaLint = { id = "ru.workinprogress.sborka.lint", version.ref = "sborka" }

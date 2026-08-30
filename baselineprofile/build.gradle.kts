@@ -3,6 +3,8 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 plugins {
     alias(libs.plugins.androidTest)
     alias(libs.plugins.baselineprofile)
+    id("ru.workinprogress.sborka.base")
+    id("ru.workinprogress.sborka.lint")
 }
 
 android {
