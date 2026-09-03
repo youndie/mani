@@ -1,12 +1,8 @@
-@file:OptIn(ExperimentalTime::class)
-
 import com.ionspin.kotlin.bignum.decimal.toBigDecimal
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
-import kotlinx.datetime.TimeZone
 import kotlinx.datetime.minus
 import kotlinx.datetime.plus
-import kotlinx.datetime.toLocalDateTime
 import ru.workinprogress.feature.transaction.Transaction
 import ru.workinprogress.feature.transaction.amountSigned
 import ru.workinprogress.feature.transaction.createDates
@@ -19,9 +15,20 @@ import ru.workinprogress.utilz.bigdecimal.sumOf
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
-import kotlin.time.ExperimentalTime
 
 class TransactionOperationsTest {
+
+    private val transactionsFrom2000 = listOf(
+        Transaction(
+            "",
+            100.0.toBigDecimal(),
+            true,
+            LocalDate(2000, 1, 1),
+            null,
+            Transaction.Period.OneTime,
+            "Start",
+        ),
+    )
 
     @Test
     fun testCreateDates() {
@@ -29,37 +36,24 @@ class TransactionOperationsTest {
         assertEquals(3, results.size)
     }
 
-    @OptIn(ExperimentalTime::class)
+    /**
+     * День отсчёта — параметром, а ожидание прибито числом. Пока тест считал конец периода сам
+     * (`(monthNumber + 3) % 12`), он в сентябре требовал нулевой месяц: такого номера не бывает,
+     * и весь сентябрь тест падал на собственной арифметике, а не на коде.
+     */
     @Test
     fun testDefaultPeriod() {
-        val results = listOf(
-            Transaction(
-                "",
-                100.0.toBigDecimal(),
-                true,
-                LocalDate(2000, 1, 1),
-                null,
-                Transaction.Period.OneTime,
-                "Start",
-            ),
-        ).defaultPeriod()
-
         assertEquals(
-            (
-                kotlin.time.Clock.System.now()
-                    .toLocalDateTime(TimeZone.currentSystemDefault()).date.monthNumber + 3
-                ) % 12,
-            results.second.monthNumber,
+            LocalDate(2000, 1, 1) to LocalDate(2026, 12, 3),
+            transactionsFrom2000.defaultPeriod(LocalDate(2026, 9, 3)),
         )
+    }
 
+    @Test
+    fun testDefaultPeriodCrossesTheYear() {
         assertEquals(
-            2000,
-            results.first.year,
-        )
-
-        assertEquals(
-            2026,
-            results.second.year,
+            LocalDate(2000, 1, 1) to LocalDate(2027, 1, 3),
+            transactionsFrom2000.defaultPeriod(LocalDate(2026, 10, 3)),
         )
     }
 
@@ -125,14 +119,14 @@ class TransactionOperationsTest {
 
     @Test
     fun testChartSimple() {
-        val now = kotlin.time.Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+        val today = LocalDate(2026, 9, 3)
 
         val result = listOf(
             Transaction(
                 "",
                 100.0.toBigDecimal(),
                 true,
-                now.minus(1, DateTimeUnit.WEEK),
+                today.minus(1, DateTimeUnit.WEEK),
                 null,
                 Transaction.Period.OneTime,
                 "Start",
@@ -141,12 +135,12 @@ class TransactionOperationsTest {
                 "TAG",
                 1000.0.toBigDecimal(),
                 true,
-                now.minus(1, DateTimeUnit.WEEK),
-                now.plus(1, DateTimeUnit.WEEK),
+                today.minus(1, DateTimeUnit.WEEK),
+                today.plus(1, DateTimeUnit.WEEK),
                 Transaction.Period.Week,
                 "3 Times 1000",
             ),
-        ).toChartInternal()
+        ).toChartInternal(today)
 
         assertEquals(3100.0.toBigDecimal(), result.days.values.last())
     }
