@@ -19,3 +19,4 @@ captures
 
 # Сессия десктопного клиента: сюда TokenStorageImpl пишет JWT доступа.
 composeApp/session.txt
+
