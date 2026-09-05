@@ -43,9 +43,13 @@ dependencyResolutionManagement {
         }
         // Релизная линия того же reposilite: соглашения объявляют только `/snapshots`, а viddik и
         // соседние библиотеки лежат и здесь. Фильтр по той же причине, что у jogamp выше.
+        // ОБЕ группы, и вторая — та, ради которой строка правится. Портфель переезжает с
+        // `ru.workinprogress` на `io.github.youndie`: первую держат уже выложенные версии, вторая
+        // нужна следующим. Фильтр только по старой выглядит рабочим ровно до первого бампа и
+        // приезжает как «артефакта нет», а не как «репозиторий его не отдаёт».
         maven("https://reposilite.kotlin.website/releases") {
             name = "wip-releases"
-            mavenContent { includeGroupByRegex("ru\\.workinprogress.*") }
+            mavenContent { includeGroupByRegex("(ru\\.workinprogress|io\\.github\\.youndie).*") }
         }
     }
 }
