@@ -4,6 +4,22 @@ on:
   pull_request:
     branches: [ "main" ]
 
+# Токен `pull_request` по умолчанию не умеет писать checks, и шаг `action-junit-report`
+# падал на создании check run: «Resource not accessible by integration». Шаг стоит под
+# `if: always()` и джобу не роняет, поэтому отказ был не виден — сообщение о провале теста
+# оставалось только в сыром логе шага, а PR не показывал ничего.
+#
+# Права выданы сверху на весь файл и заменяют умолчание целиком, поэтому `contents: read`
+# нужно перечислить явно — иначе нечем будет сделать checkout. `pull-requests` не выдаём:
+# комментарий в PR не включён (`comment` по умолчанию `false`), а аннотации к проверке
+# требуют только `checks: write`.
+#
+# На PR из форка GitHub всё равно выдаёт read-only токен, что бы здесь ни стояло; для этого
+# репозитория ветки живут в нём же, так что случай не наступает.
+permissions:
+  contents: read
+  checks: write
+
 jobs:
   # Стиль проверяется отдельной джобой: она короткая, и её падение сразу отличимо от падения
   # тестов. Правила лежат в .editorconfig, здесь только запуск.
@@ -30,12 +46,11 @@ jobs:
       - name: Run tests
         run: ./gradlew :shared:jvmTest :server-common:jvmTest :server:test :composeApp:desktopTest :composeApp:wasmJsTest --no-daemon
       - name: Summarize tests results
-        uses: mikepenz/action-junit-report@v5
+        uses: mikepenz/action-junit-report@v6
         if: ${{ always() }}
         with:
-          report_paths: |
-            **/build/test-results/**/TEST-*.xml
-            **/build/outputs/androidTest-results/**/TEST-*.xml
+          check_name: JVM and Wasm tests
+          report_paths: '**/build/test-results/**/TEST-*.xml'
 
   # Нативная сборка проверяется отдельной джобой: ей нужен и C-драйвер, и настоящий mongod.
   # Без неё зелёный CI ничего не говорит об образе, который едет на стенд, — JVM-сборка
@@ -66,11 +81,11 @@ jobs:
       - name: Run native tests
         run: ./gradlew :server-common:linuxX64Test :server-native:linuxX64Test :server-native:linuxX64ReleaseTest --no-daemon
       - name: Summarize tests results
-        uses: mikepenz/action-junit-report@v5
+        uses: mikepenz/action-junit-report@v6
         if: ${{ always() }}
         with:
-          report_paths: |
-            **/build/test-results/**/TEST-*.xml
+          check_name: Kotlin/Native tests
+          report_paths: '**/build/test-results/**/TEST-*.xml'
 
   test-android:
     runs-on: ubuntu-latest
@@ -109,12 +124,11 @@ jobs:
           script: ./gradlew :androidApp:connectedAndroidTest
 
       - name: Summarize tests results
-        uses: mikepenz/action-junit-report@v5
+        uses: mikepenz/action-junit-report@v6
         if: ${{ always() }}
         with:
-          report_paths: |
-            **/build/test-results/**/TEST-*.xml
-            **/build/outputs/androidTest-results/**/TEST-*.xml
+          check_name: Android tests (API ${{ matrix.api-level }})
+          report_paths: '**/build/outputs/androidTest-results/**/TEST-*.xml'
 
   test-ios:
     runs-on: macos-latest
