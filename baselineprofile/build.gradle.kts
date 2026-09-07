@@ -8,7 +8,7 @@ plugins {
 }
 
 android {
-    namespace = "ru.workinprogress.baselineprofile"
+    namespace = "io.github.youndie.mani.baselineprofile"
     compileSdk =
         libs.versions.android.compileSdk
             .get()

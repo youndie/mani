@@ -12,7 +12,7 @@ plugins {
 
 kotlin {
     android {
-        namespace = "ru.workinprogress.mani.shared"
+        namespace = "io.github.youndie.mani.shared"
         compileSdk =
             libs.versions.android.compileSdk
                 .get()

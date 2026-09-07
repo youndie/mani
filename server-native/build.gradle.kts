@@ -19,7 +19,7 @@ kotlin {
     linuxX64 {
         binaries {
             executable {
-                entryPoint = "ru.workinprogress.mani.main"
+                entryPoint = "io.github.youndie.mani.main"
                 baseName = "mani"
             }
 

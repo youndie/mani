@@ -1,17 +1,17 @@
-package ru.workinprogress.mani
+package io.github.youndie.mani
 
 import com.mongodb.kotlin.client.coroutine.MongoClient
+import io.github.youndie.mani.config.JWTConfig
+import io.github.youndie.mani.config.ManiConfig
+import io.github.youndie.mani.config.MongoConfig
+import io.github.youndie.mani.feature.auth.data.AuthService
+import io.github.youndie.mani.feature.category.CategoryRepository
+import io.github.youndie.mani.feature.transaction.data.TransactionRepository
+import io.github.youndie.mani.feature.user.data.TokenRepository
+import io.github.youndie.mani.feature.user.data.UserRepository
+import io.github.youndie.mani.security.TokenService
 import org.koin.core.context.startKoin
 import org.koin.core.context.stopKoin
-import ru.workinprogress.feature.auth.data.AuthService
-import ru.workinprogress.feature.category.CategoryRepository
-import ru.workinprogress.feature.transaction.data.TransactionRepository
-import ru.workinprogress.feature.user.data.TokenRepository
-import ru.workinprogress.feature.user.data.UserRepository
-import ru.workinprogress.mani.config.JWTConfig
-import ru.workinprogress.mani.config.ManiConfig
-import ru.workinprogress.mani.config.MongoConfig
-import ru.workinprogress.mani.security.TokenService
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertNotNull

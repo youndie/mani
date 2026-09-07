@@ -10,14 +10,14 @@ plugins {
 }
 
 android {
-    namespace = "ru.workinprogress.mani.android"
+    namespace = "io.github.youndie.mani.android"
     compileSdk =
         libs.versions.android.compileSdk
             .get()
             .toInt()
 
     defaultConfig {
-        applicationId = "ru.workinprogress.mani"
+        applicationId = "io.github.youndie.mani"
         minSdk =
             libs.versions.android.minSdk
                 .get()

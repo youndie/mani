@@ -27,7 +27,7 @@ composeCompiler {
 
 kotlin {
     android {
-        namespace = "ru.workinprogress.mani"
+        namespace = "io.github.youndie.mani"
         compileSdk =
             libs.versions.android.compileSdk
                 .get()
@@ -177,11 +177,11 @@ tasks.named<Sync>("wasmJsBrowserDistribution") {
 
 compose.desktop {
     application {
-        mainClass = "ru.workinprogress.mani.MainKt"
+        mainClass = "io.github.youndie.mani.MainKt"
 
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
-            packageName = "ru.workinprogress.mani"
+            packageName = "io.github.youndie.mani"
             packageVersion = "1.0.0"
         }
     }
@@ -205,7 +205,7 @@ viddik {
 // По умолчанию compose-resources собирает его из группы проекта и имени модуля. Группы у модулей
 // здесь не было, и получалось `mani.composeapp.generated.resources` — от имени корневого проекта;
 // стоило соглашениям проставить группу всем модулям, как пакет уехал в
-// `ru.workinprogress.mani.composeapp.generated.resources`, и сотня импортов перестала разрешаться
+// `io.github.youndie.mani.composeapp.generated.resources`, и сотня импортов перестала разрешаться
 // с сообщением `Unresolved reference 'mani'` — про пакет, которого никто не переименовывал.
 //
 // Записан явно: пакет, в который смотрят исходники, не должен зависеть от координаты, под которой

@@ -1,4 +1,4 @@
-package ru.workinprogress.mani
+package io.github.youndie.mani
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.fillMaxSize
@@ -6,8 +6,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.application
+import io.github.youndie.mani.theme.AppTheme
 import ru.workinprogress.appframe.AppFrame
-import ru.workinprogress.mani.theme.AppTheme
 
 @OptIn(ExperimentalFoundationApi::class)
 fun main() = application {
