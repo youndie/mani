@@ -1,17 +1,17 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "description": [
+    "Общая конфигурация портфеля подключается по имени: расписание, лимиты, метки, группы kotlin/kotlinx/sborka/ci actions, запрет на `kotlinx-datetime:*-0.6.x-compat` и мажоры человеку. Батч сдвигается с 7:00 по Москве на 6:00 UTC вместе с остальным портфелем — на час раньше, ни от чего это здесь не зависело.",
+    "`group:allNonMajor` подключается ВТОРЫМ и это важно: правила склеиваются в порядке пресетов, выигрывает последнее совпадение. Так все не-мажорные обновления по-прежнему приезжают одним PR-ом, а группы пресета остаются в силе для мажоров. Свои правила ниже идут последними и накрывают то, что должно ехать отдельно в любом случае.",
+    "Automerge (`github>youndie/sborka:automerge-harness`) не подключён: здесь сегодня ничего не вливается само. Предусловие выполняется — main.yml бежит на `pull_request`, — так что это отдельная правка, если понадобится."
+  ],
   "extends": [
-    "config:recommended",
+    "github>youndie/sborka",
     "group:allNonMajor"
   ],
-  "timezone": "Europe/Moscow",
-  "schedule": [
-    "before 7am on monday"
-  ],
-  "prConcurrentLimit": 5,
   "packageRules": [
     {
-      "description": "Компилятор, KSP, Compose Multiplatform и viddik совместимы только согласованными версиями: KSP собран под конкретный Kotlin, а плагин viddik подставляет свою пару процессору и движку съёмки. Порознь такой бамп даёт заведомо красный PR, поэтому группа накрывает и мажоры тоже.",
+      "description": "Компилятор, KSP, Compose Multiplatform и viddik совместимы только согласованными версиями: KSP собран под конкретный Kotlin, а плагин viddik подставляет свою пару процессору и движку съёмки. Порознь такой бамп даёт заведомо красный PR, поэтому группа накрывает и мажоры тоже. viddik назван обеими группами: он уже публикуется как io.github.youndie.viddik, а здесь пока пинится старый id — правило с одним именем перестало бы совпадать в день переезда, и молча.",
       "groupName": "kotlin toolchain",
       "matchPackageNames": [
         "org.jetbrains.kotlin.**",
@@ -20,7 +20,8 @@
         "com.google.devtools.ksp:**",
         "org.jetbrains.compose",
         "org.jetbrains.compose:**",
-        "ru.workinprogress.viddik"
+        "ru.workinprogress.viddik",
+        "/^io\\.github\\.youndie\\.viddik/"
       ]
     },
     {
