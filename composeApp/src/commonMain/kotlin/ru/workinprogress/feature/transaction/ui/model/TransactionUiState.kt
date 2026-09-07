@@ -67,6 +67,10 @@ data class TransactionUiState(
         }
     val tempTransaction get() = buildTransaction(this)
 
+    @Suppress(
+        "ktlint:kapkan:swallowed-failure",
+        "ввод не число: ноль и есть ответ формы, а не потерянная ошибка",
+    )
     private fun buildTransaction(stateValue: TransactionUiState): Transaction = Transaction(
         id = stateValue.id,
         amount = try {

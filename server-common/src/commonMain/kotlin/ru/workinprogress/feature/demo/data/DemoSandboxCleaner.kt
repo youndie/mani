@@ -43,6 +43,10 @@ class DemoSandboxCleaner(
     private val userRepository: UserRepository,
     private val transactionRepository: TransactionRepository,
 ) {
+    @Suppress(
+        "ktlint:kapkan:wall-clock",
+        "`now` и есть порт: часы входят одним умолчанием, тест его подменяет",
+    )
     suspend fun sweep(now: Instant = Clock.System.now()) {
         val expiredBefore = now.epochSeconds - SANDBOX_LIFETIME_SECONDS
 

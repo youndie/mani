@@ -22,12 +22,20 @@ data class CachedTransactions(val transactions: List<Transaction>, val takenAt: 
  */
 @OptIn(ExperimentalTime::class)
 class TransactionsCache(private val settings: Settings, private val json: Json = Json { ignoreUnknownKeys = true }) {
+    @Suppress(
+        "ktlint:kapkan:wall-clock",
+        "отметка снятия кэша: читается тем же устройством, чтобы понять, не устарела ли она",
+    )
     fun save(transactions: List<Transaction>) {
         settings.putString(KEY_DATA, json.encodeToString(transactions))
         settings.putLong(KEY_TAKEN_AT, Clock.System.now().toEpochMilliseconds())
     }
 
     /** `null` — кэша нет либо он испорчен: повод сходить в сеть, а не падать. */
+    @Suppress(
+        "ktlint:kapkan:swallowed-failure",
+        "кэш битый или отсутствует: значение перезапросится, сообщать не о чем",
+    )
     fun load(): CachedTransactions? {
         val raw = settings.getStringOrNull(KEY_DATA) ?: return null
         val takenAt = settings.getLongOrNull(KEY_TAKEN_AT) ?: return null

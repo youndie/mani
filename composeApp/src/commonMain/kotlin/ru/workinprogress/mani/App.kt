@@ -77,6 +77,10 @@ fun ManiApp(
 ) {
     val backStackEntry by navController.currentBackStackEntryAsState()
 
+    @Suppress(
+        "ktlint:kapkan:swallowed-failure",
+        "неизвестный маршрут — экран по умолчанию: навигация не должна падать",
+    )
     val currentScreen = try {
         ManiScreen.valueOf(backStackEntry?.destination?.route ?: ManiScreen.Preload.name)
     } catch (e: Exception) {

@@ -21,7 +21,12 @@ pluginManagement {
         // хост недоступен, Gradle его отключает и роняет плагины, которых там и не было.
         maven("https://reposilite.kotlin.website/snapshots") {
             name = "wip-snapshots"
-            content { includeGroupByRegex("ru\\.workinprogress.*") }
+            content {
+                // Обе группы: sborka и библиотеки портфеля под `io.github.youndie`, а версии,
+                // выложенные до переезда, остались под старой и резолвятся как прежде.
+                includeGroupByRegex("io\\.github\\.youndie.*")
+                includeGroupByRegex("ru\\.workinprogress.*")
+            }
         }
     }
 }
@@ -30,7 +35,7 @@ plugins {
     // Откуда берутся зависимости: google() и mavenCentral() со своими групповыми фильтрами и
     // reposilite `/snapshots` — те же три, что этот файл объявлял сам, только фильтр на последнем
     // теперь есть. Ниже остаётся то, что принадлежит этому репозиторию.
-    id("ru.workinprogress.sborka.settings") version "0.1.0.20"
+    id("io.github.youndie.sborka.settings") version "0.3.0.41"
 }
 
 dependencyResolutionManagement {

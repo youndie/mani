@@ -56,6 +56,10 @@ data class TransactionUiItem(
 val PositiveColor = Color(0xFFD6C68D)
 val NegativeColor = Color(0xFFFFB4AB)
 
+@Suppress(
+    "ktlint:kapkan:swallowed-failure",
+    "ввод не число: ноль и есть ответ формы, а не потерянная ошибка",
+)
 fun buildColoredAmount(
     amount: String,
     amountValue: BigDecimal = (

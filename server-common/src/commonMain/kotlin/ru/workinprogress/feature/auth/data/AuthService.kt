@@ -46,6 +46,10 @@ class AuthService(
         }
     }
 
+    @Suppress(
+        "ktlint:kapkan:wall-clock",
+        "срок задаётся здесь и уходит в TokenService параметром — это точка входа времени",
+    )
     private suspend fun newTokens(user: User): Tokens = Tokens(
         accessToken = tokenService.issue(user.id, user.username),
         refreshToken =

@@ -102,6 +102,10 @@ class TokenServiceTest {
 
     @Test
     fun rejectsExpiredToken() = runTest {
+        @Suppress(
+            "ktlint:kapkan:wall-clock",
+            "фикстура теста строит момент относительно сейчас",
+        )
         val expired = service.issue(id = "1", username = "u", expiration = Clock.System.now().minus(1.hours))
 
         assertNull(service.verify(expired))

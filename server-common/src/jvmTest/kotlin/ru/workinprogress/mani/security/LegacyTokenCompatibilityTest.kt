@@ -34,6 +34,10 @@ class LegacyTokenCompatibilityTest {
     private val service = TokenService(config)
     private val algorithm = Algorithm.HMAC256(config.secret)
 
+    @Suppress(
+        "ktlint:kapkan:wall-clock",
+        "фикстура теста строит момент относительно сейчас",
+    )
     private fun legacyToken(
         id: String,
         username: String,
@@ -58,6 +62,10 @@ class LegacyTokenCompatibilityTest {
 
     @Test
     fun rejectsExpiredTokenIssuedByJavaJwt() = runTest {
+        @Suppress(
+            "ktlint:kapkan:wall-clock",
+            "фикстура теста строит момент относительно сейчас",
+        )
         val expired = legacyToken("1", "u", expiresAt = Date(System.currentTimeMillis() - 1_000))
 
         assertNull(service.verify(expired))
