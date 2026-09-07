@@ -4,8 +4,8 @@ import io.github.youndie.mani.config.JWTConfig
 import io.github.youndie.mani.config.ManiConfig
 import io.github.youndie.mani.config.MongoConfig
 import io.github.youndie.mani.config.readEnv
-import ru.workinprogress.mongkn.MongoClient
-import ru.workinprogress.mongkn.bson.BsonObjectId
+import io.github.youndie.mongkn.MongoClient
+import io.github.youndie.mongkn.bson.BsonObjectId
 
 /**
  * Настоящий mongod, а не подделка.

@@ -6,15 +6,15 @@ import io.github.youndie.mani.feature.auth.LoginParams
 import io.github.youndie.mani.feature.auth.data.hashing.HashingService
 import io.github.youndie.mani.feature.auth.data.hashing.SaltedHash
 import io.github.youndie.mani.feature.user.User
+import io.github.youndie.mongkn.MongoDatabase
+import io.github.youndie.mongkn.bson.BsonDocument
+import io.github.youndie.mongkn.bson.BsonObjectId
+import io.github.youndie.mongkn.bson.BsonString
+import io.github.youndie.mongkn.ext.filter
+import io.github.youndie.mongkn.ext.find
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.toList
-import ru.workinprogress.mongkn.MongoDatabase
-import ru.workinprogress.mongkn.bson.BsonDocument
-import ru.workinprogress.mongkn.bson.BsonObjectId
-import ru.workinprogress.mongkn.bson.BsonString
-import ru.workinprogress.mongkn.ext.filter
-import ru.workinprogress.mongkn.ext.find
 
 class MongknUserRepository(mongoDatabase: MongoDatabase, private val hashingService: HashingService) : UserRepository {
     private val db = mongoDatabase.getCollection<UserDb>(USER_COLLECTION)

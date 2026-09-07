@@ -2,6 +2,10 @@ package io.github.youndie.mani.db
 
 import com.ionspin.kotlin.bignum.decimal.BigDecimal
 import com.ionspin.kotlin.bignum.decimal.toBigDecimal
+import io.github.youndie.mongkn.bson.BsonDecimal128
+import io.github.youndie.mongkn.bson.BsonDecoder
+import io.github.youndie.mongkn.bson.BsonEncoder
+import io.github.youndie.mongkn.ext.StringAsBsonObjectId
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -11,10 +15,6 @@ import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
-import ru.workinprogress.mongkn.bson.BsonDecimal128
-import ru.workinprogress.mongkn.bson.BsonDecoder
-import ru.workinprogress.mongkn.bson.BsonEncoder
-import ru.workinprogress.mongkn.ext.StringAsBsonObjectId
 
 /** Имена коллекций — те же, что у JVM-сборки: обе сборки ходят в одну базу. */
 const val USER_COLLECTION = "users"
