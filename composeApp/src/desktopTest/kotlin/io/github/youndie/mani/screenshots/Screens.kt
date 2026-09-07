@@ -43,13 +43,13 @@ import io.github.youndie.mani.feature.welcome.WelcomeUiState
 import io.github.youndie.mani.navigation.ManiScreen
 import io.github.youndie.mani.navigation.title
 import io.github.youndie.mani.theme.AppTheme
+import io.github.youndie.viddik.annotations.ViddikScreenshot
 import kotlinx.collections.immutable.persistentListOf
 import kotlinx.collections.immutable.persistentSetOf
 import kotlinx.collections.immutable.toImmutableMap
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.plus
-import ru.workinprogress.viddik.annotations.ViddikScreenshot
 
 /**
  * Снимки экранов для сверки с макетом.

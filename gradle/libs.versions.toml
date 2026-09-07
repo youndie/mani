@@ -14,7 +14,7 @@ androidx-espresso-core = "3.7.0"
 androidx-lifecycle = "2.11.0"
 androidx-material = "1.12.0"
 androidx-test-junit = "1.3.0"
-appframeDesktop = "0.0.12"
+appframeDesktop = "0.1.24"
 bignum = "0.3.10"
 compose-multiplatform = "1.11.1"
 cryptography = "0.6.0"
@@ -28,7 +28,7 @@ ktlintPlugin = "14.2.0"
 ktlintTool = "1.8.0"
 # Одна версия и на Gradle-плагин, и на артефакты: плагин подставляет им свою собственную,
 # чем и держит KSP-процессор и движок съёмки в одной паре.
-viddik = "0.1.2.12"
+viddik = "0.4.0"
 kotlin = "2.4.10"
 kotlinxCollectionsImmutable = "0.5.1"
 kotlinxDatetime = "0.7.1"
@@ -63,7 +63,7 @@ androidx-preference-ktx = { module = "androidx.preference:preference-ktx", versi
 androidx-profileinstaller = { module = "androidx.profileinstaller:profileinstaller", version.ref = "profileinstaller" }
 androidx-ui-test-junit4-android = { module = "androidx.compose.ui:ui-test-junit4-android", version.ref = "uiTestJunit4Android" }
 androidx-ui-test-manifest = { module = "androidx.compose.ui:ui-test-manifest", version.ref = "uiTestManifest" }
-appframe-desktop = { module = "ru.workinprogress:appframe-desktop", version.ref = "appframeDesktop" }
+appframe-desktop = { module = "io.github.youndie:appframe-desktop", version.ref = "appframeDesktop" }
 bignum = { module = "com.ionspin.kotlin:bignum", version.ref = "bignum" }
 
 compose-shimmer = { module = "com.valentinilk.shimmer:compose-shimmer", version.ref = "composeShimmer" }
@@ -155,7 +155,7 @@ androidx-compose-ui-tooling-preview = { group = "androidx.compose.ui", name = "u
 
 [plugins]
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
-viddik = { id = "ru.workinprogress.viddik", version.ref = "viddik" }
+viddik = { id = "io.github.youndie.viddik", version.ref = "viddik" }
 androidApplication = { id = "com.android.application", version.ref = "agp" }
 androidLibrary = { id = "com.android.library", version.ref = "agp" }
 androidKotlinMultiplatformLibrary = { id = "com.android.kotlin.multiplatform.library", version.ref = "agp" }
