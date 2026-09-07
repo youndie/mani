@@ -9,11 +9,11 @@ import io.github.youndie.mani.feature.user.data.MongknTokenRepository
 import io.github.youndie.mani.feature.user.data.MongknUserRepository
 import io.github.youndie.mani.feature.user.data.TokenRepository
 import io.github.youndie.mani.feature.user.data.UserRepository
+import io.github.youndie.mongkn.MongoClient
+import io.github.youndie.mongkn.MongoDatabase
 import org.koin.core.module.Module
 import org.koin.dsl.bind
 import org.koin.dsl.module
-import ru.workinprogress.mongkn.MongoClient
-import ru.workinprogress.mongkn.MongoDatabase
 
 /**
  * Хранилище нативной сборки: mongkn поверх C-драйвера.

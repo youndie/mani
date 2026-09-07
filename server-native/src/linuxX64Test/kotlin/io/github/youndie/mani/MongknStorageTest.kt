@@ -11,16 +11,16 @@ import io.github.youndie.mani.feature.transaction.Transaction
 import io.github.youndie.mani.feature.transaction.data.MongknTransactionRepository
 import io.github.youndie.mani.feature.user.data.MongknTokenRepository
 import io.github.youndie.mani.feature.user.data.MongknUserRepository
+import io.github.youndie.mongkn.MongoClient
+import io.github.youndie.mongkn.MongoDatabase
+import io.github.youndie.mongkn.bson.BsonDecimal128
+import io.github.youndie.mongkn.bson.BsonDocument
+import io.github.youndie.mongkn.bson.BsonObjectId
+import io.github.youndie.mongkn.bson.BsonString
+import io.github.youndie.mongkn.bson.Document
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
-import ru.workinprogress.mongkn.MongoClient
-import ru.workinprogress.mongkn.MongoDatabase
-import ru.workinprogress.mongkn.bson.BsonDecimal128
-import ru.workinprogress.mongkn.bson.BsonDocument
-import ru.workinprogress.mongkn.bson.BsonObjectId
-import ru.workinprogress.mongkn.bson.BsonString
-import ru.workinprogress.mongkn.bson.Document
 import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -105,7 +105,7 @@ class MongknStorageTest {
         val created = categories.create(Category("", "Еда"), userId)
 
         val raw = assertNotNull(rawUsers.find(BsonDocument("_id" to BsonObjectId.parse(userId))).firstOrNull())
-        val embedded = (raw["categories"] as ru.workinprogress.mongkn.bson.BsonArray)[0] as Document
+        val embedded = (raw["categories"] as io.github.youndie.mongkn.bson.BsonArray)[0] as Document
         assertTrue(embedded["_id"] is BsonObjectId, "_id категории должен быть ObjectId")
 
         assertEquals(listOf("Еда"), categories.getByUser(userId).map { it.name })

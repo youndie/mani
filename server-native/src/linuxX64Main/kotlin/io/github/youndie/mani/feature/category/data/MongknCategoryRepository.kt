@@ -6,14 +6,14 @@ import io.github.youndie.mani.db.UserDb
 import io.github.youndie.mani.feature.category.CategoryRepository
 import io.github.youndie.mani.feature.transaction.Category
 import io.github.youndie.mani.feature.user.data.byId
+import io.github.youndie.mongkn.MongoDatabase
+import io.github.youndie.mongkn.bson.BsonDocument
+import io.github.youndie.mongkn.bson.BsonObjectId
+import io.github.youndie.mongkn.bson.BsonString
+import io.github.youndie.mongkn.bson.encodeToBsonValue
+import io.github.youndie.mongkn.ext.filter
+import io.github.youndie.mongkn.ext.find
 import kotlinx.coroutines.flow.firstOrNull
-import ru.workinprogress.mongkn.MongoDatabase
-import ru.workinprogress.mongkn.bson.BsonDocument
-import ru.workinprogress.mongkn.bson.BsonObjectId
-import ru.workinprogress.mongkn.bson.BsonString
-import ru.workinprogress.mongkn.bson.encodeToBsonValue
-import ru.workinprogress.mongkn.ext.filter
-import ru.workinprogress.mongkn.ext.find
 
 /**
  * Категории лежат массивом в документе пользователя, поэтому коллекция здесь — `users`.
