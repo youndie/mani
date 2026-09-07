@@ -1,9 +1,17 @@
-package ru.workinprogress.mani
+package io.github.youndie.mani
 
 import de.flapdoodle.embed.mongo.distribution.Version
 import de.flapdoodle.embed.mongo.transitions.Mongod
 import de.flapdoodle.embed.mongo.transitions.RunningMongodProcess
 import de.flapdoodle.reverse.TransitionWalker
+import io.github.youndie.mani.config.JWTConfig
+import io.github.youndie.mani.config.ManiConfig
+import io.github.youndie.mani.config.MongoConfig
+import io.github.youndie.mani.demo.DemoSeed
+import io.github.youndie.mani.feature.auth.Tokens
+import io.github.youndie.mani.feature.transaction.Category
+import io.github.youndie.mani.feature.transaction.Transaction
+import io.github.youndie.mani.security.TokenService
 import io.ktor.client.HttpClient
 import io.ktor.client.request.bearerAuth
 import io.ktor.client.request.get
@@ -19,14 +27,6 @@ import kotlinx.serialization.json.Json
 import org.koin.core.context.stopKoin
 import org.koin.ktor.ext.get
 import org.koin.ktor.plugin.Koin
-import ru.workinprogress.feature.auth.Tokens
-import ru.workinprogress.feature.transaction.Category
-import ru.workinprogress.feature.transaction.Transaction
-import ru.workinprogress.mani.config.JWTConfig
-import ru.workinprogress.mani.config.ManiConfig
-import ru.workinprogress.mani.config.MongoConfig
-import ru.workinprogress.mani.demo.DemoSeed
-import ru.workinprogress.mani.security.TokenService
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test

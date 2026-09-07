@@ -20,11 +20,11 @@ plugins {
  * Сборка остаётся: она нужна для разработки на macOS, где нативный таргет не собрать вовсе, и
  * держит общую часть честной — всё, что перестанет компилироваться под JVM, ломается здесь.
  */
-group = "ru.workinprogress.mani"
+group = "io.github.youndie.mani"
 version = "0.2.${providers.gradleProperty("BUILD_NUMBER").getOrElse("snapshot")}"
 
 application {
-    mainClass.set("ru.workinprogress.mani.ApplicationKt")
+    mainClass.set("io.github.youndie.mani.ApplicationKt")
     applicationDefaultJvmArgs =
         listOf("-Dio.ktor.development=${extra["io.ktor.development"] ?: "true"}")
 }

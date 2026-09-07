@@ -1,4 +1,4 @@
-package ru.workinprogress.mani
+package io.github.youndie.mani
 
 import com.mongodb.client.model.Filters
 import com.mongodb.client.model.Updates
@@ -7,17 +7,17 @@ import de.flapdoodle.embed.mongo.distribution.Version
 import de.flapdoodle.embed.mongo.transitions.Mongod
 import de.flapdoodle.embed.mongo.transitions.RunningMongodProcess
 import de.flapdoodle.reverse.TransitionWalker
+import io.github.youndie.mani.db.deleteById
+import io.github.youndie.mani.feature.category.CategoryRepository
+import io.github.youndie.mani.feature.category.data.MongoCategoryRepository
+import io.github.youndie.mani.feature.transaction.Category
+import io.github.youndie.mani.feature.transaction.data.CategoryDb
+import io.github.youndie.mani.feature.user.data.UserDb
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.runBlocking
 import org.bson.types.ObjectId
 import org.junit.Test
 import org.koin.core.context.GlobalContext.stopKoin
-import ru.workinprogress.feature.category.CategoryRepository
-import ru.workinprogress.feature.category.data.MongoCategoryRepository
-import ru.workinprogress.feature.transaction.Category
-import ru.workinprogress.feature.transaction.data.CategoryDb
-import ru.workinprogress.feature.user.data.UserDb
-import ru.workinprogress.mani.db.deleteById
 import kotlin.test.*
 
 class MongoCategoryRepositoryTest {
