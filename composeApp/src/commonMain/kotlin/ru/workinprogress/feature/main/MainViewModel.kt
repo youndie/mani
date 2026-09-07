@@ -319,6 +319,10 @@ class MainViewModel(
             return "$status · ${serverConfig.host} · ${at.format(timeFormat)}"
         }
 
+        @Suppress(
+            "ktlint:kapkan:wall-clock",
+            "местное время суток для значения по умолчанию в форме, на провод не идёт",
+        )
         private fun nowLocalTime() = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).time
 
         private val timeFormat = LocalTime.Format {

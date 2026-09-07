@@ -16,6 +16,10 @@ const val MANI_VERSION = "1.4.2"
  */
 expect fun serverBuildKind(): String
 
+@Suppress(
+    "ktlint:kapkan:wall-clock",
+    "момент старта ЭТОГО процесса — величина по определению местная",
+)
 @OptIn(ExperimentalTime::class)
 private val startedAt = Clock.System.now()
 
@@ -23,6 +27,10 @@ private val startedAt = Clock.System.now()
  * Отдаёт то, ради чего проект существует: посетитель видит, что его запрос обслужил нативный
  * бинарь, а не текст в README.
  */
+@Suppress(
+    "ktlint:kapkan:wall-clock",
+    "момент старта ЭТОГО процесса — величина по определению местная",
+)
 @OptIn(ExperimentalTime::class)
 fun Routing.healthRouting() {
     get<HealthResource> {

@@ -46,6 +46,10 @@ class TokenService(private val config: JWTConfig) {
     /**
      * @param expiration момент истечения; по умолчанию — `expirationSeconds` от текущего времени
      */
+    @Suppress(
+        "ktlint:kapkan:wall-clock",
+        "выпуск берёт срок параметром, проверка сверяет им же выданный токен",
+    )
     suspend fun issue(
         id: String,
         username: String,
@@ -87,6 +91,10 @@ class TokenService(private val config: JWTConfig) {
      *   исключений наружу: для вызывающего «подпись не сошлась» и «токен испорчен» — один
      *   и тот же ответ, 401.
      */
+    @Suppress(
+        "ktlint:kapkan:wall-clock",
+        "сервер сверяет срок им же выданного токена со своими часами — это и есть проверка exp",
+    )
     suspend fun verify(token: String): TokenClaims? {
         val parts = token.split('.')
         if (parts.size != 3) return null

@@ -13,6 +13,10 @@ class TokenStorageImpl : TokenStorage {
         }
     }
 
+    @Suppress(
+        "ktlint:kapkan:swallowed-failure",
+        "нет файла с токеном — обычное состояние первого запуска, а не отказ",
+    )
     override fun load(): BearerTokens? = try {
         file.readText().takeIf { it.isNotBlank() }
     } catch (e: Exception) {

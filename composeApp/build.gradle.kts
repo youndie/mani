@@ -14,8 +14,8 @@ plugins {
     alias(libs.plugins.pluginSerialization)
     alias(libs.plugins.ksp)
     alias(libs.plugins.viddik)
-    id("ru.workinprogress.sborka.base")
-    id("ru.workinprogress.sborka.lint")
+    id("io.github.youndie.sborka.base")
+    id("io.github.youndie.sborka.lint")
 }
 
 composeCompiler {

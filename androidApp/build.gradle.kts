@@ -5,8 +5,8 @@ plugins {
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.baselineprofile)
-    id("ru.workinprogress.sborka.base")
-    id("ru.workinprogress.sborka.lint")
+    id("io.github.youndie.sborka.base")
+    id("io.github.youndie.sborka.lint")
 }
 
 android {
