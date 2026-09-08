@@ -9,6 +9,7 @@ entry:
 parent_feature: feature-auth
 calls_api:
   - endpoint-auth
+  - endpoint-demo
 source: composeApp/src/commonMain/kotlin/io/github/youndie/mani/feature/auth/ui/
 ---
 
@@ -60,7 +61,7 @@ source: composeApp/src/commonMain/kotlin/io/github/youndie/mani/feature/auth/ui/
 |---|---|---|
 | `POST /auth` (Login) | `AuthResource` | [endpoint-auth](../api/endpoint-auth.md) |
 | `POST /users` (Signup) | `UserResource` | [endpoint-auth](../api/endpoint-auth.md) |
-| `POST /demo` (кнопка демо на Login) | `DemoResource` | [endpoint-auth](../api/endpoint-auth.md) |
+| `POST /demo` (кнопка демо на Login) | `DemoResource` | [endpoint-demo](../api/endpoint-demo.md) |
 
 ## 3. Инициализация
 

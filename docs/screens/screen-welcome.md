@@ -9,6 +9,8 @@ entry:
 parent_feature: feature-auth
 calls_api:
   - endpoint-auth
+  - endpoint-demo
+  - endpoint-health
 source: composeApp/src/commonMain/kotlin/io/github/youndie/mani/feature/welcome/
 ---
 
@@ -46,8 +48,8 @@ source: composeApp/src/commonMain/kotlin/io/github/youndie/mani/feature/welcome/
 
 | Вызов | Контракт | Документ |
 |---|---|---|
-| `GET /health` | `HealthResource` | — (описан в [server-native](../services/server-native.md)) |
-| `POST /demo` | `DemoResource` | [endpoint-auth](../api/endpoint-auth.md) |
+| `GET /health` | `HealthResource` | [endpoint-health](../api/endpoint-health.md) |
+| `POST /demo` | `DemoResource` | [endpoint-demo](../api/endpoint-demo.md) |
 
 ## 3. Инициализация
 

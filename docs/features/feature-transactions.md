@@ -66,6 +66,27 @@ tags: [core, forecast]
 `simulate()`/`toChartInternal()` обслуживает главный экран, историю, форму правила и график на
 витрине — до всякого входа.
 
+### График
+
+Маршрута `/chart` на сервере **нет**: `ChartResponse` объявлен в `:shared`, но собирается на
+клиенте из уже загруженного списка (`GetChartUseCase` → `toChartInternal`). Поэтому график
+рисуется и на витрине, где никто не вошёл и запрашивать нечего.
+
+| Что | Файл |
+|---|---|
+| Use case | `composeApp/.../feature/chart/GetChartUseCase.kt` |
+| ViewModel | `composeApp/.../feature/chart/ChartViewModel.kt` |
+| Модель отрисовки | `composeApp/.../feature/chart/ui/model/ChartUi.kt` |
+| Компонент | `composeApp/.../feature/chart/ui/ChartImpl.kt` |
+| Расчёт | `shared/.../feature/transaction/TransactionsOperations.kt` |
+
+Два решения, которые из кода видно не сразу:
+
+* **Пустой график не рисуется вовсе.** Поток фильтруется по `chart.days.isNotEmpty()`: до первой
+  загрузки экран показывает состояние загрузки, а не пустые оси.
+* **Горизонт слева обрезается в ViewModel, а не в расчёте.** Расчёт общий с прогнозом, а
+  «показывать месяц назад» — решение этого экрана (`defaultMinDate`).
+
 ## 4. Код
 
 | Сервис | Код |
@@ -178,11 +199,10 @@ tags: [core, forecast]
 
 ## 6. Вне охвата
 
-* Категории как самостоятельная область (`/categories`, их создание и удаление) — документом не
-  покрыты; код: `server-common/.../feature/category/`, `composeApp/.../feature/categories/`.
-* Валюта (`/currency`) — сервер отдаёт зашитый список из двух значений.
-* График как отдельный экран — рисуется внутри главного и витрины; вендоренный
-  `compose-charts` описан в [composeApp](../services/composeApp.md).
+* Категории как самостоятельная область — [feature-categories](feature-categories.md).
+* Валюта — [endpoint-currencies](../api/endpoint-currencies.md): маршрут есть, клиент его не зовёт.
+* Вендоренный `compose-charts` как библиотека — описан в
+  [composeApp](../services/composeApp.md); что рисует график, см. §3.
 * Фильтры ленты (`FiltersState`) — часть главного экрана, разобраны в
   [screen-main](../screens/screen-main.md).
 

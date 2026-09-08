@@ -108,12 +108,18 @@ python3 scripts/code_anchors.py --repos ..
 - [x] [shared](services/shared.md) — контракт обмена: ресурсы, модель, симуляция баланса
 - [x] [composeApp](services/composeApp.md) — весь интерфейс, одним кодом на четыре платформы
 
-### Features (2)
+### Features (5)
 
-Фичи:
+Ядро:
+- [x] [feature-transactions](features/feature-transactions.md) — правила бюджета, прогноз и график: то, ради чего продукт существует
+- [x] [feature-categories](features/feature-categories.md) — ярлык на правиле и фильтр ленты
 
-- [x] [feature-auth](features/feature-auth.md) — вход, регистрация, сессия и демо-песочница
-- [x] [feature-transactions](features/feature-transactions.md) — правила бюджета и прогноз: ядро продукта
+Вход:
+- [x] [feature-auth](features/feature-auth.md) — регистрация, вход, сессия и её продление
+- [x] [feature-demo-sandbox](features/feature-demo-sandbox.md) — одноразовый аккаунт с готовыми данными на один клик
+
+Эксплуатация:
+- [x] [feature-health](features/feature-health.md) — живость, готовность и строка «какая сборка ответила»
 
 ### Screens / Flows (5)
 
@@ -128,21 +134,28 @@ python3 scripts/code_anchors.py --repos ..
 - [x] [screen-history](screens/screen-history.md) — та же лента с итогом за текущий месяц
 - [x] [screen-transaction-form](screens/screen-transaction-form.md) — создание и правка правила, с предпросмотром сдвига
 
-### API (2)
+### API (6)
 
 Маршруты:
 
-- [x] [endpoint-auth](api/endpoint-auth.md) — регистрация, вход, обновление сессии, песочница
 - [x] [endpoint-transactions](api/endpoint-transactions.md) — четыре маршрута правил бюджета
+- [x] [endpoint-categories](api/endpoint-categories.md) — пять маршрутов категорий
+- [x] [endpoint-auth](api/endpoint-auth.md) — регистрация, вход, обновление сессии
+- [x] [endpoint-demo](api/endpoint-demo.md) — песочница и засев своего аккаунта
+- [x] [endpoint-health](api/endpoint-health.md) — обе пробы, и чем они отличаются
+- [x] [endpoint-currencies](api/endpoint-currencies.md) — один маршрут, который никто не зовёт
 
 ## Чего здесь пока нет
 
-Честнее назвать пробелы, чем оставить впечатление полного покрытия. Не описаны, но в коде есть:
+Честнее назвать пробелы, чем оставить впечатление полного покрытия.
 
-* **категории** — `server-common/.../feature/category/`, `composeApp/.../feature/categories/`;
-* **валюта** — `server-common/.../feature/currency/` (сервер отдаёт зашитый список из двух);
-* **жизненный цикл демо-песочницы** — что засевается и когда убирается:
-  `server-common/.../feature/demo/`;
-* **health и готовность** как отдельная фича — описаны внутри
-  [server-native](services/server-native.md);
-* **график** как отдельный экран — рисуется внутри главного и витрины.
+Все предметные области сервера теперь покрыты: каждый маршрут, который регистрирует
+`maniApiRouting()`, разобран в слое `api/`. Не покрыто следующее:
+
+* **экрана выбора валюты нет в продукте**, поэтому нет и документа: почему так — в
+  [endpoint-currencies](api/endpoint-currencies.md);
+* **`:baselineprofile`** — генерация baseline-профиля для Android; своего документа не имеет,
+  упомянут в [composeApp](services/composeApp.md);
+* **тема и типографика** (`composeApp/.../theme/`) — решения по оформлению нигде не записаны;
+* **вендоренный `compose-charts`** описан только тем, зачем он вендорен
+  ([composeApp](services/composeApp.md)); что именно в нём изменено, построчно не разобрано.

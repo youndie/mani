@@ -9,6 +9,8 @@ entry:
 parent_feature: feature-transactions
 calls_api:
   - endpoint-transactions
+  - endpoint-categories
+  - endpoint-demo
 source: composeApp/src/commonMain/kotlin/io/github/youndie/mani/feature/main/
 ---
 
@@ -73,9 +75,8 @@ source: composeApp/src/commonMain/kotlin/io/github/youndie/mani/feature/main/
 |---|---|---|
 | `GET /transactions` | `TransactionResource` | [endpoint-transactions](../api/endpoint-transactions.md) |
 | `DELETE /transactions/{id}` | `TransactionResource.ById` | [endpoint-transactions](../api/endpoint-transactions.md) |
-| `GET /categories` | `CategoryResource` | — (фильтр по категориям) |
-| `GET /currency` | `CurrencyResource` | — (формат сумм) |
-| `POST /demo/seed` | `DemoResource.Seed` | [endpoint-auth](../api/endpoint-auth.md) (кнопка на пустом экране) |
+| `GET /categories` | `CategoryResource` | [endpoint-categories](../api/endpoint-categories.md) (фильтр по категориям) |
+| `POST /demo/seed` | `DemoResource.Seed` | [endpoint-demo](../api/endpoint-demo.md) (кнопка на пустом экране) |
 
 ## 3. Инициализация
 
@@ -85,6 +86,9 @@ source: composeApp/src/commonMain/kotlin/io/github/youndie/mani/feature/main/
 |---|---|---|
 | `GET /transactions` | при открытии и на возврате в `ON_START` | лента, график, герой |
 | `GET /categories` | при открытии | наполняет фильтр |
+
+Валюта **в сеть не ходит**: `GetCurrentCurrencyUseCase` читает её из локальных `Settings`, и там
+всегда умолчание — см. [endpoint-currencies](../api/endpoint-currencies.md).
 
 | Случай | Обработка | Состояние |
 |---|---|---|

@@ -30,9 +30,10 @@ parent_feature: feature-auth
 | `POST /users` | открытый | регистрация |
 | `POST /auth` | открытый | вход по имени и паролю, выдаёт пару токенов |
 | `POST /auth/refresh` | открытый (сам предъявляет refresh-токен) | обмен refresh-токена на новую пару |
-| `POST /demo` | открытый | завести песочницу и сразу получить токены; тела у запроса нет |
-| `POST /demo/seed` | Bearer access | засеять демо-данными **свой** аккаунт |
 | `GET /users/current` | — | **не реализован**, см. «Особенности» |
+
+Ещё один вход в приложение — `POST /demo`: он тоже выдаёт `Tokens`, но принадлежит песочнице и
+разобран в [endpoint-demo](endpoint-demo.md).
 
 Ярус «Bearer access» — это `authenticate(jwtConfig.name)` вокруг маршрута; провайдер требует токен
 с claim `kind = "access"` (`server-common/.../security/ManiAuth.kt:32`).
@@ -44,7 +45,6 @@ parent_feature: feature-auth
 | `POST /users` | `server-common/.../feature/user/UserRouting.kt:15` |
 | `POST /auth` | `server-common/.../feature/auth/AuthRouting.kt:14` |
 | `POST /auth/refresh` | `server-common/.../feature/auth/AuthRouting.kt:24` |
-| `POST /demo`, `POST /demo/seed` | `server-common/.../feature/demo/DemoRouting.kt` |
 | проверка Bearer-заголовка | `server-common/.../security/ManiAuth.kt` |
 | выпуск и проверка токена | `server-common/.../security/TokenService.kt` |
 | логин и обновление | `server-common/.../feature/auth/data/AuthService.kt` |
@@ -58,7 +58,7 @@ parent_feature: feature-auth
 |---|---|
 | тело `POST /users` и `POST /auth` | `shared/.../feature/auth/LoginParams.kt` |
 | тело `POST /auth/refresh` | `shared/.../feature/auth/RefreshParams.kt` |
-| ответ `POST /auth`, `/auth/refresh`, `/demo` | `shared/.../feature/auth/Tokens.kt` |
+| ответ `POST /auth` и `/auth/refresh` | `shared/.../feature/auth/Tokens.kt` |
 
 ## Ответы
 
@@ -98,24 +98,6 @@ parent_feature: feature-auth
 Подписи мало: предъявленный refresh-токен обязан ещё и **лежать в базе**, иначе однажды отозванный
 токен работал бы до самого истечения. Удачное обновление старый токен сжигает —
 `tokenRepository.removeToken(...)` перед выдачей новой пары.
-
-### `POST /demo`
-
-| Условие | Код | Тело |
-|---|---|---|
-| песочница заведена | `201` | `Tokens` |
-| мест нет | `503` | `The demo is full right now, try again later` |
-| завести не удалось | `500` | пусто |
-
-`503`, а не `500`: сервер исправен, мест нет — и через час, скорее всего, будут. Текст уходит на
-витрину как есть.
-
-### `POST /demo/seed`
-
-| Условие | Код |
-|---|---|
-| засеяно | `201` |
-| токена нет или он не access | `401` с телом `Token is not valid or has expired` |
 
 ### Общее для всех маршрутов
 

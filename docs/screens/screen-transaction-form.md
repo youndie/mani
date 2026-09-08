@@ -9,6 +9,7 @@ entry:
 parent_feature: feature-transactions
 calls_api:
   - endpoint-transactions
+  - endpoint-categories
 source: composeApp/src/commonMain/kotlin/io/github/youndie/mani/feature/transaction/ui/
 ---
 
@@ -69,8 +70,7 @@ source: composeApp/src/commonMain/kotlin/io/github/youndie/mani/feature/transact
 |---|---|---|
 | `POST /transactions` | `TransactionResource` | [endpoint-transactions](../api/endpoint-transactions.md) |
 | `PATCH /transactions/{id}` | `TransactionResource.ById` | [endpoint-transactions](../api/endpoint-transactions.md) |
-| `GET /categories`, `POST /categories`, `DELETE /categories/{id}` | `CategoryResource` | — |
-| `GET /currency` | `CurrencyResource` | — |
+| `GET /categories`, `POST /categories`, `DELETE /categories/{id}` | `CategoryResource` | [endpoint-categories](../api/endpoint-categories.md) |
 
 ## 3. Инициализация
 
@@ -78,7 +78,7 @@ source: composeApp/src/commonMain/kotlin/io/github/youndie/mani/feature/transact
 |---|---|---|
 | чтение записи из уже загруженного списка | правка | заполняет форму через `TransactionUiState(transaction, currency)` |
 | `GET /categories` | всегда | чипы категорий |
-| `GET /currency` | всегда | формат сумм |
+| `GetCurrentCurrencyUseCase` | всегда | формат сумм — **из локальных `Settings`, а не из сети** ([endpoint-currencies](../api/endpoint-currencies.md)) |
 
 Отдельного маршрута «одно правило по id» нет — запись берётся из списка.
 

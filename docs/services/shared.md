@@ -40,7 +40,7 @@ publishes:
 | `UserResource` | `/users` |
 | `TransactionResource`, `TransactionResource.ById` | `/transactions`, `/transactions/{id}` |
 | `CategoryResource` | `/categories` |
-| `CurrencyResource` | `/currency` |
+| `CurrencyResource` | `/currencies` |
 | `DemoResource` | `/demo` |
 | `HealthResource`, `HealthResource.Ready` | `/health`, `/health/ready` |
 

@@ -38,7 +38,7 @@ publishes:
 
 | Ярус | Как ставится | Какие маршруты |
 |---|---|---|
-| открытый | вне `authenticate` | `POST /auth`, `POST /auth/refresh`, `POST /users`, `POST /demo`, `GET /health`, `GET /health/ready`, `GET /currency` |
+| открытый | вне `authenticate` | `POST /auth`, `POST /auth/refresh`, `POST /users`, `POST /demo`, `GET /health`, `GET /health/ready`, `GET /currencies` |
 | Bearer access-токен | `authenticate(jwtConfig.name)` | `/transactions`, `/transactions/{id}`, `/categories`, `/categories/{id}` |
 
 Проверяется тестами `protected routes require a valid token` и
