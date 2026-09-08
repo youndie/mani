@@ -112,6 +112,24 @@ class ManiApiTest {
         suspend fun transactions(auth: String): List<Transaction> = http
             .get("/transactions") { header(HttpHeaders.Authorization, auth) }
             .body()
+
+        suspend fun createCategory(auth: String, name: String): Category = http
+            .post("/categories") {
+                header(HttpHeaders.Authorization, auth)
+                contentType(ContentType.Application.Json)
+                setBody(Category(id = "", name = name))
+            }.body()
+
+        suspend fun patchCategory(auth: String, path: String, body: Category): HttpResponse = http
+            .patch("/categories/$path") {
+                header(HttpHeaders.Authorization, auth)
+                contentType(ContentType.Application.Json)
+                setBody(body)
+            }
+
+        suspend fun categories(auth: String): List<Category> = http
+            .get("/categories") { header(HttpHeaders.Authorization, auth) }
+            .body()
     }
 
     // Запятой в имени быть не может: Kotlin/Native отвергает её на компиляции теста.
@@ -259,6 +277,30 @@ class ManiApiTest {
 
             // А своя запись правится: путь и решает, что именно пишется.
             assertEquals(listOf("stolen"), transactions(stranger).map { it.comment })
+        }
+    }
+
+    /**
+     * То же самое у категорий, и потому отдельным случаем: маршрут другой, хранилище другое,
+     * а ошибка одна — принадлежность проверялась по пути, переименовывалось названное телом.
+     */
+    @Test
+    fun `a stranger cannot rename a foreign category through the id in the body`() = runBlocking {
+        withMani {
+            val owner = signIn("owner", "hunter2")
+            val stranger = signIn("stranger", "hunter2")
+
+            val theirs = createCategory(owner, "Food")
+            val mine = createCategory(stranger, "Mine")
+
+            val direct = patchCategory(stranger, path = theirs.id, body = theirs.copy(name = "stolen"))
+            assertEquals(HttpStatusCode.Forbidden, direct.status)
+
+            val smuggled = patchCategory(stranger, path = mine.id, body = theirs.copy(name = "stolen"))
+            assertEquals(HttpStatusCode.OK, smuggled.status)
+
+            assertEquals(listOf("Food"), categories(owner).map { it.name }, "чужая категория переименована")
+            assertEquals(listOf("stolen"), categories(stranger).map { it.name })
         }
     }
 }

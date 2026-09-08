@@ -36,9 +36,17 @@ class MongoCategoryRepository(mongoDatabase: MongoDatabase) : CategoryRepository
         ?.find { it.id.toHexString() == categoryId }
         ?.toCategory()
 
-    override suspend fun update(category: Category): Category {
+    /**
+     * Владелец — часть фильтра, а не только проверка в маршруте: тот же второй рубеж, что и у
+     * транзакций. Оба условия лежат в одном документе, а не в `$and`, потому что позиционный
+     * `$` в обновлении требует, чтобы поле массива было названо самим запросом.
+     */
+    override suspend fun update(category: Category, userId: String): Category {
         db.findOneAndUpdate(
-            Filters.eq("categories._id", ObjectId(category.id)),
+            Filters.and(
+                Filters.eq("_id", ObjectId(userId)),
+                Filters.eq("categories._id", ObjectId(category.id)),
+            ),
             Updates.set("categories.$.name", category.name),
         )
         return category

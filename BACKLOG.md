@@ -44,7 +44,7 @@
     `server/src/main/kotlin/io/github/youndie/mani/feature/transaction/data/MongoTransactionRepository.kt`,
     `server-native/src/linuxX64Main/kotlin/io/github/youndie/mani/feature/transaction/data/MongknTransactionRepository.kt`
 
-- [ ] **M0-02 · P0 · S** — Чужую категорию можно переименовать через `PATCH`
+- [x] **M0-02 · P0 · S** — Чужую категорию можно переименовать через `PATCH`
   - Сейчас: проверка принадлежности по `path.id`, обновление по `categories._id` из тела без
     фильтра по пользователю — в обеих реализациях.
   - Решение: как в M0-01 — `id` из пути, фильтр по `_id` пользователя и `categories._id` в

@@ -41,12 +41,15 @@ import kotlin.test.assertEquals
 /**
  * Одна запись — один владелец, проверено на JVM-сборке.
  *
- * Тот же случай проверяет `ManiApiTest` в `:server-native`, и это не дублирование: маршрут общий,
+ * Те же случаи проверяет `ManiApiTest` в `:server-native`, и это не дублирование: маршрут общий,
  * а фильтр записи свой у каждой реализации хранилища. Дыра жила именно в паре «проверка по пути,
  * запись по телу», то есть ровно на стыке общего кода с реализацией, и одной проверки на одну
  * сборку недостаточно — вторая реализация может починиться, а первая остаться.
+ *
+ * Транзакции и категории лежат здесь вместе, потому что это одна и та же ошибка в двух местах:
+ * проверка смотрит на путь, запись слушает тело.
  */
-class TransactionOwnershipTest {
+class OwnershipTest {
     private lateinit var running: TransitionWalker.ReachedState<RunningMongodProcess>
 
     private val config
@@ -144,6 +147,30 @@ class TransactionOwnershipTest {
         return json.decodeFromString(response.bodyAsText())
     }
 
+    private suspend fun HttpClient.createCategory(token: String, name: String): Category {
+        val response = post("/categories") {
+            bearerAuth(token)
+            contentType(ContentType.Application.Json)
+            setBody(json.encodeToString(Category.serializer(), Category(id = "", name = name)))
+        }
+        assertEquals(HttpStatusCode.OK, response.status)
+
+        return json.decodeFromString(Category.serializer(), response.bodyAsText())
+    }
+
+    private suspend fun HttpClient.patchCategory(token: String, path: String, body: Category): HttpResponse =
+        patch("/categories/$path") {
+            bearerAuth(token)
+            contentType(ContentType.Application.Json)
+            setBody(json.encodeToString(Category.serializer(), body))
+        }
+
+    private suspend fun HttpClient.categories(token: String): List<Category> {
+        val response = get("/categories") { bearerAuth(token) }
+        assertEquals(HttpStatusCode.OK, response.status)
+        return json.decodeFromString(response.bodyAsText())
+    }
+
     /**
      * Идентификатор правится по пути, а не по телу.
      *
@@ -176,5 +203,29 @@ class TransactionOwnershipTest {
 
         // А своя запись правится: путь и решает, что именно пишется.
         assertEquals(listOf("stolen"), client.transactions(stranger).map { it.comment })
+    }
+
+    /**
+     * То же самое у категорий, и потому отдельным случаем: маршрут другой, хранилище другое,
+     * а ошибка одна — принадлежность проверялась по пути, переименовывалось названное телом.
+     */
+    @Test
+    fun `a stranger cannot rename a foreign category through the id in the body`() = ownershipTest {
+        val client = createClient { }
+
+        val owner = client.signIn("owner", "hunter2")
+        val stranger = client.signIn("stranger", "hunter2")
+
+        val theirs = client.createCategory(owner, "Food")
+        val mine = client.createCategory(stranger, "Mine")
+
+        val direct = client.patchCategory(stranger, path = theirs.id, body = theirs.copy(name = "stolen"))
+        assertEquals(HttpStatusCode.Forbidden, direct.status)
+
+        val smuggled = client.patchCategory(stranger, path = mine.id, body = theirs.copy(name = "stolen"))
+        assertEquals(HttpStatusCode.OK, smuggled.status)
+
+        assertEquals(listOf("Food"), client.categories(owner).map { it.name }, "чужая категория переименована")
+        assertEquals(listOf("stolen"), client.categories(stranger).map { it.name })
     }
 }

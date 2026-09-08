@@ -111,7 +111,7 @@ class MongknStorageTest {
         assertEquals(listOf("Еда"), categories.getByUser(userId).map { it.name })
         assertEquals("Еда", categories.getById(created.id)?.name)
 
-        categories.update(created.copy(name = "Продукты"))
+        categories.update(created.copy(name = "Продукты"), userId)
         assertEquals(listOf("Продукты"), categories.getByUser(userId).map { it.name })
 
         categories.delete(created.id)

@@ -53,9 +53,22 @@ class MongknCategoryRepository(mongoDatabase: MongoDatabase) : CategoryRepositor
         ?.find { it.id == categoryId }
         ?.toCategory()
 
-    override suspend fun update(category: Category): Category {
+    /**
+     * Владелец — часть фильтра, а не только проверка в маршруте: тот же второй рубеж, что и у
+     * транзакций.
+     *
+     * Оба условия собраны в ОДИН документ, а не через `and(...)`: позиционный `$` в обновлении
+     * требует, чтобы поле массива было названо самим запросом, и прятать его внутрь `$and` —
+     * значит проверять на живом сервере то, что можно не проверять. Ключи разные, так что
+     * вытеснить друг друга условия не могут.
+     */
+    override suspend fun update(category: Category, userId: String): Category {
         db.updateOne(
-            filter = byCategoryId(category.id),
+            filter =
+            BsonDocument(
+                "_id" to BsonObjectId.parse(userId),
+                "categories._id" to BsonObjectId.parse(category.id),
+            ),
             update = BsonDocument("\$set" to BsonDocument("categories.\$.name" to BsonString(category.name))),
         )
         return category

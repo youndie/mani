@@ -42,12 +42,17 @@ fun Routing.categoryRouting() {
         }
 
         patch<CategoryResource.ById> { path ->
-            if (categoryRepository.getByUser(call.currentUserId()).none { it.id == path.id }) {
+            val userId = call.currentUserId()
+
+            if (categoryRepository.getByUser(userId).none { it.id == path.id }) {
                 call.respond(HttpStatusCode.Forbidden)
                 return@patch
             }
 
-            call.respond(categoryRepository.update(call.receive<Category>()))
+            // Идентификатор — из пути, как и у транзакций: принадлежность проверялась по нему,
+            // а переименовывалось то, что назвало тело. Достаточно было прислать `PATCH` на свою
+            // категорию, положив в тело чужую, — и переименовывалась чужая.
+            call.respond(categoryRepository.update(call.receive<Category>().copy(id = path.id), userId))
         }
 
         delete<CategoryResource.ById> { path ->
