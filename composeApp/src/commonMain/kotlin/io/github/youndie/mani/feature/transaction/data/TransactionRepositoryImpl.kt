@@ -6,6 +6,7 @@ import io.github.youndie.mani.feature.transaction.domain.TransactionRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlin.coroutines.cancellation.CancellationException
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
@@ -32,6 +33,10 @@ class TransactionRepositoryImpl(
             super.load()
             cache.save(dataStateFlow.value)
             staleSince.value = null
+        } catch (e: CancellationException) {
+            // Отмена — не отказ сети. Без этой ветки уход с экрана подставлял бы кэш и зажигал
+            // «показаны последние известные данные» там, где соединение живо.
+            throw e
         } catch (e: Exception) {
             val cached = cache.load() ?: throw e
 
