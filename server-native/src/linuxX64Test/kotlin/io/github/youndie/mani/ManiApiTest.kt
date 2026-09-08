@@ -303,4 +303,48 @@ class ManiApiTest {
             assertEquals(listOf("stolen"), categories(stranger).map { it.name })
         }
     }
+
+    /**
+     * Вид токена проверяется и на границе API, а не только внутри `TokenService`.
+     *
+     * Проводка тут общая с JVM-сборкой (`ManiJwtProvider` и `AuthService` живут в
+     * `:server-common`), а сам разбор claim'ов проверяется на обеих сборках в `TokenServiceTest`.
+     */
+    @Test
+    fun `a refresh token opens no door and an access token refreshes nothing`() = runBlocking {
+        withMani {
+            register("kinds", "hunter2")
+            val pair: Tokens = login("kinds", "hunter2").body()
+
+            // Refresh живёт месяц. Пока вид не проверялся, он открывал любой маршрут — то есть
+            // час жизни access-токена не значил ничего.
+            val withRefresh =
+                http.get("/transactions") {
+                    header(HttpHeaders.Authorization, "Bearer ${pair.refreshToken}")
+                }
+            assertEquals(HttpStatusCode.Unauthorized, withRefresh.status)
+
+            // И обратно: access-токеном сессию не продлить.
+            val refreshedWithAccess =
+                http.post("/auth/refresh") {
+                    contentType(ContentType.Application.Json)
+                    setBody(RefreshParams(pair.accessToken))
+                }
+            assertEquals(HttpStatusCode.Unauthorized, refreshedWithAccess.status)
+
+            // По назначению работают оба.
+            val withAccess =
+                http.get("/transactions") {
+                    header(HttpHeaders.Authorization, "Bearer ${pair.accessToken}")
+                }
+            assertEquals(HttpStatusCode.OK, withAccess.status)
+
+            val refreshed =
+                http.post("/auth/refresh") {
+                    contentType(ContentType.Application.Json)
+                    setBody(RefreshParams(pair.refreshToken))
+                }
+            assertEquals(HttpStatusCode.OK, refreshed.status)
+        }
+    }
 }

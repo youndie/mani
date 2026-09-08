@@ -52,12 +52,30 @@ class LegacyTokenCompatibilityTest {
         .withExpiresAt(expiresAt)
         .sign(algorithm)
 
+    /**
+     * Старый токен принимается как **refresh** — и только так.
+     *
+     * Вида в нём не записано: claim `kind` появился позже. В базе стенда лежат именно
+     * refresh-токены, поэтому отвергнуть их значит разлогинить всех, кто зашёл до выката.
+     */
     @Test
     fun acceptsTokenIssuedByJavaJwt() = runTest {
-        val claims = assertNotNull(service.verify(legacyToken("64b7f0c2e1a2b3c4d5e6f708", "vasya")))
+        val claims = assertNotNull(service.verify(legacyToken("64b7f0c2e1a2b3c4d5e6f708", "vasya"), TokenKind.Refresh))
 
         assertEquals("64b7f0c2e1a2b3c4d5e6f708", claims.id)
         assertEquals("vasya", claims.username)
+    }
+
+    /**
+     * И не принимается как access, хотя подпись у него верная.
+     *
+     * Иначе поблажка ради старых записей открыла бы ровно ту дыру, которую закрывает claim
+     * `kind`: месячный refresh, предъявленный вместо часового access. Держатель старого токена
+     * получит 401 один раз, клиент сходит за парой на `/auth/refresh` и продолжит с новой.
+     */
+    @Test
+    fun rejectsLegacyTokenWhereAccessIsExpected() = runTest {
+        assertNull(service.verify(legacyToken("64b7f0c2e1a2b3c4d5e6f708", "vasya"), TokenKind.Access))
     }
 
     @Test
@@ -68,12 +86,12 @@ class LegacyTokenCompatibilityTest {
         )
         val expired = legacyToken("1", "u", expiresAt = Date(System.currentTimeMillis() - 1_000))
 
-        assertNull(service.verify(expired))
+        assertNull(service.verify(expired, TokenKind.Refresh))
     }
 
     @Test
     fun javaJwtAcceptsOurToken() = runTest {
-        val ours = service.issue(id = "64b7f0c2e1a2b3c4d5e6f708", username = "vasya")
+        val ours = service.issue(id = "64b7f0c2e1a2b3c4d5e6f708", username = "vasya", kind = TokenKind.Access)
 
         val decoded =
             JWT

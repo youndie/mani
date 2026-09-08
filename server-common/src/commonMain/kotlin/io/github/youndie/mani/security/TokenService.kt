@@ -22,6 +22,18 @@ import kotlin.time.Instant
 data class TokenClaims(val id: String, val username: String)
 
 /**
+ * Для чего выдан токен.
+ *
+ * Пара живёт по разным правилам: access ходит в каждом запросе и потому короткий, refresh лежит
+ * в базе и живёт месяц. Пока вид не был записан В САМ токен, проверка не могла их различить, и
+ * refresh принимался везде, где ждали access, — то есть срок access-токена не значил ничего.
+ */
+enum class TokenKind(val claim: String) {
+    Access("access"),
+    Refresh("refresh"),
+}
+
+/**
  * Выдача и проверка JWT — **одним кодом на обеих сборках**.
  *
  * Раньше этим занимался `com.auth0:java-jwt`, которого под Kotlin/Native нет. Заманчивая
@@ -45,6 +57,7 @@ class TokenService(private val config: JWTConfig) {
     }
 
     /**
+     * @param kind для чего токен выдаётся; пишется в claim `kind` и сверяется при проверке
      * @param expiration момент истечения; по умолчанию — `expirationSeconds` от текущего времени
      */
     @Suppress(
@@ -54,6 +67,7 @@ class TokenService(private val config: JWTConfig) {
     suspend fun issue(
         id: String,
         username: String,
+        kind: TokenKind,
         expiration: Instant = Clock.System.now().plus(config.expirationSeconds.seconds),
     ): String {
         val header =
@@ -76,6 +90,7 @@ class TokenService(private val config: JWTConfig) {
                 // `refresh returns a new pair and burns the old token`, до него это выглядело
                 // как исправная работа.
                 put("jti", JsonPrimitive(CryptographyRandom.nextBytes(JTI_BYTES).encodeBase64Url()))
+                put("kind", JsonPrimitive(kind.claim))
             }
 
         val signingInput =
@@ -88,16 +103,19 @@ class TokenService(private val config: JWTConfig) {
     }
 
     /**
-     * @return claims, если подпись сошлась и токен не просрочен; иначе `null`. Никаких
-     *   исключений наружу: для вызывающего «подпись не сошлась» и «токен испорчен» — один
-     *   и тот же ответ, 401. Исключение — отмена: отменённый запрос не должен превращаться
-     *   в 401, поэтому проверка идёт через `suspendRunCatching`.
+     * @param expect каким токен обязан быть. Проверка вида — не формальность: refresh живёт
+     *   месяц, и принимать его там, где ждут access, значит выдавать месячный пропуск вместо
+     *   часового.
+     * @return claims, если подпись сошлась, вид совпал и токен не просрочен; иначе `null`.
+     *   Никаких исключений наружу: для вызывающего «подпись не сошлась» и «токен испорчен» —
+     *   один и тот же ответ, 401. Исключение — отмена: отменённый запрос не должен
+     *   превращаться в 401, поэтому проверка идёт через `suspendRunCatching`.
      */
     @Suppress(
         "ktlint:kapkan:wall-clock",
         "сервер сверяет срок им же выданного токена со своими часами — это и есть проверка exp",
     )
-    suspend fun verify(token: String): TokenClaims? {
+    suspend fun verify(token: String, expect: TokenKind): TokenClaims? {
         val parts = token.split('.')
         if (parts.size != 3) return null
 
@@ -118,6 +136,14 @@ class TokenService(private val config: JWTConfig) {
 
             if (config.issuer !in payload.stringOrArray("iss")) return null
             if (config.audience !in payload.stringOrArray("aud")) return null
+
+            // Токены, выданные до появления claim'а, приходят без него. Как access их принимать
+            // нельзя — ради этого всё и делается. Как refresh — можно и нужно: они лежат в базе
+            // стенда, и отказ разлогинил бы каждого, кто зашёл до выката. Подлога этим не
+            // открывается: `/auth/refresh` сверяет предъявленный токен ещё и с базой, а
+            // access-токены туда не попадают. Через месяц последний такой токен истечёт сам.
+            val kind = (payload["kind"] as? JsonPrimitive)?.contentOrNull
+            if (kind != expect.claim && !(kind == null && expect == TokenKind.Refresh)) return null
 
             val exp = (payload["exp"] as? JsonPrimitive)?.long ?: return null
             if (exp <= Clock.System.now().epochSeconds) return null

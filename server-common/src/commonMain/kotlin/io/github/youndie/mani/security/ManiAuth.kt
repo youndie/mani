@@ -28,7 +28,8 @@ class ManiJwtProvider internal constructor(config: Config) : AuthenticationProvi
             it.authScheme.equals("Bearer", ignoreCase = true)
         }?.blob
 
-        val claims = token?.let { tokenService.verify(it) }
+        // Именно access: refresh живёт месяц и лежит в базе, ему тут не место.
+        val claims = token?.let { tokenService.verify(it, TokenKind.Access) }
         if (claims != null) {
             context.principal(ManiPrincipal(id = claims.id, username = claims.username))
             return

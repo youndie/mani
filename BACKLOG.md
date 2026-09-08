@@ -55,7 +55,7 @@
     `server/.../feature/category/data/MongoCategoryRepository.kt`,
     `server-native/.../feature/category/data/MongknCategoryRepository.kt`
 
-- [ ] **M0-03 · P0 · M** — Refresh-токен принимается как access
+- [x] **M0-03 · P0 · M** — Refresh-токен принимается как access
   - Сейчас: `TokenService.verify` не различает вид токена, `ManiJwtProvider` пускает любой
     подписанный. Refresh живёт месяц, и часовой срок access-токена ничего не защищает.
   - Решение: claim `kind` (`access` / `refresh`). Провайдер пускает только `access`; `/auth/refresh`
@@ -305,6 +305,11 @@ JVM-сборку, и это не долг, а граница библиотек�
 
 ## Открытые вопросы вне бэклога
 
+- **Поблажка для токенов без `kind` (см. M0-03).** `TokenService.verify` принимает как refresh
+  токен без claim `kind` — иначе выкат разлогинил бы всех, чьи refresh-токены лежат в базе. Все
+  они выданы со сроком в месяц, поэтому через месяц после выката M0-03 условие
+  `kind == null && expect == Refresh` можно снять вместе с тестом `acceptsTokenIssuedByJavaJwt`.
+  Отдельным пунктом бэклога не заводится: его нельзя закрыть работой, только календарём.
 - [youndie/mani#146](https://github.com/youndie/mani-kotlin-fullstack/issues/146) —
   `NavGraphStabilityTest.graphIsBuiltOnce` нестабилен на wasmJs.
 - Пять открытых PR renovate (#145, #155, #156, #158, #159) — бампы, не пункты бэклога, но M3-02
