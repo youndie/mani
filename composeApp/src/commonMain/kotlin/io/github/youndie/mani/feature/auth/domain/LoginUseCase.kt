@@ -37,4 +37,3 @@ class LoginUseCase(private val httpClient: HttpClient, private val tokenReposito
 }
 
 class UserNotFoundException : ServerException("User not found or invalid password")
-class AlreadyRegisteredException : ServerException("User already exist")

@@ -98,7 +98,7 @@ class MalformedRequestTest {
     @Test
     fun `a malformed id in the path is a bad request`() = malformedTest {
         val client = createClient { }
-        val token = client.signIn("malformed", "hunter2")
+        val token = client.signIn("malformed", "hunter22")
 
         val response = client.delete("/transactions/not-an-id") { bearerAuth(token) }
 
@@ -116,7 +116,7 @@ class MalformedRequestTest {
     @Test
     fun `an unparseable body is a bad request`() = malformedTest {
         val client = createClient { }
-        val token = client.signIn("malformed", "hunter2")
+        val token = client.signIn("malformed", "hunter22")
 
         val response = client.post("/transactions") {
             bearerAuth(token)

@@ -183,8 +183,8 @@ class OwnershipTest {
     fun `a stranger cannot patch a foreign transaction through the id in the body`() = ownershipTest {
         val client = createClient { }
 
-        val owner = client.signIn("owner", "hunter2")
-        val stranger = client.signIn("stranger", "hunter2")
+        val owner = client.signIn("owner", "hunter22")
+        val stranger = client.signIn("stranger", "hunter22")
 
         val theirs = client.createTransaction(owner, "theirs")
         val mine = client.createTransaction(stranger, "mine")
@@ -213,8 +213,8 @@ class OwnershipTest {
     fun `a stranger cannot rename a foreign category through the id in the body`() = ownershipTest {
         val client = createClient { }
 
-        val owner = client.signIn("owner", "hunter2")
-        val stranger = client.signIn("stranger", "hunter2")
+        val owner = client.signIn("owner", "hunter22")
+        val stranger = client.signIn("stranger", "hunter22")
 
         val theirs = client.createCategory(owner, "Food")
         val mine = client.createCategory(stranger, "Mine")

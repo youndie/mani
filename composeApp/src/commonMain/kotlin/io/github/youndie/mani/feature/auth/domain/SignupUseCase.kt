@@ -8,6 +8,7 @@ import io.github.youndie.mani.utilz.suspendRunCatching
 import io.ktor.client.*
 import io.ktor.client.plugins.resources.*
 import io.ktor.client.request.*
+import io.ktor.client.statement.bodyAsText
 import io.ktor.http.*
 
 interface UserService {
@@ -21,8 +22,11 @@ class SignupUseCase(private val httpClient: HttpClient) : AuthUseCase() {
             setBody(params)
         }
         when (response.status) {
+            // Текст берётся у сервера, а не подставляется здесь. Раньше на месте любого 400
+            // стояло «User already exist», и человек, приславший короткий пароль, читал, что
+            // такое имя занято, — сообщение, не имеющее отношения к тому, что он сделал.
             HttpStatusCode.BadRequest -> {
-                Result.failure(AlreadyRegisteredException())
+                Result.failure(ServerException(response.bodyAsText().ifBlank { "Sign up refused" }))
             }
 
             HttpStatusCode.InternalServerError -> {

@@ -15,6 +15,7 @@ import io.ktor.client.request.patch
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.HttpResponse
+import io.ktor.client.statement.bodyAsText
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
@@ -137,16 +138,16 @@ class ManiApiTest {
     @Test
     fun `register then login then use the token`() = runBlocking {
         withMani {
-            assertEquals(HttpStatusCode.Created, register("vasya", "hunter2").status)
+            assertEquals(HttpStatusCode.Created, register("vasya", "hunter22").status)
 
             // Повторная регистрация того же имени — 400, а не второй пользователь.
-            assertEquals(HttpStatusCode.BadRequest, register("vasya", "hunter2").status)
+            assertEquals(HttpStatusCode.BadRequest, register("vasya", "hunter22").status)
 
             // Неверный пароль отвергается: значит хеш действительно проверяется, а не
             // принимается на слово.
             assertEquals(HttpStatusCode.NotFound, login("vasya", "wrong").status)
 
-            val response = login("vasya", "hunter2")
+            val response = login("vasya", "hunter22")
             assertEquals(HttpStatusCode.OK, response.status)
             tokens = response.body()
 
@@ -176,8 +177,8 @@ class ManiApiTest {
     @Test
     fun `transaction keeps its category`() = runBlocking {
         withMani {
-            register("cats", "pass")
-            tokens = login("cats", "pass").body()
+            register("cats", "password")
+            tokens = login("cats", "password").body()
             val auth = "Bearer ${tokens.accessToken}"
 
             val category: Category =
@@ -224,8 +225,8 @@ class ManiApiTest {
     @Test
     fun `refresh returns a new pair and burns the old token`() = runBlocking {
         withMani {
-            register("refresher", "pass")
-            tokens = login("refresher", "pass").body()
+            register("refresher", "password")
+            tokens = login("refresher", "password").body()
 
             val refreshed =
                 http.post("/auth/refresh") {
@@ -258,8 +259,8 @@ class ManiApiTest {
     @Test
     fun `a stranger cannot patch a foreign transaction through the id in the body`() = runBlocking {
         withMani {
-            val owner = signIn("owner", "hunter2")
-            val stranger = signIn("stranger", "hunter2")
+            val owner = signIn("owner", "hunter22")
+            val stranger = signIn("stranger", "hunter22")
 
             val theirs = createTransaction(owner, "theirs")
             val mine = createTransaction(stranger, "mine")
@@ -288,8 +289,8 @@ class ManiApiTest {
     @Test
     fun `a stranger cannot rename a foreign category through the id in the body`() = runBlocking {
         withMani {
-            val owner = signIn("owner", "hunter2")
-            val stranger = signIn("stranger", "hunter2")
+            val owner = signIn("owner", "hunter22")
+            val stranger = signIn("stranger", "hunter22")
 
             val theirs = createCategory(owner, "Food")
             val mine = createCategory(stranger, "Mine")
@@ -314,8 +315,8 @@ class ManiApiTest {
     @Test
     fun `a refresh token opens no door and an access token refreshes nothing`() = runBlocking {
         withMani {
-            register("kinds", "hunter2")
-            val pair: Tokens = login("kinds", "hunter2").body()
+            register("kinds", "hunter22")
+            val pair: Tokens = login("kinds", "hunter22").body()
 
             // Refresh живёт месяц. Пока вид не проверялся, он открывал любой маршрут — то есть
             // час жизни access-токена не значил ничего.
@@ -359,7 +360,7 @@ class ManiApiTest {
     @Test
     fun `a malformed id in the path is a bad request`() = runBlocking {
         withMani {
-            val auth = signIn("malformed", "hunter2")
+            val auth = signIn("malformed", "hunter22")
 
             val deleted = http.delete("/transactions/not-an-id") { header(HttpHeaders.Authorization, auth) }
             assertEquals(HttpStatusCode.BadRequest, deleted.status)
@@ -374,6 +375,28 @@ class ManiApiTest {
                     setBody("{\"amount\": ")
                 }
             assertEquals(HttpStatusCode.BadRequest, posted.status)
+        }
+    }
+
+    /**
+     * Маршрут регистрации действительно зовёт проверку, а не просто имеет её рядом.
+     *
+     * Границы разобраны в `CredentialsTest`; здесь важно другое — что отказ доезжает до ответа
+     * вместе с текстом и что пользователь при этом не заводится.
+     */
+    @Test
+    fun `registration refuses credentials it cannot accept`() = runBlocking {
+        withMani {
+            val refused = register("vasya", "short")
+
+            assertEquals(HttpStatusCode.BadRequest, refused.status)
+            assertEquals("Password must be at least 8 characters long", refused.bodyAsText())
+
+            // И пользователя нет: отказ по форме не должен оставлять следа в базе.
+            assertEquals(HttpStatusCode.NotFound, login("vasya", "short").status)
+
+            assertEquals(HttpStatusCode.BadRequest, register("", "").status)
+            assertEquals(HttpStatusCode.BadRequest, register("demo-1a2b3c4d", "hunter22").status)
         }
     }
 }

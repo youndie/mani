@@ -116,21 +116,40 @@ class AuthUseCaseTest {
         )
     }
 
+    /**
+     * Причину отказа называет сервер, а не клиент.
+     *
+     * Раньше любой 400 превращался здесь в «User already exist», и приславший короткий пароль
+     * читал про занятое имя — сообщение, не имеющее отношения к тому, что он сделал.
+     */
     @Test
-    fun signupAlreadyRegisteredErrorTest() = runTest {
+    fun signupRefusalCarriesTheServerText() = runTest {
         val authUseCase: AuthUseCase = SignupUseCase(
             defaultHttpRequest {
                 respond(
-                    content = ByteReadChannel(""""""),
+                    content = ByteReadChannel("Password must be at least 8 characters long"),
                     status = HttpStatusCode.BadRequest,
-                    headers = headersOf(HttpHeaders.ContentType, "application/json"),
                 )
             },
         )
 
         val result = authUseCase(LoginParams("username", "password"))
 
-        assertIs<AlreadyRegisteredException>(result.exceptionOrNull())
+        assertEquals("Password must be at least 8 characters long", result.exceptionOrNull()?.message)
+    }
+
+    /** Пустое тело — не пустая надпись: форме всё равно надо что-то показать. */
+    @Test
+    fun signupRefusalWithoutTextStillSaysSomething() = runTest {
+        val authUseCase: AuthUseCase = SignupUseCase(
+            defaultHttpRequest {
+                respond(content = ByteReadChannel(""), status = HttpStatusCode.BadRequest)
+            },
+        )
+
+        val result = authUseCase(LoginParams("username", "password"))
+
+        assertEquals("Sign up refused", result.exceptionOrNull()?.message)
     }
 
     @Test
