@@ -8,6 +8,7 @@ import io.github.youndie.mani.feature.demo.DemoSeed
 import io.github.youndie.mani.feature.transaction.Category
 import io.github.youndie.mani.feature.transaction.data.TransactionRepository
 import io.github.youndie.mani.feature.user.data.UserRepository
+import io.github.youndie.mani.utilz.suspendRunCatching
 import kotlin.random.Random
 
 /**
@@ -36,7 +37,10 @@ class DemoService(
         // Отказ уборки не должен стоить посетителю входа: мусор подождёт следующего вызова,
         // а пустой экран вместо витрины — нет. Логгера в общей части нет ни у одной сборки,
         // поэтому отказ именно проглатывается, а не пишется в никуда.
-        runCatching { cleaner.sweep() }
+        //
+        // Именно отказ, но не отмена: обычный `runCatching` проглотил бы и её, и метод
+        // продолжил бы заводить песочницу для клиента, который уже отвалился.
+        suspendRunCatching { cleaner.sweep() }
 
         val credentials = freeCredentials() ?: return null
         val userId = userRepository.save(credentials) ?: return null
