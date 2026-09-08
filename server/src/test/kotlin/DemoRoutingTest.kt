@@ -1,42 +1,16 @@
 package io.github.youndie.mani
 
 import com.mongodb.kotlin.client.coroutine.MongoClient
-import de.flapdoodle.embed.mongo.distribution.Version
-import de.flapdoodle.embed.mongo.transitions.Mongod
-import de.flapdoodle.embed.mongo.transitions.RunningMongodProcess
-import de.flapdoodle.reverse.TransitionWalker
-import io.github.youndie.mani.config.JWTConfig
-import io.github.youndie.mani.config.ManiConfig
-import io.github.youndie.mani.config.MongoConfig
-import io.github.youndie.mani.feature.auth.Tokens
 import io.github.youndie.mani.feature.demo.DemoSeed
 import io.github.youndie.mani.feature.demo.data.DEMO_USERNAME_PREFIX
 import io.github.youndie.mani.feature.demo.data.DemoService
 import io.github.youndie.mani.feature.transaction.Category
-import io.github.youndie.mani.feature.transaction.Transaction
 import io.github.youndie.mani.feature.user.data.USER_COLLECTION
 import io.github.youndie.mani.feature.user.data.UserDb
-import io.github.youndie.mani.security.TokenService
-import io.ktor.client.HttpClient
-import io.ktor.client.request.bearerAuth
-import io.ktor.client.request.get
 import io.ktor.client.request.post
-import io.ktor.client.statement.HttpResponse
-import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpStatusCode
-import io.ktor.server.application.install
-import io.ktor.server.routing.routing
-import io.ktor.server.testing.ApplicationTestBuilder
-import io.ktor.server.testing.testApplication
 import kotlinx.coroutines.flow.toList
-import kotlinx.serialization.json.Json
-import org.koin.core.context.stopKoin
-import org.koin.core.module.Module
 import org.koin.dsl.module
-import org.koin.ktor.ext.get
-import org.koin.ktor.plugin.Koin
-import kotlin.test.AfterTest
-import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
@@ -52,68 +26,11 @@ import kotlin.test.assertTrue
  * это было бы видно здесь как невозможность собрать тест из общих типов.
  */
 class DemoRoutingTest {
-    private lateinit var running: TransitionWalker.ReachedState<RunningMongodProcess>
-
-    private val config
-        get() =
-            ManiConfig(
-                port = 0,
-                mongo = MongoConfig(host = running.current().serverAddress.toString(), database = "demo-test"),
-                jwt = JWTConfig(),
-                webRoot = null,
-                development = false,
-            )
-
-    @BeforeTest
-    fun setUp() {
-        running = Mongod.instance().start(Version.V8_0_3)
-    }
-
-    @AfterTest
-    fun tearDown() {
-        stopKoin()
-        running.close()
-    }
-
-    /**
-     * @param overrides модули, объявленные после общих: Koin берёт последнее определение, и так
-     *   тест подменяет одну зависимость, не собирая граф заново
-     */
-    private fun demoTest(overrides: List<Module> = emptyList(), block: suspend ApplicationTestBuilder.() -> Unit) =
-        testApplication {
-            val maniConfig = config
-            application {
-                configureManiPlugins(maniConfig)
-                install(Koin) {
-                    modules(listOf(coreModule(maniConfig), mongoStorageModule(maniConfig.mongo)) + overrides)
-                }
-                configureManiAuth(maniConfig, get<TokenService>())
-                routing { maniApiRouting() }
-            }
-            block()
-        }
-
-    /**
-     * Тело разбирается сериализатором вручную: клиентский content-negotiation в зависимостях
-     * `:server` не нужен нигде, кроме этого теста, и тянуть его сюда ради трёх запросов незачем.
-     */
-    private val json = Json { ignoreUnknownKeys = true }
-
-    private suspend fun HttpResponse.tokens(): Tokens {
-        assertEquals(HttpStatusCode.Created, status)
-        return json.decodeFromString(bodyAsText())
-    }
-
-    private suspend fun HttpClient.transactions(accessToken: String): List<Transaction> {
-        val response = get("/transactions") { bearerAuth(accessToken) }
-        assertEquals(HttpStatusCode.OK, response.status)
-        return json.decodeFromString(response.bodyAsText())
-    }
 
     @Test
-    fun `sandbox request returns working tokens`() = demoTest {
+    fun `sandbox request returns working tokens`() = maniTest {
         val client = createClient { }
-        val tokens = client.post("/demo").tokens()
+        val tokens = client.startSandbox()
 
         assertTrue(tokens.accessToken.isNotBlank())
         assertTrue(tokens.refreshToken.isNotBlank())
@@ -128,9 +45,9 @@ class DemoRoutingTest {
     }
 
     @Test
-    fun `seeded transactions carry real categories`() = demoTest {
+    fun `seeded transactions carry real categories`() = maniTest {
         val client = createClient { }
-        val tokens = client.post("/demo").tokens()
+        val tokens = client.startSandbox()
 
         val transactions = client.transactions(tokens.accessToken)
 
@@ -147,11 +64,11 @@ class DemoRoutingTest {
     }
 
     @Test
-    fun `two visitors get separate sandboxes`() = demoTest {
+    fun `two visitors get separate sandboxes`() = maniTest {
         val client = createClient { }
 
-        val first = client.post("/demo").tokens()
-        val second = client.post("/demo").tokens()
+        val first = client.startSandbox()
+        val second = client.startSandbox()
 
         assertNotEquals(first.accessToken, second.accessToken)
 
@@ -176,31 +93,34 @@ class DemoRoutingTest {
             single { DemoService(get(), get(), get(), get(), get(), maxLiveSandboxes = 2) }
         }
 
-        demoTest(overrides = listOf(small)) {
+        maniTest(database = DATABASE, overrides = listOf(small)) { mongoUri ->
             val client = createClient { }
 
-            client.post("/demo").tokens()
-            client.post("/demo").tokens()
+            client.startSandbox()
+            client.startSandbox()
 
-            val refused = client.post("/demo")
-            assertEquals(HttpStatusCode.ServiceUnavailable, refused.status)
+            assertEquals(HttpStatusCode.ServiceUnavailable, client.post("/demo").status)
 
             // Третьей песочницы нет: отказ по потолку не должен оставлять за собой половину
             // заведённого пользователя.
-            assertEquals(2, users().count { it.startsWith(DEMO_USERNAME_PREFIX) })
+            assertEquals(2, sandboxNames(mongoUri).size)
         }
     }
 
-    /** Имена песочниц, как их видит база. */
-    private suspend fun users(): List<String> {
-        val client = MongoClient.create("mongodb://${running.current().serverAddress}")
-        return client.use {
-            it
-                .getDatabase("demo-test")
+    /** Имена песочниц, как их видит база: ответ сервера о том, чего он не создал, молчит. */
+    private suspend fun sandboxNames(mongoUri: String): List<String> = MongoClient
+        .create(mongoUri)
+        .use { client ->
+            client
+                .getDatabase(DATABASE)
                 .getCollection<UserDb>(USER_COLLECTION)
                 .find<UserDb>()
                 .toList()
                 .map(UserDb::username)
+                .filter { it.startsWith(DEMO_USERNAME_PREFIX) }
         }
+
+    private companion object {
+        const val DATABASE = "demo-test"
     }
 }

@@ -1,40 +1,6 @@
 package io.github.youndie.mani
 
-import com.ionspin.kotlin.bignum.decimal.toBigDecimal
-import de.flapdoodle.embed.mongo.distribution.Version
-import de.flapdoodle.embed.mongo.transitions.Mongod
-import de.flapdoodle.embed.mongo.transitions.RunningMongodProcess
-import de.flapdoodle.reverse.TransitionWalker
-import io.github.youndie.mani.config.JWTConfig
-import io.github.youndie.mani.config.ManiConfig
-import io.github.youndie.mani.config.MongoConfig
-import io.github.youndie.mani.feature.auth.LoginParams
-import io.github.youndie.mani.feature.auth.Tokens
-import io.github.youndie.mani.feature.transaction.Category
-import io.github.youndie.mani.feature.transaction.Transaction
-import io.github.youndie.mani.security.TokenService
-import io.ktor.client.HttpClient
-import io.ktor.client.request.bearerAuth
-import io.ktor.client.request.get
-import io.ktor.client.request.patch
-import io.ktor.client.request.post
-import io.ktor.client.request.setBody
-import io.ktor.client.statement.HttpResponse
-import io.ktor.client.statement.bodyAsText
-import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
-import io.ktor.http.contentType
-import io.ktor.server.application.install
-import io.ktor.server.routing.routing
-import io.ktor.server.testing.ApplicationTestBuilder
-import io.ktor.server.testing.testApplication
-import kotlinx.datetime.LocalDate
-import kotlinx.serialization.json.Json
-import org.koin.core.context.stopKoin
-import org.koin.ktor.ext.get
-import org.koin.ktor.plugin.Koin
-import kotlin.test.AfterTest
-import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -50,126 +16,6 @@ import kotlin.test.assertEquals
  * проверка смотрит на путь, запись слушает тело.
  */
 class OwnershipTest {
-    private lateinit var running: TransitionWalker.ReachedState<RunningMongodProcess>
-
-    private val config
-        get() =
-            ManiConfig(
-                port = 0,
-                mongo = MongoConfig(host = running.current().serverAddress.toString(), database = "ownership-test"),
-                jwt = JWTConfig(),
-                webRoot = null,
-                development = false,
-            )
-
-    @BeforeTest
-    fun setUp() {
-        running = Mongod.instance().start(Version.V8_0_3)
-    }
-
-    @AfterTest
-    fun tearDown() {
-        stopKoin()
-        running.close()
-    }
-
-    private fun ownershipTest(block: suspend ApplicationTestBuilder.() -> Unit) = testApplication {
-        val maniConfig = config
-        application {
-            configureManiPlugins(maniConfig)
-            install(Koin) {
-                modules(coreModule(maniConfig), mongoStorageModule(maniConfig.mongo))
-            }
-            configureManiAuth(maniConfig, get<TokenService>())
-            routing { maniApiRouting() }
-        }
-        block()
-    }
-
-    /** Тела кодируются вручную: клиентский content-negotiation в зависимостях `:server` не нужен. */
-    private val json = Json { ignoreUnknownKeys = true }
-
-    private suspend fun HttpClient.signIn(name: String, password: String): String {
-        val credentials = json.encodeToString(LoginParams.serializer(), LoginParams(name, password))
-
-        assertEquals(
-            HttpStatusCode.Created,
-            post("/users") {
-                contentType(ContentType.Application.Json)
-                setBody(credentials)
-            }.status,
-        )
-
-        val response = post("/auth") {
-            contentType(ContentType.Application.Json)
-            setBody(credentials)
-        }
-        assertEquals(HttpStatusCode.OK, response.status)
-
-        return json.decodeFromString(Tokens.serializer(), response.bodyAsText()).accessToken
-    }
-
-    private suspend fun HttpClient.createTransaction(token: String, comment: String): Transaction {
-        val response = post("/transactions") {
-            bearerAuth(token)
-            contentType(ContentType.Application.Json)
-            setBody(
-                json.encodeToString(
-                    Transaction.serializer(),
-                    Transaction(
-                        id = "",
-                        amount = "10".toBigDecimal(),
-                        income = false,
-                        date = LocalDate.parse("2026-09-08"),
-                        until = null,
-                        period = Transaction.Period.OneTime,
-                        comment = comment,
-                        category = Category.default,
-                    ),
-                ),
-            )
-        }
-        assertEquals(HttpStatusCode.Created, response.status)
-
-        return json.decodeFromString(Transaction.serializer(), response.bodyAsText())
-    }
-
-    private suspend fun HttpClient.patchTransaction(token: String, path: String, body: Transaction): HttpResponse =
-        patch("/transactions/$path") {
-            bearerAuth(token)
-            contentType(ContentType.Application.Json)
-            setBody(json.encodeToString(Transaction.serializer(), body))
-        }
-
-    private suspend fun HttpClient.transactions(token: String): List<Transaction> {
-        val response = get("/transactions") { bearerAuth(token) }
-        assertEquals(HttpStatusCode.OK, response.status)
-        return json.decodeFromString(response.bodyAsText())
-    }
-
-    private suspend fun HttpClient.createCategory(token: String, name: String): Category {
-        val response = post("/categories") {
-            bearerAuth(token)
-            contentType(ContentType.Application.Json)
-            setBody(json.encodeToString(Category.serializer(), Category(id = "", name = name)))
-        }
-        assertEquals(HttpStatusCode.OK, response.status)
-
-        return json.decodeFromString(Category.serializer(), response.bodyAsText())
-    }
-
-    private suspend fun HttpClient.patchCategory(token: String, path: String, body: Category): HttpResponse =
-        patch("/categories/$path") {
-            bearerAuth(token)
-            contentType(ContentType.Application.Json)
-            setBody(json.encodeToString(Category.serializer(), body))
-        }
-
-    private suspend fun HttpClient.categories(token: String): List<Category> {
-        val response = get("/categories") { bearerAuth(token) }
-        assertEquals(HttpStatusCode.OK, response.status)
-        return json.decodeFromString(response.bodyAsText())
-    }
 
     /**
      * Идентификатор правится по пути, а не по телу.
@@ -180,7 +26,7 @@ class OwnershipTest {
      * снаружи всё выглядело исправным.
      */
     @Test
-    fun `a stranger cannot patch a foreign transaction through the id in the body`() = ownershipTest {
+    fun `a stranger cannot patch a foreign transaction through the id in the body`() = maniTest {
         val client = createClient { }
 
         val owner = client.signIn("owner", "hunter22")
@@ -210,7 +56,7 @@ class OwnershipTest {
      * а ошибка одна — принадлежность проверялась по пути, переименовывалось названное телом.
      */
     @Test
-    fun `a stranger cannot rename a foreign category through the id in the body`() = ownershipTest {
+    fun `a stranger cannot rename a foreign category through the id in the body`() = maniTest {
         val client = createClient { }
 
         val owner = client.signIn("owner", "hunter22")
