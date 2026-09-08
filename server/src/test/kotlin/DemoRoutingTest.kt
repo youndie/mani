@@ -7,6 +7,7 @@ import io.github.youndie.mani.feature.demo.data.DemoService
 import io.github.youndie.mani.feature.transaction.Category
 import io.github.youndie.mani.feature.user.data.USER_COLLECTION
 import io.github.youndie.mani.feature.user.data.UserDb
+import io.ktor.client.request.bearerAuth
 import io.ktor.client.request.post
 import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.flow.toList
@@ -122,5 +123,38 @@ class DemoRoutingTest {
 
     private companion object {
         const val DATABASE = "demo-test"
+    }
+
+    /**
+     * Засев СВОЕГО аккаунта — не то же, что песочница.
+     *
+     * Песочница заводит нового пользователя и сама выдаёт первый токен; здесь пользователь уже
+     * есть, и данные должны лечь ему. Отсюда и проверка токена на маршруте: без неё любой
+     * прохожий наполнял бы чужой аккаунт.
+     */
+    @Test
+    fun `seeding fills the caller's own account`() = maniTest {
+        val client = createClient { }
+        val token = client.signIn("emptyhanded", "hunter22")
+
+        assertEquals(emptyList(), client.transactions(token))
+
+        val seeded = client.post("/demo/seed") { bearerAuth(token) }
+        assertEquals(HttpStatusCode.Created, seeded.status)
+
+        val rules = client.transactions(token)
+        assertEquals(DemoSeed.rules.size, rules.size)
+        assertEquals(DemoSeed.rules.map { it.comment }.toSet(), rules.map { it.comment }.toSet())
+
+        // И категории настоящие, а не подменённые умолчанием.
+        assertTrue(rules.none { it.category == Category.default }, "категории сида не доехали")
+    }
+
+    /** Без токена засевать нечего: маршрут стоит под проверкой, в отличие от `POST /demo`. */
+    @Test
+    fun `seeding without a token is refused`() = maniTest {
+        val client = createClient { }
+
+        assertEquals(HttpStatusCode.Unauthorized, client.post("/demo/seed").status)
     }
 }
