@@ -21,10 +21,11 @@ class TokenStorageImpl : TokenStorage {
         file.readText().takeIf { it.isNotBlank() }
     } catch (e: Exception) {
         null
-    }?.split(SEPARATOR)?.let { tokens ->
-        val (access, refresh) = tokens
-        BearerTokens(access, refresh)
-    }
+    }?.split(SEPARATOR)
+        // Оборванная запись оставляет в файле одну строку вместо двух. Без этой проверки
+        // деструктуризация роняла приложение на старте — мимо задуманного «нет токена — не беда».
+        ?.takeIf { it.size == 2 }
+        ?.let { (access, refresh) -> BearerTokens(access, refresh) }
 
     override fun save(bearerTokens: BearerTokens) {
         file.writeText("${bearerTokens.accessToken}$SEPARATOR${bearerTokens.refreshToken}")
