@@ -1,7 +1,16 @@
 name: Deploy
 
+# Выкат идёт ПОСЛЕ прогона тестов, а не параллельно с ним.
+#
+# Раньше `deploy` висел на `push` в `main`, а `Test` — только на `pull_request`: коммит, приехавший
+# в `main`, разворачивался на стенд, ни разу не проверенный в том виде, в каком разворачивается.
+# Теперь запуск цепляется за завершение `Test` на `main` и стартует только на зелёном.
+#
+# `workflow_dispatch` остаётся: ручной выкат нужен, когда чинят сам стенд.
 on:
-  push:
+  workflow_run:
+    workflows: [ "Test" ]
+    types: [ completed ]
     branches: [ main ]
   workflow_dispatch:
 
@@ -11,9 +20,17 @@ on:
 jobs:
   build:
     runs-on: ubuntu-24.04
+    # Ручной запуск идёт всегда; запуск по цепочке — только если `Test` завершился успехом.
+    # Без этого условия красный прогон точно так же приводил бы к выкату, только позже.
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     steps:
       - name: Checkout sources
         uses: actions/checkout@v7
+        with:
+          # Тот самый коммит, который проверяли. `workflow_run` по умолчанию берёт голову ветки
+          # по умолчанию, а не то, из-за чего запустился, — и выкатить можно было бы не то,
+          # что проверено.
+          ref: ${{ github.event.workflow_run.head_sha || github.ref }}
 
       - name: Setup kubectl
         uses: azure/setup-kubectl@v4
