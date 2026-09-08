@@ -270,7 +270,7 @@
   - Якоря: `composeApp/.../feature/auth/domain/SignupUseCase.kt`,
     `server-common/.../config/ManiConfig.kt`, `shared/build.gradle.kts`, `server-common/.../ManiApp.kt`
 
-- [ ] **M3-04 · P3 · XS** — `ChartViewModel` берёт репозиторий валюты напрямую
+- [x] **M3-04 · P3 · XS** — `ChartViewModel` берёт репозиторий валюты напрямую
   - Сейчас: единственная VM, минующая `GetCurrentCurrencyUseCase`; при этом `GetChartUseCase`
     существует и зарегистрирован, но VM его не использует.
   - Решение: VM через оба use case, как остальные; либо признать, что use case-слой для чтения
