@@ -24,11 +24,14 @@ class AuthViewModelTest : KoinTest {
 
     @BeforeTest
     fun setUp() {
+        // Диспетчер подменяется ДО построения модели: её `init` уже уходит в `viewModelScope`,
+        // то есть на Main, и построенная раньше подмены модель стартует на настоящем.
+        Dispatchers.setMain(StandardTestDispatcher())
+
         startKoin {
             modules(testModule { useCaseSuccess })
         }
         viewModel = get()
-        Dispatchers.setMain(StandardTestDispatcher())
     }
 
     @Test

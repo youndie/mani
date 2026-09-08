@@ -44,12 +44,14 @@ class TransactionsViewModelTest : KoinTest {
 
     @BeforeTest
     fun setUp() {
-        // Start Koin
+        // Диспетчер подменяется ДО построения модели: её `init` уже уходит в `viewModelScope`,
+        // то есть на Main, и построенная раньше подмены модель стартует на настоящем.
+        Dispatchers.setMain(StandardTestDispatcher())
+
         startKoin {
             modules(testModule(FakeTransactionsRepository()))
         }
         viewModel = get()
-        Dispatchers.setMain(StandardTestDispatcher())
     }
 
     @Test
@@ -79,12 +81,14 @@ class TransactionsViewModelErrorTest : KoinTest {
 
     @BeforeTest
     fun setUp() {
-        // Start Koin
+        // Диспетчер подменяется ДО построения модели: её `init` уже уходит в `viewModelScope`,
+        // то есть на Main, и построенная раньше подмены модель стартует на настоящем.
+        Dispatchers.setMain(StandardTestDispatcher())
+
         startKoin {
             modules(testModule(FakeTransactionsRepository({ true })))
         }
         viewModel = get()
-        Dispatchers.setMain(StandardTestDispatcher())
     }
 
     /**
