@@ -104,6 +104,13 @@ class ManiApiTest {
                 )
             }.body()
 
+        suspend fun postTransaction(auth: String, body: Transaction): HttpResponse = http
+            .post("/transactions") {
+                header(HttpHeaders.Authorization, auth)
+                contentType(ContentType.Application.Json)
+                setBody(body)
+            }
+
         suspend fun patchTransaction(auth: String, path: String, body: Transaction): HttpResponse = http
             .patch("/transactions/$path") {
                 header(HttpHeaders.Authorization, auth)
@@ -397,6 +404,51 @@ class ManiApiTest {
 
             assertEquals(HttpStatusCode.BadRequest, register("", "").status)
             assertEquals(HttpStatusCode.BadRequest, register("demo-1a2b3c4d", "hunter22").status)
+        }
+    }
+
+    /**
+     * Маршруты зовут проверку правила, а не просто имеют её рядом.
+     *
+     * Границы разобраны в `RulesTest`; здесь важно, что отказ доезжает до ответа и что запись
+     * при этом не заводится. Форма клиента половину этого не допускает — но форма это удобство,
+     * а не граница: за ней открытый HTTP.
+     */
+    @Test
+    fun `a rule the product cannot honour is refused`() = runBlocking {
+        withMani {
+            val auth = signIn("rules", "hunter22")
+
+            val sound =
+                Transaction(
+                    id = "",
+                    amount = "10".toBigDecimal(),
+                    income = false,
+                    date = LocalDate.parse("2026-09-08"),
+                    until = null,
+                    period = Transaction.Period.Month,
+                    comment = "Rent",
+                    category = Category.default,
+                )
+
+            val zero = postTransaction(auth, sound.copy(amount = "0".toBigDecimal()))
+            assertEquals(HttpStatusCode.BadRequest, zero.status)
+            assertEquals("Amount must be greater than zero", zero.bodyAsText())
+
+            val backwards = postTransaction(auth, sound.copy(until = LocalDate.parse("2026-09-07")))
+            assertEquals(HttpStatusCode.BadRequest, backwards.status)
+
+            val nameless =
+                http.post("/categories") {
+                    header(HttpHeaders.Authorization, auth)
+                    contentType(ContentType.Application.Json)
+                    setBody(Category(id = "", name = " "))
+                }
+            assertEquals(HttpStatusCode.BadRequest, nameless.status)
+
+            // Ничего из отвергнутого не осело в базе.
+            assertEquals(emptyList(), transactions(auth))
+            assertEquals(emptyList(), categories(auth))
         }
     }
 }

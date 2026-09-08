@@ -2,6 +2,7 @@ package io.github.youndie.mani.feature.category
 
 import io.github.youndie.mani.config.JWTConfig
 import io.github.youndie.mani.feature.transaction.Category
+import io.github.youndie.mani.feature.transaction.categoryProblem
 import io.github.youndie.mani.feature.user.currentUserId
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.auth.authenticate
@@ -24,7 +25,15 @@ fun Routing.categoryRouting() {
         }
 
         post<CategoryResource> {
-            call.respond(categoryRepository.create(call.receive<Category>(), call.currentUserId()))
+            val category = call.receive<Category>()
+
+            val problem = categoryProblem(category)
+            if (problem != null) {
+                call.respond(HttpStatusCode.BadRequest, problem)
+                return@post
+            }
+
+            call.respond(categoryRepository.create(category, call.currentUserId()))
         }
 
         get<CategoryResource.ById> { path ->
@@ -52,7 +61,15 @@ fun Routing.categoryRouting() {
             // Идентификатор — из пути, как и у транзакций: принадлежность проверялась по нему,
             // а переименовывалось то, что назвало тело. Достаточно было прислать `PATCH` на свою
             // категорию, положив в тело чужую, — и переименовывалась чужая.
-            call.respond(categoryRepository.update(call.receive<Category>().copy(id = path.id), userId))
+            val category = call.receive<Category>().copy(id = path.id)
+
+            val problem = categoryProblem(category)
+            if (problem != null) {
+                call.respond(HttpStatusCode.BadRequest, problem)
+                return@patch
+            }
+
+            call.respond(categoryRepository.update(category, userId))
         }
 
         delete<CategoryResource.ById> { path ->

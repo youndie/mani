@@ -24,6 +24,13 @@ fun Routing.transactionRouting() {
     authenticate(jwtConfig.name) {
         post<TransactionResource> {
             val transaction = call.receive<Transaction>()
+
+            val problem = transactionProblem(transaction)
+            if (problem != null) {
+                call.respond(HttpStatusCode.BadRequest, problem)
+                return@post
+            }
+
             val userId = call.currentUserId()
 
             // Категории читаются здесь, а не в репозитории: они лежат в документе пользователя,
@@ -57,6 +64,13 @@ fun Routing.transactionRouting() {
             // `path.id`. Достаточно было прислать `PATCH /transactions/<своя>` с чужим `id`
             // в теле — и чужая запись переписывалась, забирая себе `userId` вызывающего.
             val new = call.receive<Transaction>().copy(id = path.id)
+
+            val problem = transactionProblem(new)
+            if (problem != null) {
+                call.respond(HttpStatusCode.BadRequest, problem)
+                return@patch
+            }
+
             val userId = call.currentUserId()
             val old = transactionRepository.getById(path.id)
 

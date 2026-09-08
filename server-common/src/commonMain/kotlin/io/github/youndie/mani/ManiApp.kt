@@ -113,10 +113,11 @@ fun Application.configureManiPlugins(config: ManiConfig) {
     install(Resources)
     install(ContentNegotiation) {
         json(
-            Json {
-                prettyPrint = true
-                isLenient = true
-            },
+            // Без `isLenient`: он разрешал телу приходить без кавычек и с прочими вольностями,
+            // то есть сервер брался угадывать, что имел в виду отправитель. Наши клиенты пишут
+            // JSON сериализатором, а не руками, так что послабление обслуживало только того,
+            // кто ходит сюда мимо них.
+            Json { prettyPrint = true },
         )
     }
 }
