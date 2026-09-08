@@ -1,81 +1,84 @@
 ---
 id: screen-history
-title: История — лента за месяц
+title: History — the month's ledger
 type: client_screen
 platform: [android, ios, desktop, web]
 status: active
 entry:
-  all: "маршрут ManiScreen.History"
+  all: "the ManiScreen.History route"
 parent_feature: feature-transactions
 calls_api:
   - endpoint-transactions
 source: composeApp/src/commonMain/kotlin/io/github/youndie/mani/feature/transaction/ui/component/
 ---
 
-# Экран: история
+# Screen: history
 
-Та же лента, что на главном, но с итогом за текущий месяц вместо прогноза наперёд.
+The same ledger as on the main screen, but with the current month's total instead of the forecast
+ahead.
 
-## 0a. Код
+## 0a. Code anchors
 
-| Что | Файл |
+| What | File |
 |---|---|
-| ViewModel | `composeApp/.../feature/transaction/ui/TransactionsViewModel.kt` |
-| Состояние | `composeApp/.../feature/transaction/ui/model/TransactionListUiState.kt` |
-| Композиция | `composeApp/.../feature/transaction/ui/component/TransactionsListComponent.kt` |
-| Строка правила | `composeApp/.../feature/transaction/ui/component/TransactionItem.kt` |
-| Пустое состояние | `composeApp/.../feature/transaction/ui/component/TransactionsEmpty.kt` |
-| Группировка по дням | `composeApp/.../feature/transaction/ui/model/TransactionsByDays.kt` |
+| View model | `composeApp/.../feature/transaction/ui/TransactionsViewModel.kt` |
+| State | `composeApp/.../feature/transaction/ui/model/TransactionListUiState.kt` |
+| Composition | `composeApp/.../feature/transaction/ui/component/TransactionsListComponent.kt` |
+| The rule row | `composeApp/.../feature/transaction/ui/component/TransactionItem.kt` |
+| Empty state | `composeApp/.../feature/transaction/ui/component/TransactionsEmpty.kt` |
+| Grouping by day | `composeApp/.../feature/transaction/ui/model/TransactionsByDays.kt` |
 
-## 0. Точка входа и видимость
+## 0. Entry point and visibility
 
-* **Точка входа:** «History» с главного экрана.
-* **Показывается:** только авторизованному. Заголовок панели — `History`, стрелка «назад» есть
-  (`History` не корневой экран).
+* **Entry point:** "History" from the main screen.
+* **Shown to:** authenticated users only. The bar's title is `History` and there is a back arrow
+  (`History` is not a root screen).
 
-## 1. Состояния
+## 1. Screen states
 
-`TransactionListUiState` реализует общий `CommonUiState<TransactionsByDays>` — `load()`,
-`showError()`, `showData()` вместо трёх независимых флагов:
+`TransactionListUiState` implements the shared `CommonUiState<TransactionsByDays>` — `load()`,
+`showError()`, `showData()` instead of three independent flags:
 
-* `loading` — загрузка;
-* `data` пуст — пустое состояние;
-* `data` заполнен — лента по дням, `dayBalances` — тот же баланс на конец дня, что на главном;
-* `monthTitle` / `monthChange` / `balanceToday` — «August so far»: сколько накопилось за текущий
-  месяц и каков баланс сегодня;
-* `selectedTransactions` + `showDeleteDialog` — выбор и удаление;
-* `showingCacheFrom != null` — показан кэш, с отметкой времени;
-* `unreachable != null` — показать нечего;
-* `errorMessage` — прочие отказы.
+* `loading` — loading;
+* `data` empty — the empty state;
+* `data` populated — the ledger by day; `dayBalances` is the same end-of-day balance as on the main
+  screen;
+* `monthTitle` / `monthChange` / `balanceToday` — "August so far": how much has accumulated this
+  month and what today's balance is;
+* `selectedTransactions` + `showDeleteDialog` — selection and deletion;
+* `showingCacheFrom != null` — the cache is shown, with a timestamp;
+* `unreachable != null` — there is nothing to show;
+* `errorMessage` — other failures.
 
-## 2. Обращения к API
+## 2. API integration
 
-| Вызов | Контракт | Документ |
+| Call | Contract | Endpoint document |
 |---|---|---|
 | `GET /transactions` | `TransactionResource` | [endpoint-transactions](../api/endpoint-transactions.md) |
 | `DELETE /transactions/{id}` | `TransactionResource.ById` | [endpoint-transactions](../api/endpoint-transactions.md) |
 
-## 3. Инициализация
+## 3. Initialisation
 
-Входных параметров нет; список запрашивается при открытии. Разбор ответов — тот же, что у
-[screen-main](screen-main.md) §3, включая обе ветки «нет сети».
+No input parameters; the list is requested on open. The responses are handled exactly as in
+[screen-main](screen-main.md) §3, including both "no network" branches.
 
-## 4. Элементы
+## 4. UI elements
 
-### 4.1. Итог месяца
+### 4.1. The month's total
 
-`monthTitle` + `monthChange` + `balanceToday`. Это единственное, чем экран отличается от ленты
-главного: там смотрят вперёд, здесь — на уже прошедшее.
+`monthTitle` + `monthChange` + `balanceToday`. This is the only thing that distinguishes the screen
+from the main ledger: there one looks ahead, here at what has already happened.
 
-### 4.2. Лента по дням
+### 4.2. The ledger by day
 
-Та же группировка и тот же `dayBalances`, что на главном, — считаются по всей симуляции.
+The same grouping and the same `dayBalances` as on the main screen — both computed over the whole
+simulation.
 
-### 4.3. Выбор и удаление
+### 4.3. Selection and deletion
 
-Как на главном: долгое нажатие включает выбор, удаление идёт через подтверждение.
+As on the main screen: a long press turns on selection, and deletion goes through a confirmation.
 
-## 5. Навигация
+## 5. Navigation
 
-* правило ──▶ `screen-transaction-form` (правка)
-* «назад» ──▶ `screen-main`
+* a rule ──▶ `screen-transaction-form` (edit)
+* "back" ──▶ `screen-main`

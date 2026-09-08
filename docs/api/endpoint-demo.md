@@ -1,6 +1,6 @@
 ---
 id: endpoint-demo
-title: Демо-песочница
+title: Demo sandbox
 type: api_endpoints
 status: active
 services:
@@ -12,81 +12,83 @@ contract_source:
 parent_feature: feature-demo-sandbox
 ---
 
-# API: демо-песочница
+# API: demo sandbox
 
-> **Полный перечень маршрутов** ресурса `/demo`. Сгенерированной схемы у продукта нет
-> (см. [endpoint-auth](endpoint-auth.md)), этот документ и есть справочник.
+> **The complete route reference** for the `/demo` resource. The product has no generated schema
+> (see [endpoint-auth](endpoint-auth.md)); this document *is* the reference.
 >
-> `POST /demo` выдаёт токены и потому является **входом в приложение** наравне с `POST /auth` —
-> разбор самих токенов и правила сессии живут в [endpoint-auth](endpoint-auth.md).
+> `POST /demo` returns tokens and is therefore **a way into the app** on a par with `POST /auth` —
+> the tokens themselves and the session rules are covered in [endpoint-auth](endpoint-auth.md).
 
-## Маршруты — все
+## Routes — all of them
 
-| Метод и путь | Ярус | Назначение |
+| Method and path | Tier | Purpose |
 |---|---|---|
-| `POST /demo` | открытый | завести песочницу и получить токены; **тела у запроса нет** |
-| `POST /demo/seed` | Bearer access | засеять тем же набором **свой** аккаунт |
+| `POST /demo` | open | create a sandbox and get tokens; **the request has no body** |
+| `POST /demo/seed` | Bearer access | seed **your own** account with the same data set |
 
-Разные ярусы не по недосмотру: создание песочницы как раз и выдаёт первый токен, а засев своего
-аккаунта — операция владельца.
+The differing tiers are not an oversight: creating a sandbox is precisely what issues the first
+token, while seeding your own account is an owner's operation.
 
-## Обработчики
+## Handlers
 
-| Маршрут | Обработчик |
+| Route | Handler |
 |---|---|
-| оба | `server-common/.../feature/demo/DemoRouting.kt` |
-| разворачивание песочницы | `server-common/.../feature/demo/data/DemoService.kt:47` (`createSandbox`) |
-| засев | `server-common/.../feature/demo/data/DemoService.kt` (`seed`) |
-| уборка и потолок | `server-common/.../feature/demo/data/DemoSandboxCleaner.kt` |
-| сам набор данных | `shared/.../feature/demo/DemoSeed.kt` |
+| both | `server-common/.../feature/demo/DemoRouting.kt` |
+| unrolling the sandbox | `server-common/.../feature/demo/data/DemoService.kt:47` (`createSandbox`) |
+| seeding | `server-common/.../feature/demo/data/DemoService.kt` (`seed`) |
+| the sweep and the ceiling | `server-common/.../feature/demo/data/DemoSandboxCleaner.kt` |
+| the data set itself | `shared/.../feature/demo/DemoSeed.kt` |
 
-## Тела запросов и ответов
+## Request and response bodies
 
-| Что | Класс |
+| What | Class |
 |---|---|
-| ответ `POST /demo` | `shared/.../feature/auth/Tokens.kt` |
-| набор, который разворачивается | `shared/.../feature/demo/DemoSeed.kt` (`DemoRule`) |
+| response of `POST /demo` | `shared/.../feature/auth/Tokens.kt` |
+| the set that gets unrolled | `shared/.../feature/demo/DemoSeed.kt` (`DemoRule`) |
 
-`DemoSeed` в контракте, а не на сервере, потому что витрина рисует по нему образец прогноза **до
-всякого входа** — тем же кодом, каким сервер разворачивает песочницу.
+`DemoSeed` lives in the contract rather than on the server because the welcome screen draws a sample
+forecast from it **before anyone has signed in** — with the same code the server unrolls the sandbox
+with.
 
-## Ответы
+## Responses
 
 ### `POST /demo`
 
-| Условие | Код | Тело |
+| Condition | Status | Body |
 |---|---|---|
-| песочница заведена | `201` | `Tokens` |
-| живых песочниц не меньше 500 | `503` | `The demo is full right now, try again later` |
-| хранилище отказало на любом шаге | `500` | пусто |
+| the sandbox was created | `201` | `Tokens` |
+| there are at least 500 live sandboxes | `503` | `The demo is full right now, try again later` |
+| storage refused at any step | `500` | empty |
 
-`503`, а не `500`: сервер исправен, мест нет — и через час, скорее всего, будут. Текст уходит на
-витрину как есть и показывается человеку.
+`503` rather than `500`: the server is fine, there is no room — and in an hour there probably will
+be. The text goes to the welcome screen as is and is shown to a person.
 
-Три источника `500` (`DemoService.Outcome.Refused`): не удалось подобрать свободное имя, не удалось
-записать пользователя, не удалось выдать ему токены.
+Three sources of the `500` (`DemoService.Outcome.Refused`): no free name could be found, the user
+could not be written, or tokens could not be issued for them.
 
 ### `POST /demo/seed`
 
-| Условие | Код | Тело |
+| Condition | Status | Body |
 |---|---|---|
-| засеяно | `201` | пусто |
-| токена нет или он не access | `401` | `Token is not valid or has expired` |
+| seeded | `201` | empty |
+| no token, or not an access token | `401` | `Token is not valid or has expired` |
 
-Идемпотентности нет: два вызова кладут набор дважды.
+There is no idempotency: two calls put the set in twice.
 
-### Общее
+### Common
 
-| Условие | Код | Тело |
+| Condition | Status | Body |
 |---|---|---|
-| необработанное исключение | `500` | пусто (строка уходит в stdout сервера) |
+| an unhandled exception | `500` | empty (a line goes to the server's stdout) |
 
-## Особенности
+## Quirks
 
-* **Уборка идёт внутри `POST /demo`, до проверки потолка.** Планировщика в сервере нет ни в одной
-  сборке. Значит первый запрос после долгого затишья оплачивает удаление всего накопившегося
-  мусора — заметного времени это не стоит только потому, что песочниц единицы.
-* **Отказ уборки не отказывает посетителю.** `sweep()` обёрнут так, что его провал даёт «число
-  неизвестно», а неизвестное число потолок не запрещает.
-* **`POST /demo` не требует ни ввода, ни входа** — это и делает потолок обязательным, а не
-  желательным: у базы стенда 256 МиБ диска.
+* **The sweep runs inside `POST /demo`, before the ceiling is checked.** Neither build has a
+  scheduler. That means the first request after a long quiet spell pays for deleting all the
+  accumulated rubbish — which costs no noticeable time only because there are a handful of
+  sandboxes.
+* **A failing sweep does not fail the visitor.** `sweep()` is wrapped so that its failure yields
+  "the count is unknown", and an unknown count does not trip the ceiling.
+* **`POST /demo` requires neither input nor a sign-in** — which is what makes the ceiling mandatory
+  rather than desirable: the deployed instance's database has 256 MiB of disk.

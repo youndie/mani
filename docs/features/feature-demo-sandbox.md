@@ -1,6 +1,6 @@
 ---
 id: feature-demo-sandbox
-title: Демо-песочница
+title: The demo sandbox
 type: feature
 status: active
 owner: unassigned
@@ -18,169 +18,174 @@ api:
 tags: [demo, onboarding]
 ---
 
-# Демо-песочница
+# The demo sandbox
 
-## 1. Обзор
+## 1. Overview
 
-Посетитель витрины нажимает **«Try the demo»** — и оказывается в заполненном приложении: семь
-правил, пять категорий, история за два месяца назад и прогноз, в котором деньги действительно
-кончаются. Ни имени, ни пароля он не вводил: сервер завёл ему **одноразового пользователя** и
-вернул токены.
+A visitor to the welcome screen presses **"Try the demo"** and lands in a populated app: seven
+rules, five categories, two months of history behind them, and a forecast in which the money really
+does run out. They typed neither a name nor a password: the server created a **throwaway user** for
+them and returned tokens.
 
-Это не общий аккаунт, и разница принципиальная. Общий означает, что любой правит и удаляет чужое;
-именно так демо однажды пришло к данным вида «mani minuz −3 $ каждый день» и строке «no zero
-events» вместо прогноза. Здесь у каждого посетителя своя песочница, которая через сутки исчезает.
+This is not a shared account, and the difference matters. Shared means anyone edits and deletes
+anyone else's data; that is exactly how the demo once arrived at entries like "mani minuz −3 $ every
+day" and the line "no zero events" instead of a forecast. Here every visitor gets a sandbox of their
+own, which disappears after a day.
 
-Тот же набор данных доступен и человеку с настоящим аккаунтом: пустой главный экран предлагает
-заполнить его — заводить второй аккаунт ради того, чтобы посмотреть на заполненное приложение, не
-нужно.
+The same data set is available to someone with a real account: an empty main screen offers to
+populate it — there is no need to create a second account just to see what a populated app looks
+like.
 
-## 2. Правила
+## 2. Business rules
 
-* Песочница — обычный пользователь с именем, начинающимся на `demo-`. Регистрация такие имена
-  **запрещает**: заняв префикс руками, можно было завести аккаунт, который через сутки унесёт
-  уборщик.
-* Учётные данные песочницы берутся из криптографического источника, а не из счётчика.
-* Живёт **сутки** (`SANDBOX_LIFETIME_SECONDS`). Дольше песочницу никто не смотрит.
-* Одновременно живых — не больше 500 (`MAX_LIVE_SANDBOXES`). Потолок отсекает поток, а не
-  посетителя: живых на витрине единицы.
-* Мест нет — `503` с текстом на витрину, а не `500`: сервер исправен.
-* Возраст берётся **из самого идентификатора**: первые четыре байта `ObjectId` — секунды Unix.
-  Отдельного поля с датой не заводится.
-* Уборка запускается **при создании новой песочницы**, планировщика в сервере нет ни в одной
-  сборке.
-* Уборка сначала удаляет транзакции, потом владельца. Обратный порядок при обрыве оставил бы
-  транзакции без пользователя — их больше нечем найти и нечем удалить.
-* Отказ уборки **не** стоит посетителю входа: мусор подождёт следующего вызова.
-* Сид разворачивается в транзакции ровно одним кодом (`DemoSeed.transactions`), общим для сервера
-  и витрины.
+* A sandbox is an ordinary user whose name starts with `demo-`. Registration **forbids** such names:
+  by taking the prefix by hand one could create an account that the sweep carries off a day later.
+* The sandbox credentials come from a cryptographic source, not from a counter.
+* It lives **one day** (`SANDBOX_LIFETIME_SECONDS`). Nobody looks at a sandbox for longer.
+* At most 500 live at once (`MAX_LIVE_SANDBOXES`). The ceiling cuts off a flood, not a visitor:
+  live sandboxes on the welcome screen number in the single digits.
+* No room — `503` with a text for the welcome screen, not `500`: the server is fine.
+* The age is taken **from the identifier itself**: the first four bytes of an `ObjectId` are Unix
+  seconds. No separate date field is introduced.
+* The sweep runs **when a new sandbox is created**; neither build has a scheduler.
+* The sweep deletes the transactions first and the owner second. The reverse order, interrupted
+  halfway, would leave transactions with no user — nothing left to find them by and nothing to
+  delete them with.
+* A failing sweep does **not** cost the visitor their way in: the rubbish waits for the next call.
+* The seed is unrolled into transactions by exactly one piece of code (`DemoSeed.transactions`),
+  shared between the server and the welcome screen.
 
-## 3. Ход
+## 3. Flow
 
 ```
-витрина ──POST /demo──▶ sweep() ──▶ мест хватает?
-                                     ├─нет──▶ 503 «The demo is full right now, try again later»
-                                     └─да───▶ demo-<случайное> заведён
-                                              ├─ категории сида (первыми: правилу нужен их id)
-                                              ├─ правила сида
-                                              └─ 201 + Tokens ──▶ главный экран
+welcome ──POST /demo──▶ sweep() ──▶ is there room?
+                                     ├─no───▶ 503 "The demo is full right now, try again later"
+                                     └─yes──▶ demo-<random> created
+                                              ├─ the seed's categories (first: a rule needs their id)
+                                              ├─ the seed's rules
+                                              └─ 201 + Tokens ──▶ main screen
 
-пустой экран ──POST /demo/seed──▶ тот же сид в СВОЙ аккаунт ──▶ 201
+empty screen ──POST /demo/seed──▶ the same seed into YOUR OWN account ──▶ 201
 ```
 
-Категории заводятся **первыми**: у правила сида есть только имя категории, а транзакции нужен
-идентификатор, который появляется в момент создания.
+The categories are created **first**: a seed rule carries only a category name, while a transaction
+needs an id, and the id appears at creation time.
 
-## 4. Код
+## 4. Code anchors
 
-| Сервис | Код |
+| Service | Code |
 |---|---|
-| shared | `shared/src/commonMain/kotlin/io/github/youndie/mani/feature/demo/DemoSeed.kt` — сам набор и его развёртка |
-| shared | `shared/src/commonMain/kotlin/io/github/youndie/mani/feature/demo/DemoResource.kt` — пути |
-| server-common | `server-common/src/commonMain/kotlin/io/github/youndie/mani/feature/demo/DemoRouting.kt` — два маршрута |
-| server-common | `server-common/src/commonMain/kotlin/io/github/youndie/mani/feature/demo/data/DemoService.kt` — разворачивание песочницы |
-| server-common | `server-common/src/commonMain/kotlin/io/github/youndie/mani/feature/demo/data/DemoSandboxCleaner.kt` — уборка, потолок, возраст по `ObjectId` |
-| server-common | `server-common/src/commonMain/kotlin/io/github/youndie/mani/feature/user/Credentials.kt` — запрет префикса при регистрации |
-| composeApp | `composeApp/src/commonMain/kotlin/io/github/youndie/mani/feature/auth/domain/StartDemoUseCase.kt` — вход с витрины |
-| composeApp | `composeApp/src/commonMain/kotlin/io/github/youndie/mani/feature/demo/domain/SeedDemoDataUseCase.kt` — засев своего аккаунта |
+| shared | `shared/src/commonMain/kotlin/io/github/youndie/mani/feature/demo/DemoSeed.kt` — the set itself and its unrolling |
+| shared | `shared/src/commonMain/kotlin/io/github/youndie/mani/feature/demo/DemoResource.kt` — the paths |
+| server-common | `server-common/src/commonMain/kotlin/io/github/youndie/mani/feature/demo/DemoRouting.kt` — the two routes |
+| server-common | `server-common/src/commonMain/kotlin/io/github/youndie/mani/feature/demo/data/DemoService.kt` — unrolling the sandbox |
+| server-common | `server-common/src/commonMain/kotlin/io/github/youndie/mani/feature/demo/data/DemoSandboxCleaner.kt` — the sweep, the ceiling, the age from the `ObjectId` |
+| server-common | `server-common/src/commonMain/kotlin/io/github/youndie/mani/feature/user/Credentials.kt` — the prefix ban at registration |
+| composeApp | `composeApp/src/commonMain/kotlin/io/github/youndie/mani/feature/auth/domain/StartDemoUseCase.kt` — entering from the welcome screen |
+| composeApp | `composeApp/src/commonMain/kotlin/io/github/youndie/mani/feature/demo/domain/SeedDemoDataUseCase.kt` — seeding your own account |
 | composeApp | `composeApp/src/commonMain/kotlin/io/github/youndie/mani/feature/main/MainViewModel.kt` — `onFillWithDemoDataClicked` |
 
-## 5. Сценарии
+## 5. Scenarios (BDD)
 
-### Scenario: посетитель получает свою песочницу
+### Scenario: a visitor gets a sandbox of their own
 
-* **Given:** места есть.
-* **When:** `POST /demo` без тела.
-* **Then:** `201` с рабочей парой токенов; с ними сразу читается заполненный список правил.
+* **Given:** there is room.
+* **When:** `POST /demo` with no body.
+* **Then:** `201` with a working token pair; with those, a populated rule list reads back
+  immediately.
 * **Automated:** `DemoRoutingTest`
 
-### Scenario: двум посетителям достаются разные песочницы
+### Scenario: two visitors get separate sandboxes
 
-* **Given:** два запроса подряд.
-* **When:** оба зовут `POST /demo`.
-* **Then:** заведены **два разных** пользователя, и правки одного не видны другому.
+* **Given:** two requests in a row.
+* **When:** both call `POST /demo`.
+* **Then:** **two different** users are created, and one's edits are invisible to the other.
 * **Automated:** `DemoRoutingTest`
 
-### Scenario: песочниц больше нет
+### Scenario: there are no sandboxes left
 
-* **Given:** живых песочниц столько, сколько стенд готов держать.
+* **Given:** as many live sandboxes as the deployed instance is willing to hold.
 * **When:** `POST /demo`.
-* **Then:** `503` с телом `The demo is full right now, try again later`, и ни одного пользователя
-  не заведено.
+* **Then:** `503` with the body `The demo is full right now, try again later`, and not one user is
+  created.
 * **Automated:** `DemoRoutingTest`
 
-### Scenario: у правил песочницы категории настоящие
+### Scenario: the sandbox's rules carry real categories
 
-* **Given:** только что заведённая песочница.
-* **When:** читается её список правил.
-* **Then:** у каждого правила категория с выданным сервером идентификатором, а не синтетическая из
-  сида.
+* **Given:** a freshly created sandbox.
+* **When:** its rule list is read.
+* **Then:** every rule carries a category with a server-issued id, not the synthetic one from the
+  seed.
 * **Automated:** `DemoRoutingTest`
 
-### Scenario: просроченная песочница уходит вместе с правилами
+### Scenario: an expired sandbox goes away together with its rules
 
-* **Given:** песочница старше суток.
-* **When:** приходит следующий `POST /demo` и запускается уборка.
-* **Then:** удалены и её транзакции, и сам пользователь.
+* **Given:** a sandbox older than a day.
+* **When:** the next `POST /demo` arrives and the sweep runs.
+* **Then:** both its transactions and the user itself are deleted.
 * **Automated:** `DemoSandboxCleanerTest`
 
-### Scenario: свежая песочница остаётся
+### Scenario: a fresh sandbox stays
 
-* **Given:** песочница моложе суток.
-* **When:** уборка проходит.
-* **Then:** она не тронута.
+* **Given:** a sandbox younger than a day.
+* **When:** the sweep runs.
+* **Then:** it is untouched.
 * **Automated:** `DemoSandboxCleanerTest`
 
-### Scenario: уборка ищет только песочницы
+### Scenario: the sweep looks only for sandboxes
 
-* **Given:** в базе есть и настоящие пользователи, и песочницы.
-* **When:** уборка проходит.
-* **Then:** запрашиваются только имена с префиксом `demo-`; настоящих пользователей уборка не
-  видит вовсе.
+* **Given:** the database holds both real users and sandboxes.
+* **When:** the sweep runs.
+* **Then:** only names with the `demo-` prefix are queried; the sweep does not see real users at
+  all.
 * **Automated:** `DemoSandboxCleanerTest`
 
-### Scenario: возраст читается из идентификатора
+### Scenario: the age is read out of the identifier
 
-* **Given:** `ObjectId` с известной секундой создания.
-* **When:** из него берётся время.
-* **Then:** оно совпадает с зашитым в первые четыре байта.
-* **And:** идентификатор, не похожий на `ObjectId`, уборка **не трогает**: чужой формат ключа
-  означает, что документ завёл не этот код.
+* **Given:** an `ObjectId` with a known creation second.
+* **When:** the time is taken out of it.
+* **Then:** it matches the value embedded in the first four bytes.
+* **And:** an identifier that does not look like an `ObjectId` is left **untouched** by the sweep: a
+  foreign key format means the document was not created by this code.
 * **Automated:** `DemoSandboxCleanerTest`
 
-### Scenario: сид даёт картину, ради которой он и нужен
+### Scenario: the seed produces the picture it exists for
 
-* **Given:** набор `DemoSeed`, развёрнутый на любой день.
-* **When:** считается симуляция.
-* **Then:** баланс уходит в минус **внутри горизонта прогноза** и не завтра; баланс на сегодня
-  положительный; история не пуста; у каждого правила есть категория.
+* **Given:** the `DemoSeed` set, unrolled on any day.
+* **When:** the simulation is computed.
+* **Then:** the balance goes negative **inside the forecast horizon** and not tomorrow; today's
+  balance is positive; the history is not empty; every rule has a category.
 * **Automated:** `DemoSeedTest`
 
-### Scenario: человек заполняет свой пустой аккаунт
+### Scenario: a person populates their own empty account
 
-* **Given:** вошедший пользователь без единого правила.
-* **When:** нажата кнопка на пустом экране (`POST /demo/seed`).
-* **Then:** `201`, и в его аккаунте появляется тот же набор.
+* **Given:** a signed-in user with not a single rule.
+* **When:** the button on the empty screen is pressed (`POST /demo/seed`).
+* **Then:** `201`, and the same set appears in their account.
 
-## 6. Вне охвата
+## 6. Out of scope
 
-* Сброса песочницы к исходному состоянию нет: она правится как обычный аккаунт.
-* Превращения песочницы в настоящий аккаунт нет — имя занято префиксом, и через сутки её унесут.
-* Уведомления о том, что песочница скоро исчезнет, нет.
+* There is no way to reset a sandbox to its initial state: it is edited like any account.
+* There is no way to turn a sandbox into a real account — the name is taken by the prefix, and a
+  day later it will be carried off.
+* There is no warning that a sandbox is about to disappear.
 
-## 7. Особенности
+## 7. Quirks
 
-* **Уборка запускается только запросом на новую песочницу.** Пока на витрину никто не заходит,
-  мусор лежит. Планировщика нет намеренно: уборка живёт там же, где появляется мусор.
-* **Потолок считается по результату уборки, и «не сосчитали — не запрещаем».** Если `sweep()`
-  отказал, число живых неизвестно, и песочница всё равно заводится: закрытая витрина из-за сбоя
-  подсчёта — отказ по причине, к посетителю не относящейся.
-* **Потолок в 500 — это не про нагрузку, а про диск.** У базы стенда 256 МиБ диска и 128 МиБ
-  памяти, а `POST /demo` не требует ни ввода, ни входа: цикл запросов заполнил бы диск за минуты,
-  и суточная уборка от этого не спасает.
-* **Даты сида заданы смещением в днях от «сегодня», а не константами** — иначе набор устаревал бы
-  и однажды перестал показывать прогноз.
-* **История начинается за 60 дней до сегодня, а накопления заведены разовым доходом в её начале.**
-  Собственного понятия «стартовый баланс» в модели нет: баланс — сумма правил от самой ранней даты.
-* **Правила сида не удаляются вместе с категориями.** Уборка удаляет транзакции и пользователя;
-  категории уходят с документом пользователя, отдельного шага для них нет и не нужно.
+* **The sweep only runs on a request for a new sandbox.** While nobody visits the welcome screen the
+  rubbish sits there. There is no scheduler deliberately: the sweep lives where the rubbish appears.
+* **The ceiling is computed from the sweep's result, and "we did not count, so we do not forbid".**
+  If `sweep()` failed, the number of live sandboxes is unknown and the sandbox is created anyway: a
+  closed welcome screen because of a counting failure is a refusal for a reason that has nothing to
+  do with the visitor.
+* **The ceiling of 500 is about disk, not about load.** The deployed instance's database has 256 MiB
+  of disk and 128 MiB of memory, and `POST /demo` requires neither input nor a sign-in: a loop of
+  requests would fill the disk in minutes, and a daily sweep does not save you from that.
+* **The seed's dates are offsets in days from "today" rather than constants** — otherwise the set
+  would age and one day stop showing a forecast at all.
+* **The history starts 60 days before today, and the savings are a one-off income at its start.**
+  The model has no notion of a starting balance of its own: the balance is the sum of the rules from
+  the earliest date.
+* **The seed's rules are not deleted together with the categories.** The sweep deletes the
+  transactions and the user; the categories go with the user document, and no separate step for them
+  exists or is needed.

@@ -1,6 +1,6 @@
 ---
 id: feature-categories
-title: Категории правил
+title: Rule categories
 type: feature
 status: active
 owner: unassigned
@@ -18,132 +18,133 @@ api:
 tags: [core]
 ---
 
-# Категории правил
+# Rule categories
 
-## 1. Обзор
+## 1. Overview
 
-Ярлык на правиле: «Food», «Rent», «Bills». Нужен ровно для двух вещей — подписать правило в ленте и
-**отфильтровать ленту** по одной категории на главном экране. Своего экрана у категорий нет: их
-заводят и удаляют прямо в форме правила, чипами.
+A label on a rule: "Food", "Rent", "Bills". It exists for exactly two things — to caption a rule in
+the ledger, and to **filter the ledger** by one category on the main screen. Categories have no
+screen of their own: they are created and deleted right in the rule form, as chips.
 
-Категория принадлежит человеку, а не системе: список у каждого свой, общесистемного справочника
-нет. Демо-песочница получает пять готовых категорий из сида
+A category belongs to a person, not to the system: everyone has their own list and there is no
+system-wide directory. The demo sandbox gets five ready categories from the seed
 ([feature-demo-sandbox](feature-demo-sandbox.md)).
 
-## 2. Правила
+## 2. Business rules
 
-* Имя не пустое и не длиннее 64 символов.
-* Категории видит и правит **только владелец**. Чужая даёт `403`.
-* При переименовании идентификатор берётся **из пути**, а не из тела — как и у правил бюджета.
-* Категория хранится **внутри документа пользователя**, а не отдельной коллекцией. Отсюда всё
-  остальное: список приходит целиком, идентификатор выдаётся в момент создания, а удаление
-  пользователя уносит его категории без отдельного шага.
-* У правила хранится `categoryId`, а не сама категория. Собрать `Transaction` можно только зная
-  список категорий владельца — подстановкой занимается маршрут правил, не репозиторий.
-* Не нашлось — подставляется `Category.default` (`Category("0", "Default")`).
+* The name is not empty and not longer than 64 characters.
+* Categories are seen and edited **only by their owner**. Somebody else's answers `403`.
+* On a rename the id is taken **from the path**, not from the body — as with budget rules.
+* A category is stored **inside the user document**, not in a collection of its own. Everything else
+  follows from that: the list arrives whole, the id is issued at creation time, and deleting a user
+  carries their categories off without a separate step.
+* A rule stores a `categoryId`, not the category itself. A `Transaction` can only be assembled if
+  the owner's category list is known — the substitution is done by the rules route, not by the
+  repository.
+* Not found — `Category.default` is substituted (`Category("0", "Default")`).
 
-## 3. Ход
+## 3. Flow
 
 ```
-форма правила ──GET /categories───────▶ чипы
-              ──POST /categories──────▶ новая категория с id ──▶ выбрана в форме
-              ──DELETE /categories/{id}▶ ушла из документа пользователя
+rule form   ──GET /categories────────▶ chips
+            ──POST /categories───────▶ a new category with an id ──▶ selected in the form
+            ──DELETE /categories/{id}─▶ gone from the user document
 
-главный экран ──GET /categories───────▶ выпадающий фильтр ленты
-правила       ──GET /transactions─────▶ маршрут подставляет категорию по categoryId
+main screen ──GET /categories────────▶ the ledger's dropdown filter
+rules       ──GET /transactions──────▶ the route substitutes the category by categoryId
 ```
 
-## 4. Код
+## 4. Code anchors
 
-| Сервис | Код |
+| Service | Code |
 |---|---|
-| shared | `shared/src/commonMain/kotlin/io/github/youndie/mani/feature/category/CategoryResource.kt` — путь |
-| shared | `shared/src/commonMain/kotlin/io/github/youndie/mani/feature/transaction/Transaction.kt` — сам тип `Category` и `Category.default` |
-| server-common | `server-common/src/commonMain/kotlin/io/github/youndie/mani/feature/category/CategoryRouting.kt` — пять маршрутов |
-| server-common | `server-common/src/commonMain/kotlin/io/github/youndie/mani/feature/category/CategoryRepository.kt` — порт |
+| shared | `shared/src/commonMain/kotlin/io/github/youndie/mani/feature/category/CategoryResource.kt` — the path |
+| shared | `shared/src/commonMain/kotlin/io/github/youndie/mani/feature/transaction/Transaction.kt` — the `Category` type itself and `Category.default` |
+| server-common | `server-common/src/commonMain/kotlin/io/github/youndie/mani/feature/category/CategoryRouting.kt` — the five routes |
+| server-common | `server-common/src/commonMain/kotlin/io/github/youndie/mani/feature/category/CategoryRepository.kt` — the port |
 | server-common | `server-common/src/commonMain/kotlin/io/github/youndie/mani/feature/transaction/Rules.kt` — `categoryProblem` |
-| server-common | `server-common/src/commonMain/kotlin/io/github/youndie/mani/feature/transaction/data/TransactionRepository.kt` — подстановка в `toTransaction` |
+| server-common | `server-common/src/commonMain/kotlin/io/github/youndie/mani/feature/transaction/data/TransactionRepository.kt` — the substitution in `toTransaction` |
 | server | `server/src/main/kotlin/io/github/youndie/mani/feature/category/data/MongoCategoryRepository.kt` |
 | server-native | `server-native/src/linuxX64Main/kotlin/io/github/youndie/mani/feature/category/data/MongknCategoryRepository.kt` |
-| composeApp | `composeApp/src/commonMain/kotlin/io/github/youndie/mani/feature/categories/` — репозиторий и четыре use case'а |
+| composeApp | `composeApp/src/commonMain/kotlin/io/github/youndie/mani/feature/categories/` — the repository and four use cases |
 
-## 5. Сценарии
+## 5. Scenarios (BDD)
 
-### Scenario: категория заведена, прочитана, переименована и удалена
+### Scenario: a category is created, read, renamed and deleted
 
-* **Given:** вошедший пользователь.
-* **When:** `POST /categories`, затем `GET`, `PATCH` и `DELETE` по выданному идентификатору.
-* **Then:** каждый шаг отвечает `200`; после удаления категории в списке нет.
+* **Given:** a signed-in user.
+* **When:** `POST /categories`, then `GET`, `PATCH` and `DELETE` on the id it returned.
+* **Then:** every step answers `200`; after the delete the category is not in the list.
 * **Automated:** `MongoCategoryRepositoryTest`
 
-### Scenario: категории лежат в документе пользователя
+### Scenario: categories live in the user document
 
-* **Given:** пользователь с заведёнными категориями.
-* **When:** читается сырой документ пользователя.
-* **Then:** категории лежат внутри него массивом, а не отдельной коллекцией.
+* **Given:** a user with categories.
+* **When:** the raw user document is read.
+* **Then:** the categories are inside it as an array, not in a collection of their own.
 * **Automated:** `MongknStorageTest`
 
-### Scenario: чужую категорию не переименовать через `id` в теле
+### Scenario: a stranger's category cannot be renamed through the `id` in the body
 
-* **Given:** два пользователя, у каждого своя категория.
-* **When:** первый шлёт `PATCH /categories/<своя>`, положив в тело `id` чужой.
-* **Then:** `id` из тела игнорируется, правится своя; чужая не тронута.
+* **Given:** two users, each with a category of their own.
+* **When:** the first sends `PATCH /categories/<their own>` with the other's `id` in the body.
+* **Then:** the `id` from the body is ignored and their own is edited; the other's is untouched.
 * **Automated:** `OwnershipTest`
 
-### Scenario: обращение к чужой категории
+### Scenario: reaching for a foreign category
 
-* **Given:** идентификатор категории, которая пользователю не принадлежит.
-* **When:** `GET`, `PATCH` или `DELETE` по нему.
-* **Then:** `403` — принадлежность проверяется до всего остального.
+* **Given:** the id of a category that does not belong to the user.
+* **When:** `GET`, `PATCH` or `DELETE` on it.
+* **Then:** `403` — ownership is checked before anything else.
 * **Automated:** `OwnershipTest`
 
-### Scenario: продукт отказывается от имени, которое не может показать
+### Scenario: the product refuses a name it cannot display
 
-* **Given:** имя пустое, из одних пробелов, либо длиннее 64 символов.
-* **When:** проверяется `categoryProblem`.
-* **Then:** возвращается текст: `Category name cannot be empty` либо
-  `Category name must be at most 64 characters long`; маршрут отдаёт его с `400`.
-* **And:** проверка автоматизирована **на уровне правила, а не маршрута**: сквозного теста, который
-  послал бы `POST /categories` с плохим именем, нет.
+* **Given:** a name that is empty, only whitespace, or longer than 64 characters.
+* **When:** `categoryProblem` is evaluated.
+* **Then:** it returns a text: `Category name cannot be empty` or
+  `Category name must be at most 64 characters long`; the route returns it with a `400`.
+* **And:** the check is automated **at the rule level, not the route level**: there is no end-to-end
+  test that posts a bad category name to `POST /categories`.
 * **Automated:** `RulesTest`
 
-### Scenario: правило сохраняет свою категорию
+### Scenario: a rule keeps its category
 
-* **Given:** у пользователя заведена категория.
-* **When:** правило создано с ней и прочитано обратно.
-* **Then:** в ответе категория та же, а не `Default`.
+* **Given:** the user has a category.
+* **When:** a rule is created with it and read back.
+* **Then:** the response carries the same category, not `Default`.
 * **Automated:** `ManiApiTest`
 
-### Scenario: у песочницы категории настоящие
+### Scenario: a sandbox's categories are real
 
-* **Given:** только что заведённая песочница.
-* **When:** читается её список правил.
-* **Then:** у каждого правила категория с выданным сервером идентификатором, а не синтетическая из
-  сида.
+* **Given:** a freshly created sandbox.
+* **When:** its rule list is read.
+* **Then:** every rule carries a category with a server-issued id, not the synthetic one from the
+  seed.
 * **Automated:** `DemoRoutingTest`
 
-## 6. Вне охвата
+## 6. Out of scope
 
-* Общесистемного справочника категорий нет и не планируется: список у каждого свой.
-* Порядка и цвета у категории нет — только имя.
-* Слияния и переноса правил между категориями нет.
+* There is no system-wide category directory and none is planned: everyone has their own list.
+* A category has no ordering and no colour — only a name.
+* There is no merging and no moving of rules between categories.
 
-## 7. Особенности
+## 7. Quirks
 
-* **Удаление категории оставляет правила с висящим `categoryId`.** Реализация делает `$pull` из
-  документа пользователя и правил не трогает
-  (`MongknCategoryRepository.kt:83`, `MongoCategoryRepository.kt`). При следующем чтении
-  `toTransaction()` не находит категорию и подставляет `Category.default` — правило показывается
-  как «Default». Это тихая деградация: ни ошибки, ни следа. Открытый вопрос 1 в
-  [research-architecture](../research/research-architecture.md); тестом путь не покрыт.
-* **`POST /categories` отвечает `200`, а не `201`** — в отличие от `POST /transactions`. Явного
-  кода в обработчике нет, отдаётся умолчание `respond()`.
-* **`GET /categories/{id}` — единственный маршрут категорий, умеющий ответить `404`.** Он
-  достижим только если категория есть в списке владельца, но `getById` её не нашёл, то есть при
-  расхождении внутри одного документа. Утечки идентификаторов это не даёт: принадлежность
-  проверяется раньше и отвечает `403`.
-* **Проверка принадлежности стоит четыре раза подряд и каждый раз читает весь список.**
-  `getByUser(...)` вызывается в начале `GET /{id}`, `PATCH`, `DELETE` — для десятка категорий это
-  не имеет цены, но это именно перечитывание документа, а не индекс.
-* **`Category.default` не лежит в базе.** Это константа контракта (`id = "0"`), и ни один
-  `categoryId` в базе с ней не совпадает — она появляется только на сборке ответа.
+* **Deleting a category leaves its rules with a dangling `categoryId`.** The implementation `$pull`s
+  it out of the user document and does not touch the rules
+  (`MongknCategoryRepository.kt:83`, `MongoCategoryRepository.kt`). On the next read
+  `toTransaction()` fails to find the category and substitutes `Category.default` — the rule is
+  shown as "Default". A silent degradation: no error, no trace. Open question 1 in
+  [research-architecture](../research/research-architecture.md); the path is not covered by a test.
+* **`POST /categories` answers `200`, not `201`** — unlike `POST /transactions`. There is no
+  explicit status in the handler; `respond()`'s default is what goes out.
+* **`GET /categories/{id}` is the only category route that can answer `404`.** It is reachable only
+  when the category is in the owner's list but `getById` did not find it, that is, on an
+  inconsistency inside a single document. It leaks no ids: ownership is checked earlier and answers
+  `403`.
+* **The ownership check runs in three routes and each time reads the whole list.** `getByUser(...)`
+  is called at the top of `GET /{id}`, `PATCH` and `DELETE` — for a dozen categories that costs
+  nothing, but it is a re-read of the document rather than an index lookup.
+* **`Category.default` is not in the database.** It is a contract constant (`id = "0"`), and no
+  `categoryId` in the database matches it — it appears only while the response is being assembled.

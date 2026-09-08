@@ -1,6 +1,6 @@
 ---
 id: endpoint-health
-title: Живость и готовность
+title: Liveness and readiness
 type: api_endpoints
 status: active
 services:
@@ -12,72 +12,74 @@ contract_source:
 parent_feature: feature-health
 ---
 
-# API: живость и готовность
+# API: liveness and readiness
 
-> **Полный перечень маршрутов** ресурса `/health`. Сгенерированной схемы у продукта нет
-> (см. [endpoint-auth](endpoint-auth.md)), этот документ и есть справочник.
+> **The complete route reference** for the `/health` resource. The product has no generated schema
+> (see [endpoint-auth](endpoint-auth.md)); this document *is* the reference.
 
-## Маршруты — все
+## Routes — all of them
 
-| Метод и путь | Ярус | Назначение |
+| Method and path | Tier | Purpose |
 |---|---|---|
-| `GET /health` | открытый | жив ли процесс; заодно называет сборку и версию |
-| `GET /health/ready` | открытый | отвечает ли хранилище |
+| `GET /health` | open | whether the process is alive; also names the build and the version |
+| `GET /health/ready` | open | whether storage answers |
 
-Открыты намеренно: их зовут kubelet и витрина, а содержимое — не данные пользователя.
+Open deliberately: they are called by the kubelet and by the welcome screen, and what they return is
+not user data.
 
-## Обработчики
+## Handlers
 
-| Маршрут | Обработчик |
+| Route | Handler |
 |---|---|
-| оба | `server-common/.../feature/health/HealthRouting.kt` |
-| порт хранилища | `server-common/.../feature/health/StorageHealth.kt` |
-| тип сборки | `server-common/src/jvmMain/.../HealthRouting.jvm.kt`, `server-common/src/linuxX64Main/.../HealthRouting.linuxX64.kt` |
+| both | `server-common/.../feature/health/HealthRouting.kt` |
+| the storage port | `server-common/.../feature/health/StorageHealth.kt` |
+| the build kind | `server-common/src/jvmMain/.../HealthRouting.jvm.kt`, `server-common/src/linuxX64Main/.../HealthRouting.linuxX64.kt` |
 
-## Тела ответов
+## Response bodies
 
-| Что | Класс |
+| What | Class |
 |---|---|
-| ответ `GET /health` | `shared/.../feature/health/HealthResource.kt` (`Health`) |
-| ответ `GET /health/ready` | обычный текст, не JSON |
+| response of `GET /health` | `shared/.../feature/health/HealthResource.kt` (`Health`) |
+| response of `GET /health/ready` | plain text, not JSON |
 
-## Ответы
+## Responses
 
 ### `GET /health`
 
-| Условие | Код | Тело |
+| Condition | Status | Body |
 |---|---|---|
-| процесс жив | `200` | `Health` — `build`, `version`, `uptimeSeconds` |
+| the process is alive | `200` | `Health` — `build`, `version`, `uptimeSeconds` |
 
-Зависимостей не трогает: другого кода у него нет. `build` — `jvm` либо `kotlin/native`; `version`
-— `mani.version` из `gradle.properties`, то есть то же число, из которого собран тег образа.
+It touches no dependencies: it has no other code. `build` is `jvm` or `kotlin/native`; `version` is
+`mani.version` from `gradle.properties`, that is, the same number the image tag was built from.
 
 ### `GET /health/ready`
 
-| Условие | Код | Тело |
+| Condition | Status | Body |
 |---|---|---|
-| хранилище ответило | `200` | `ready` |
-| хранилище не ответило либо драйвер отказал | `503` | `storage unreachable` |
+| storage answered | `200` | `ready` |
+| storage did not answer, or the driver failed | `503` | `storage unreachable` |
 
-Тело — обычный текст: пробе нужен код ответа, а не разбор причины. Отмена запроса в `503` не
-превращается.
+The body is plain text: a probe needs a status code, not an analysis of the cause. A cancelled
+request does not turn into a `503`.
 
-## Как их зовут в бою
+## How they are called in production
 
-Из `.k8s-templates/deployment.yaml`:
+From `.k8s-templates/deployment.yaml`:
 
-| Проба | Путь | Период | Порог | Таймаут |
+| Probe | Path | Period | Threshold | Timeout |
 |---|---|---|---|---|
-| liveness | `/health` | 10 с | 3 | — |
-| readiness | `/health/ready` | 5 с | 2 | 3 с |
+| liveness | `/health` | 10 s | 3 | — |
+| readiness | `/health/ready` | 5 s | 2 | 3 s |
 
-Таймаут задаёт **kubelet**, а не сервер: своего у пробы нет намеренно — обёртка вокруг
-блокирующего вызова его не даёт, а решать, сколько ждать, должен тот, кто ждёт.
+The timeout is set by the **kubelet**, not by the server: the probe deliberately has none of its own
+— a wrapper around a blocking call does not give you one, and how long to wait should be decided by
+whoever is waiting.
 
-## Особенности
+## Quirks
 
-* **Ни одна из двух проб не авторизуется**, поэтому `/health` — самый дешёвый способ снаружи
-  узнать версию стенда и то, сколько он работает без перезапуска.
-* **`uptimeSeconds` считается от инициализации файла маршрутов**, а не от `main()`; в тесте,
-  поднимающем приложение несколько раз, счётчик общий на прогон.
-* **`/health/ready` ходит в базу на каждый вызов** — каждые 5 секунд на реплику.
+* **Neither probe is authenticated**, which makes `/health` the cheapest way from outside to learn
+  the deployed version and how long it has run without a restart.
+* **`uptimeSeconds` counts from the initialisation of the routing file**, not from `main()`; in a
+  test that brings the application up several times the counter is shared across the run.
+* **`/health/ready` goes to the database on every call** — every 5 seconds per replica.

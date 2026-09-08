@@ -1,11 +1,11 @@
 ---
 id: screen-transaction-form
-title: Форма правила (создание и правка)
+title: Rule form (create and edit)
 type: client_screen
 platform: [android, ios, desktop, web]
 status: active
 entry:
-  all: "маршруты ManiScreen.Add (создание) и TransactionRoute(id) (правка)"
+  all: "the ManiScreen.Add route (create) and TransactionRoute(id) (edit)"
 parent_feature: feature-transactions
 calls_api:
   - endpoint-transactions
@@ -13,118 +13,125 @@ calls_api:
 source: composeApp/src/commonMain/kotlin/io/github/youndie/mani/feature/transaction/ui/
 ---
 
-# Экран: форма правила
+# Screen: rule form
 
-Один документ на два маршрута: создание и правка — одна композиция и один базовый ViewModel,
-различаются загрузкой исходной записи и вызовом на сохранении.
+One document for two routes: create and edit are one composition and one base view model, differing
+in whether the original record is loaded and in the call made on save.
 
-| Маршрут | ViewModel | Заголовок | Запрос на сохранении |
+| Route | View model | Heading | Request on save |
 |---|---|---|---|
 | `Add` | `AddTransactionViewModel` | `New rule` | `POST /transactions` |
 | `TransactionRoute(id)` | `EditTransactionViewModel` | `Edit rule` | `PATCH /transactions/{id}` |
 
-## 0a. Код
+## 0a. Code anchors
 
-| Что | Файл |
+| What | File |
 |---|---|
-| Общий ViewModel | `composeApp/.../feature/transaction/ui/BaseTransactionViewModel.kt` |
-| Создание / правка | `.../ui/AddTransactionViewModel.kt`, `.../ui/EditTransactionViewModel.kt` |
-| Состояние | `composeApp/.../feature/transaction/ui/model/TransactionUiState.kt` |
-| Композиция | `composeApp/.../feature/transaction/ui/component/TransactionComponent.kt` |
-| Выбор даты | `.../ui/component/TransactionDatePicker.kt` |
-| Формат суммы при вводе | `.../ui/utils/CurrencyVisualTransformation.kt` |
-| Подписи периодов | `.../ui/model/PeriodStringResource.kt` |
-| Правила сервера | `server-common/.../feature/transaction/Rules.kt` |
+| The shared view model | `composeApp/.../feature/transaction/ui/BaseTransactionViewModel.kt` |
+| Create / edit | `.../ui/AddTransactionViewModel.kt`, `.../ui/EditTransactionViewModel.kt` |
+| State | `composeApp/.../feature/transaction/ui/model/TransactionUiState.kt` |
+| Composition | `composeApp/.../feature/transaction/ui/component/TransactionComponent.kt` |
+| Date picking | `.../ui/component/TransactionDatePicker.kt` |
+| Amount formatting while typing | `.../ui/utils/CurrencyVisualTransformation.kt` |
+| Period captions | `.../ui/model/PeriodStringResource.kt` |
+| The server's rules | `server-common/.../feature/transaction/Rules.kt` |
 
-## 0. Точка входа и видимость
+## 0. Entry point and visibility
 
-* **Точка входа:** «+» на главном экране (создание); нажатие на правило в ленте главного или
-  истории (правка).
-* **Показывается:** только авторизованному.
+* **Entry point:** "+" on the main screen (create); tapping a rule in the main or history ledger
+  (edit).
+* **Shown to:** authenticated users only.
 
-**Входные параметры (правка):**
+**Input parameters (edit):**
 
-| Параметр | Тип | Откуда |
+| Parameter | Type | Where from |
 |---|---|---|
-| `id` | `String` | `TransactionRoute` в аргументах навигации |
+| `id` | `String` | `TransactionRoute` in the navigation arguments |
 
-## 1. Состояния
+## 1. Screen states
 
-Поля `TransactionUiState`:
+The fields of `TransactionUiState`:
 
-* `amount`, `income`, `period`, `comment`, `date`, `until`, `category` — сам ввод;
-* `periods` — четвёрка из макета (`OneTime`, `TwoWeek`, `Month`, `Year`), остальное под «More»;
-  `periodsExpanded` = список отличается от умолчания;
-* `valid` — сумма без ошибки, непустая, и дата выбрана;
-* `amountError` — под самим полем: `this is not an amount` либо `an amount is required` (ноль);
-* `futureInformation` — что это правило даст в будущем;
-* `runsOutShift` — **на сколько сдвинется день обнуления**, с флагом `worse`;
-* `loading` — сохранение идёт;
-* `errorMessage` — отказ сервера;
-* `success` — сохранено, экран закрывается;
-* `edit` — режим правки.
+* `amount`, `income`, `period`, `comment`, `date`, `until`, `category` — the input itself;
+* `periods` — the four from the design (`OneTime`, `TwoWeek`, `Month`, `Year`), the rest behind
+  "More"; `periodsExpanded` means the list differs from the default;
+* `valid` — the amount has no error, is not empty, and a date has been chosen;
+* `amountError` — under the field itself: `this is not an amount` or `an amount is required` (zero);
+* `futureInformation` — what this rule will do in the future;
+* `runsOutShift` — **how far the run-out day moves**, with a `worse` flag;
+* `loading` — the save is in flight;
+* `errorMessage` — the server's refusal;
+* `success` — saved, the screen closes;
+* `edit` — edit mode.
 
-## 2. Обращения к API
+## 2. API integration
 
-| Вызов | Контракт | Документ |
+| Call | Contract | Endpoint document |
 |---|---|---|
 | `POST /transactions` | `TransactionResource` | [endpoint-transactions](../api/endpoint-transactions.md) |
 | `PATCH /transactions/{id}` | `TransactionResource.ById` | [endpoint-transactions](../api/endpoint-transactions.md) |
 | `GET /categories`, `POST /categories`, `DELETE /categories/{id}` | `CategoryResource` | [endpoint-categories](../api/endpoint-categories.md) |
 
-## 3. Инициализация
+## 3. Initialisation
 
-| Вызов | Когда | Результат |
+| Call | When | Result |
 |---|---|---|
-| чтение записи из уже загруженного списка | правка | заполняет форму через `TransactionUiState(transaction, currency)` |
-| `GET /categories` | всегда | чипы категорий |
-| `GetCurrentCurrencyUseCase` | всегда | формат сумм — **из локальных `Settings`, а не из сети** ([endpoint-currencies](../api/endpoint-currencies.md)) |
+| reading the record from the list already loaded | edit | fills the form through `TransactionUiState(transaction, currency)` |
+| `GET /categories` | always | the category chips |
+| `GetCurrentCurrencyUseCase` | always | amount formatting — **from local `Settings`, not from the network** ([endpoint-currencies](../api/endpoint-currencies.md)) |
 
-Отдельного маршрута «одно правило по id» нет — запись берётся из списка.
+There is no "one rule by id" route — the record is taken from the list.
 
-## 4. Элементы
+## 4. UI elements
 
-### 4.1. Сумма
+### 4.1. Amount
 
-Ввод форматируется на лету (`CurrencyVisualTransformation`). Ошибка показывается **под полем**, а
-не в общем сообщении внизу: неактивная кнопка без объяснения оставляла человека гадать, чего от
-него ждут. Ноль отвергается здесь же — правило на ноль ничего не сдвигает в прогнозе.
+The input is formatted as it is typed (`CurrencyVisualTransformation`). The error is shown **under
+the field** rather than in a general message at the bottom: a disabled button with no explanation
+left a person guessing what was expected of them. Zero is refused here too — a rule for zero moves
+nothing in the forecast.
 
-### 4.2. Доход или расход
+### 4.2. Income or expense
 
-Расход по умолчанию: их вносят чаще. Знак задаёт **этот флаг**, а не введённая сумма.
+Expense by default: those are entered more often. The sign comes from **this flag**, not from the
+amount typed.
 
-### 4.3. Период
+### 4.3. Period
 
-Четыре чипа из макета плюс «More» с остальными: `Day`, `Week`, `ThreeMonth`, `HalfYear`.
+Four chips from the design plus "More" with the rest: `Day`, `Week`, `ThreeMonth`, `HalfYear`.
 
-### 4.4. Даты `date` и `until`
+### 4.4. The `date` and `until` fields
 
-`date` обязательна: правило без неё не разворачивается в календарь, и кнопка «Create» при одной
-введённой сумме приглашала сохранить то, что сохранить нельзя. `until` необязательна; раньше даты
-начала сервер такую пару не принимает.
+`date` is required: a rule without one does not expand into a calendar, and the "Create" button with
+only an amount typed invited people to save something that cannot be saved. `until` is optional; the
+server does not accept a pair where it precedes the start date.
 
-### 4.5. Категория
+### 4.5. Category
 
-Чипы; заводится и удаляется прямо здесь. Имя не пустое и не длиннее 64 символов — проверяет сервер.
+Chips; created and deleted right here. The name must be non-empty and at most 64 characters — the
+server checks that.
 
-### 4.6. Предпросмотр сдвига
+### 4.6. The shift preview
 
-`runsOutShift` — то, ради чего форма отличается от обычной формы записи: она говорит, **на сколько
-раньше кончатся деньги**, до сохранения. `worse` отделяет «раньше» от «позже»: две разные новости,
-и красным помечать надо только первую. У дохода отметки об ухудшении нет.
+`runsOutShift` is what makes this different from an ordinary record form: it says **how much sooner
+the money will run out**, before anything is saved. `worse` separates "sooner" from "later": two
+different pieces of news, and only the first should be marked in red. Income carries no worsening
+mark.
 
-### 4.7. Кнопка сохранения
+### 4.7. The save button
 
-Активна при `valid`.
+Enabled when `valid`.
 
-| Случай | Обработка | Состояние |
+| Case | Handling | Screen state |
 |---|---|---|
-| `201` / `200` | список перечитывается | `success = true`, экран закрывается |
-| `400` | текст сервера в `errorMessage` | `loading = false` |
-| прочее | текст отказа | `loading = false` |
+| `201` / `200` | the shared `StateFlow` already carries the change; nothing is re-fetched | `success = true`, the screen closes |
+| `400` | the server's text into `errorMessage` | `loading = false` |
+| anything else | the failure text | `loading = false` |
 
-## 5. Навигация
+The change is written into the repository's `StateFlow` **before** the request and rolled back if it
+throws, so a failed save visibly reverts rather than leaving a stale row behind.
 
-* сохранено ──▶ назад (`popBackStack`), на экран, с которого пришли
-* «назад» ──▶ туда же, без сохранения
+## 5. Navigation
+
+* saved ──▶ back (`popBackStack`), to the screen it was opened from
+* "back" ──▶ the same, without saving

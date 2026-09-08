@@ -1,6 +1,6 @@
 ---
 id: server-native
-title: ":server-native — нативный бинарь, образ стенда"
+title: ":server-native — the native binary, the deployed image"
 type: service
 repo_url: https://github.com/youndie/mani-kotlin-fullstack
 module: ":server-native"
@@ -12,97 +12,98 @@ depends_on:
   - MongoDB
   - mongkn
 publishes:
-  - "ghcr.io/youndie/mani-kotlin-fullstack:<mani.version>.<номер прогона CI>"
+  - "ghcr.io/youndie/mani-kotlin-fullstack:<mani.version>.<CI run number>"
 ---
 
-# :server-native — нативный бинарь, образ стенда
+# :server-native — the native binary, the deployed image
 
-## 1. Ответственность
+## 1. Responsibility
 
-Сборка сервера под `linuxX64` — **та, что работает на стенде**. Своего в ней: хранилище на
-[mongkn](https://github.com/youndie/mongkn), отдача статики вручную и точка входа `main()`. Всё
-остальное — из [server-common](server-common.md).
+The `linuxX64` build of the server — **the one that runs on the deployed instance**. What it owns:
+storage on [mongkn](https://github.com/youndie/mongkn), serving static files by hand, and the
+`main()` entry point. Everything else comes from [server-common](server-common.md).
 
-Таргет ровно один, и не по выбору: столько публикует mongkn. На macOS модуль компилируется, но не
-линкуется, поэтому разработка на маке идёт через [server](server.md).
+There is exactly one target, and not by choice: that is what mongkn publishes. On macOS the module
+compiles but does not link, which is why development on a Mac goes through [server](server.md).
 
-## 2. Контракты
+## 2. API contracts
 
-Те же, что у [server-common](server-common.md), плюс маршрут статики `GET /{path...}`,
-регистрируемый **последним** — он ловит всё оставшееся и потому API не перехватывает.
+The same as [server-common](server-common.md), plus the static-file route `GET /{path...}`,
+registered **last** — it catches everything left over and therefore does not intercept the API.
 
-## 2a. Код
+## 2a. Code anchors
 
-| Файл | Что там |
+| File | What is there |
 |---|---|
-| `server-native/src/linuxX64Main/kotlin/io/github/youndie/mani/Main.kt` | `main()` и `Application.maniModule(config)` — сборка приложения, поднимаемая и в тестах |
-| `server-native/src/linuxX64Main/kotlin/io/github/youndie/mani/MongknStorageModule.kt` | DI хранилища на mongkn |
-| `server-native/src/linuxX64Main/kotlin/io/github/youndie/mani/db/DbModel.kt` | форма документа: `StringAsBsonObjectId`, `BigDecimalAsBsonDecimal128` |
-| `server-native/src/linuxX64Main/kotlin/io/github/youndie/mani/feature/*/data/` | реализации портов |
-| `server-native/src/linuxX64Main/kotlin/io/github/youndie/mani/web/WebAssets.kt` | сканирование каталога статики на старте |
-| `server-native/src/linuxX64Main/kotlin/io/github/youndie/mani/web/WebRoutes.kt` | отдача файлов, ETag, `Cache-Control`, готовые `.gz` |
-| `server-native/Dockerfile` | образ: сборка статики + рантайм |
-| `server-native/src/linuxX64Test/kotlin/io/github/youndie/mani/TestMongo.kt` | обвязка тестов, работающих в своих базах |
+| `server-native/src/linuxX64Main/kotlin/io/github/youndie/mani/Main.kt` | `main()` and `Application.maniModule(config)` — the assembly the tests bring up too |
+| `server-native/src/linuxX64Main/kotlin/io/github/youndie/mani/MongknStorageModule.kt` | storage wiring on mongkn |
+| `server-native/src/linuxX64Main/kotlin/io/github/youndie/mani/db/DbModel.kt` | the document shape: `StringAsBsonObjectId`, `BigDecimalAsBsonDecimal128` |
+| `server-native/src/linuxX64Main/kotlin/io/github/youndie/mani/feature/*/data/` | the port implementations |
+| `server-native/src/linuxX64Main/kotlin/io/github/youndie/mani/web/WebAssets.kt` | scanning the static directory at startup |
+| `server-native/src/linuxX64Main/kotlin/io/github/youndie/mani/web/WebRoutes.kt` | serving files, ETag, `Cache-Control`, the pre-built `.gz` |
+| `server-native/Dockerfile` | the image: static build stage + runtime |
+| `server-native/src/linuxX64Test/kotlin/io/github/youndie/mani/TestMongo.kt` | the harness for tests that work in databases of their own |
 
-## 3. Как это устроено
+## 3. How it is built
 
-**Бинарь линкуется снаружи и в образ только копируется.** Линковка Kotlin/Native внутри docker шла
-бы без кеша Gradle и занимала минуты на каждую сборку образа. Отсюда двухшаговый выкат в
-`deploy.yml`: сначала `linkReleaseExecutableLinuxX64` и `wasmJsBrowserDistribution`, потом
+**The binary is linked outside and only copied into the image.** Linking Kotlin/Native inside docker
+would run without the Gradle cache and take minutes on every image build. Hence the two-step deploy
+in `deploy.yml`: first `linkReleaseExecutableLinuxX64` and `wasmJsBrowserDistribution`, then
 `docker build`.
 
-**Версия базового образа привязана к сборочной машине.** Бинарь слинкован с той `libmongoc`, что
-стояла при линковке; у Ubuntu 24.04 это 1.26. Soname (`libmongoc-1.0.so.0`) у веток общий, поэтому
-подмена **не ловится ни сборкой, ни стартом** — она проявится отсутствующим символом на первом
-обращении к Mongo. Раннер CI, раннер выката и `FROM` в Dockerfile обязаны быть одной версии
-дистрибутива; меняете одно — меняйте оба.
+**The base image version is tied to the build machine.** The binary is linked against whichever
+`libmongoc` was installed at link time; on Ubuntu 24.04 that is 1.26. The soname
+(`libmongoc-1.0.so.0`) is shared across branches, so a substitution is **caught neither by the build
+nor by startup** — it shows up as a missing symbol on the first call into Mongo. The CI runner, the
+deploy runner and the `FROM` in the Dockerfile must be the same distribution version; change one,
+change both.
 
-**Статика читается один раз на старте**, а не на каждый запрос: файлы вшиты в образ и за время
-жизни процесса не меняются. Пустой `MANI_WEB_ROOT` — сервер без фронтенда, так удобно поднимать его
-в тестах.
+**The static directory is read once at startup** rather than per request: the files are baked into
+the image and do not change over the life of the process. An empty `MANI_WEB_ROOT` means a server
+with no frontend, which is convenient for bringing it up in tests.
 
-**Сжатия на лету нет и быть не может:** `ktor-server-compression` публикуется только под JVM.
-Вместо него в образе рядом с каждым файлом лежит готовый `.gz`, сжатый один раз на сборке
-(`Dockerfile`, стадия `web`), и отдаётся он, если клиент принимает gzip.
+**On-the-fly compression is impossible here:** `ktor-server-compression` is published for the JVM
+only. Instead, the image holds a ready `.gz` next to each file, compressed once at build time
+(`Dockerfile`, stage `web`), and that is what is served when the client accepts gzip.
 
-**`Cache-Control: immutable` ставится по имени файла, а не по расширению.** Правило «`.wasm` —
-значит immutable» неверно: рядом с `6e23e5428398b92da386.wasm` в бандле лежит `skiko.wasm` с
-постоянным именем. Проверяется, что имя — не меньше 16 шестнадцатеричных цифр: столько webpack даёт
-именно тем файлам, которые пересобираются под новым именем при любой правке
-(`WebRoutes.kt:34`, тест `WebCachingTest`).
+**`Cache-Control: immutable` is set by file name, not by extension.** The rule ".wasm means
+immutable" is wrong: next to `6e23e5428398b92da386.wasm` the bundle holds `skiko.wasm` under a
+constant name. What is checked is that the name is at least 16 hexadecimal digits — that is what
+webpack gives precisely to the files that are rebuilt under a new name on any edit
+(`WebRoutes.kt:34`, test `WebCachingTest`).
 
-**Логгера нет.** `koin-logger-slf4j` — JVM-only, `CallLogging` — тоже. Диагностика идёт через
-`println` в stdout, который в контейнере и есть лог.
+**There is no logger.** `koin-logger-slf4j` is JVM-only, and so is `CallLogging`. Diagnostics go
+through `println` to stdout, which in a container is the log.
 
-## 4. Зависимости
+## 4. Dependencies
 
-| Вид | Что | Зачем |
+| Kind | Name | What for |
 |---|---|---|
-| Модуль | [server-common](server-common.md) | весь сервер, кроме хранилища |
-| База | MongoDB | `MONGO_HOST`, `MONGO_DATABASE` |
-| Библиотека | [mongkn](https://github.com/youndie/mongkn) | драйвер MongoDB для Kotlin/Native (свой: официального нет) |
-| Системная | `libmongoc-dev`, `libbson-dev` — на сборке; `libmongoc-1.0-0t64` — в образе | C-драйвер, поверх которого работает mongkn |
-| Библиотека | Ktor CIO | HTTP |
+| Module | [server-common](server-common.md) | the whole server except storage |
+| Database | MongoDB | `MONGO_HOST`, `MONGO_DATABASE` |
+| Library | [mongkn](https://github.com/youndie/mongkn) | a MongoDB driver for Kotlin/Native (ours; there is no official one) |
+| System | `libmongoc-dev`, `libbson-dev` at build time; `libmongoc-1.0-0t64` in the image | the C driver mongkn works over |
+| Library | Ktor CIO | HTTP |
 
-## 5. Инфраструктура и выкат
+## 5. Infrastructure and deploy
 
-* **Образ:** `ghcr.io/youndie/mani-kotlin-fullstack:<mani.version>.<номер прогона>`
-* **Манифест:** `.k8s-templates/deployment.yaml` (шаблон, `envsubst` подставляет версию и номер
-  прогона; результат кладётся в `.k8s/` и применяется `kubectl apply`)
-* **Живость:** `GET /health` — базу **не трогает** намеренно: проба живости, зависящая от базы,
-  превращает её падение в перезапуск всех подов
-* **Готовность:** `GET /health/ready` — базу спрашивает: под, который её не видит, не должен
-  получать трафик. `initialDelaySeconds` не нужен, бинарь отвечает через 87 мс после старта
-* **Ресурсы:** requests `50m`/`64Mi`, limits `1`/`128Mi`
-* **Выкат:** `.github/workflows/deploy.yml`, по завершении зелёного прогона `Test` на `main`, плюс
-  ручной `workflow_dispatch`
+* **Image:** `ghcr.io/youndie/mani-kotlin-fullstack:<mani.version>.<run number>`
+* **Manifest:** `.k8s-templates/deployment.yaml` (a template; `envsubst` substitutes the version and
+  the run number, the result goes to `.k8s/` and is applied with `kubectl apply`)
+* **Liveness:** `GET /health` — **does not touch** the database, deliberately: a liveness probe that
+  depends on the database turns its outage into a restart of every pod
+* **Readiness:** `GET /health/ready` — does ask the database: a pod that cannot see it should not
+  receive traffic. No `initialDelaySeconds` is needed, the binary answers 87 ms after startup
+* **Resources:** requests `50m`/`64Mi`, limits `1`/`128Mi`
+* **Deploy:** `.github/workflows/deploy.yml`, on the completion of a green `Test` run on `main`,
+  plus a manual `workflow_dispatch`
 
-Замер на собранном образе: старт до первого ответа 87 мс, 42 МиБ в покое, пик 45 МиБ, образ 213 МБ,
-бинарь 13 МБ. **Без нагрузки и на одной реплике.**
+Measured on the built image: 87 ms from start to the first answered request, 42 MiB at rest, 45 MiB
+peak, a 213 MB image and a 13 MB binary. **Without load and on one replica.**
 
-## 6. Локальная сборка
+## 6. Local setup
 
-Только на Linux. Нужен C-драйвер:
+Linux only. The C driver is required:
 
 ```bash
 sudo apt-get install -y libmongoc-dev libbson-dev
@@ -116,7 +117,7 @@ sudo apt-get install -y libmongoc-dev libbson-dev
 docker build -f server-native/Dockerfile -t mani-native .
 ```
 
-Тестам нужен настоящий `mongod` — то, что они ищут, не поднимает ошибок:
+The tests need a real `mongod` — what they look for raises no errors:
 
 ```bash
 docker run -d --name mani-mongo -p 27017:27017 mongo:8
@@ -126,19 +127,20 @@ docker run -d --name mani-mongo -p 27017:27017 mongo:8
 ./gradlew :server-native:linuxX64Test :server-native:linuxX64ReleaseTest
 ```
 
-**Релизный прогон не опционален.** Kotlin/Native в релизе не вставляет проверок приведения типов, и
-код, падающий в отладке ловимым исключением, в релизе уходит в неопределённое поведение. В образ
-едет релизный бинарь.
+**The release run is not optional.** Kotlin/Native omits type-cast checks in release builds, and
+code that fails with a catchable exception in debug reaches undefined behaviour in release. The
+binary that ships in the image is the release one.
 
-## 7. Конфигурация
+## 7. Configuration
 
-Те же переменные, что у [server-common](server-common.md). В образе заданы `MANI_WEB_ROOT` и `PORT`
-(`Dockerfile`); в манифесте — `MONGO_HOST` и `JWT_SECRET` из секрета `mani-backend`.
+The same variables as [server-common](server-common.md). The image sets `MANI_WEB_ROOT` and `PORT`
+(`Dockerfile`); the manifest sets `MONGO_HOST` and `JWT_SECRET` from the `mani-backend` secret.
 
-## 8. Особенности
+## 8. Quirks
 
-* **`ca-certificates` в образе нет причины по `ldd`.** Пакет ставится отдельной строкой: это не
-  библиотека, а набор корневых сертификатов, которых в `ubuntu:24.04` нет вовсе. Наружу по https
-  mani сегодня не ходит, но первый такой вызов иначе выглядел бы как тихий отказ.
-* **Выход за корень каталога статики отсекается проверкой на `..`** (`WebRoutes.kt:57`), а
-  неизвестный путь отдаёт `index.html` — это SPA, дальше маршрутизирует само приложение.
+* **`ca-certificates` cannot be found in the image by `ldd`.** The package is installed on a line of
+  its own because it is not a library but a set of root certificates, and `ubuntu:24.04` has none at
+  all. mani makes no outbound https calls today, but the first one would otherwise look like a
+  silent failure rather than a missing package.
+* **Escaping the static root is cut off by a check for `..`** (`WebRoutes.kt:57`), while an unknown
+  path returns `index.html` — this is an SPA, and the app routes from there.

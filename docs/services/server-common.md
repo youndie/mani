@@ -1,6 +1,6 @@
 ---
 id: server-common
-title: ":server-common — сервер, кроме хранилища"
+title: ":server-common — the server, minus storage"
 type: service
 repo_url: https://github.com/youndie/mani-kotlin-fullstack
 module: ":server-common"
@@ -9,140 +9,149 @@ owner: unassigned
 depends_on:
   - shared
 publishes:
-  - klib/jar внутри сборки (наружу не публикуется)
+  - klib/jar consumed inside the build (nothing is published externally)
 ---
 
-# :server-common — сервер, кроме хранилища
+# :server-common — the server, minus storage
 
-## 1. Ответственность
+## 1. Responsibility
 
-**Весь сервер, кроме обращений к базе.** Маршруты, проверка ввода, выдача и проверка токенов,
-хеширование паролей, конфигурация, плагины Ktor, состав DI-графа. Компилируется в `jvm` и
-`linuxX64` — и то, что здесь лежит, обе сборки исполняют **одним кодом**.
+**The whole server except the calls into the database.** Routes, input validation, token issuing and
+verification, password hashing, configuration, the Ktor plugins, the shape of the DI graph. It
+compiles to `jvm` and `linuxX64`, and what lives here is executed by both builds as **one body of
+code**.
 
-Чего здесь нет: реализаций хранилища. Официальный драйвер MongoDB существует только на JVM, mongkn
-— только под linuxX64, и общего типа документа у них нет. Поэтому в общей части объявлены только
-порты — интерфейсы `UserRepository`, `TokenRepository`, `TransactionRepository`,
-`CategoryRepository`, `StorageHealth`, — а реализации приносят [server](server.md) и
+What is not here: the storage implementations. The official MongoDB driver exists only on the JVM,
+mongkn only on linuxX64, and they share no document type. So the common source set declares only the
+ports — the `UserRepository`, `TokenRepository`, `TransactionRepository`, `CategoryRepository` and
+`StorageHealth` interfaces — and the implementations are brought in by [server](server.md) and
 [server-native](server-native.md).
 
-Правило, из которого это следует: **всё, что не является обращением к базе, обязано быть общим.**
-Каждая лишняя пара `expect/actual` — две реализации, которые разъедутся молча.
+The rule this follows from: **everything that is not a call into the database has to be shared.**
+Every superfluous `expect/actual` pair is two implementations that will diverge silently.
 
-## 2. Контракты
+## 2. API contracts
 
-Пути и DTO — в [shared](shared.md). Слой api разбирает их по кодам ответов:
-[endpoint-auth](../api/endpoint-auth.md), [endpoint-transactions](../api/endpoint-transactions.md).
+Paths and DTOs live in [shared](shared.md). The api layer breaks them down by status code:
+[endpoint-transactions](../api/endpoint-transactions.md),
+[endpoint-categories](../api/endpoint-categories.md), [endpoint-auth](../api/endpoint-auth.md),
+[endpoint-demo](../api/endpoint-demo.md), [endpoint-health](../api/endpoint-health.md),
+[endpoint-currencies](../api/endpoint-currencies.md).
 
-Ярусы доступа:
+Auth tiers:
 
-| Ярус | Как ставится | Какие маршруты |
+| Tier | How it is applied | Which routes |
 |---|---|---|
-| открытый | вне `authenticate` | `POST /auth`, `POST /auth/refresh`, `POST /users`, `POST /demo`, `GET /health`, `GET /health/ready`, `GET /currencies` |
-| Bearer access-токен | `authenticate(jwtConfig.name)` | `/transactions`, `/transactions/{id}`, `/categories`, `/categories/{id}` |
+| open | outside `authenticate` | `POST /auth`, `POST /auth/refresh`, `POST /users`, `POST /demo`, `GET /health`, `GET /health/ready`, `GET /currencies` |
+| Bearer access token | `authenticate(jwtConfig.name)` | `/transactions`, `/transactions/{id}`, `/categories`, `/categories/{id}`, `POST /demo/seed` |
 
-Проверяется тестами `protected routes require a valid token` и
+Guarded by the tests `protected routes require a valid token` and
 `a refresh token opens no door and an access token refreshes nothing`.
 
-## 2a. Код
+## 2a. Code anchors
 
-| Файл | Что там |
+| File | What is there |
 |---|---|
-| `server-common/src/commonMain/kotlin/io/github/youndie/mani/ManiApp.kt` | состав DI (`coreModule`), плагины (`configureManiPlugins`), проверка токенов (`configureManiAuth`), сборка маршрутов (`maniApiRouting`) |
-| `server-common/src/commonMain/kotlin/io/github/youndie/mani/config/ManiConfig.kt` | вся конфигурация из ENV + `expect fun readEnv` |
-| `server-common/src/commonMain/kotlin/io/github/youndie/mani/security/TokenService.kt` | выпуск и проверка JWT |
-| `server-common/src/commonMain/kotlin/io/github/youndie/mani/security/ManiAuth.kt` | свой Bearer-провайдер вместо `ktor-server-auth-jwt` |
-| `server-common/src/commonMain/kotlin/io/github/youndie/mani/security/Base64Url.kt` | base64url, hex, сравнение за постоянное время |
-| `server-common/src/commonMain/kotlin/io/github/youndie/mani/feature/` | по каталогу на предметную область: `<X>Routing.kt` + `data/` с портами |
-| `server-common/src/commonMain/kotlin/io/github/youndie/mani/feature/transaction/Rules.kt` | правила приёмки правила и категории |
-| `server-common/src/commonMain/kotlin/io/github/youndie/mani/feature/user/Credentials.kt` | правила регистрации |
-| `server-common/src/jvmMain/`, `server-common/src/linuxX64Main/` | ровно два `actual`: `readEnv` и `serverBuildKind` |
+| `server-common/src/commonMain/kotlin/io/github/youndie/mani/ManiApp.kt` | the DI contents (`coreModule`), the plugins (`configureManiPlugins`), token verification (`configureManiAuth`), route assembly (`maniApiRouting`) |
+| `server-common/src/commonMain/kotlin/io/github/youndie/mani/config/ManiConfig.kt` | all configuration from ENV + `expect fun readEnv` |
+| `server-common/src/commonMain/kotlin/io/github/youndie/mani/security/TokenService.kt` | issuing and verifying JWTs |
+| `server-common/src/commonMain/kotlin/io/github/youndie/mani/security/ManiAuth.kt` | our own Bearer provider instead of `ktor-server-auth-jwt` |
+| `server-common/src/commonMain/kotlin/io/github/youndie/mani/security/Base64Url.kt` | base64url, hex, constant-time comparison |
+| `server-common/src/commonMain/kotlin/io/github/youndie/mani/feature/` | one directory per subject area: `<X>Routing.kt` + `data/` with the ports |
+| `server-common/src/commonMain/kotlin/io/github/youndie/mani/feature/transaction/Rules.kt` | what makes a rule and a category acceptable |
+| `server-common/src/commonMain/kotlin/io/github/youndie/mani/feature/user/Credentials.kt` | the registration rules |
+| `server-common/src/jvmMain/`, `server-common/src/linuxX64Main/` | exactly two `actual`s: `readEnv` and `serverBuildKind` |
 
-## 3. Как это устроено
+## 3. How it is built
 
-**Порядок сборки приложения фиксирован, и это не стиль.** `configureManiPlugins` → `Koin` →
-`configureManiAuth(config, get<TokenService>())` → маршруты. Проверка токенов ставится **после**
-Koin намеренно: `TokenService` берётся из графа, а не собирается вторым экземпляром на том же
-секрете — иначе секрет пришлось бы протаскивать во второе место. Обе сборки повторяют этот порядок
-(`server/.../Application.kt`, `server-native/.../Main.kt`).
+**The order the application is assembled in is fixed, and that is not a matter of style.**
+`configureManiPlugins` → `Koin` → `configureManiAuth(config, get<TokenService>())` → routes. Token
+verification is installed **after** Koin deliberately: `TokenService` is taken out of the graph
+rather than constructed a second time on the same secret — otherwise the secret would have to be
+threaded to a second place. Both builds repeat this order (`server/.../Application.kt`,
+`server-native/.../Main.kt`).
 
-**`StatusPages` вместо логгера.** Логгера в общей части нет ни у одной сборки (`CallLogging` —
-JVM-only), поэтому отказ печатается через `println` в stdout, который в контейнере и есть лог. Без
-этого нативная сборка отвечала 500, не оставляя следа. Разбор причин:
+**`StatusPages` instead of a logger.** Neither build has a logger in the common source set
+(`CallLogging` is JVM-only), so a failure is printed with `println` to stdout, which in a container
+is the log. Without this the native build answered 500 and left no trace. How causes are sorted:
 
-* `CancellationException` пробрасывается дальше — отменённый клиентом запрос не отказ и не 500;
+* `CancellationException` is rethrown — a request the client abandoned is neither a failure nor
+  a 500;
 * `BadRequestException`, `IllegalArgumentException`, `SerializationException` → `400 Malformed
-  request` общим текстом: подробности рассказали бы об устройстве сервера больше, чем нужно;
-* остальное → 500 плюс строка в stdout.
+  request` under one generic text: the details would say more about how the server is built than
+  anyone needs;
+* everything else → 500 plus a line on stdout.
 
-**`Json` без `isLenient`.** Послабление разрешало телу приходить без кавычек, то есть сервер брался
-угадывать намерение отправителя. Наши клиенты пишут JSON сериализатором — послабление обслуживало
-только того, кто ходит мимо них.
+**`Json` without `isLenient`.** The relaxation let bodies arrive without quotes, which means the
+server took to guessing what the sender meant. Our clients write JSON with a serializer, so the
+relaxation served only whoever bypasses them.
 
-**CORS только в режиме разработки.** В стенде фронтенд отдаёт тот же сервер, разрешать чужие
-источники незачем (`MANI_DEVELOPMENT`).
+**CORS only in development mode.** On the deployed instance the same server serves the frontend,
+so there is no reason to allow foreign origins (`MANI_DEVELOPMENT`).
 
-**Проверки ввода стоят на сервере, а не только в форме.** Форма клиента до половины этого не
-допускает, и всё же правило живёт здесь: форма — удобство, а не граница, за ней открытый HTTP.
-Тексты отказов возвращаются наружу и показываются человеку, поэтому они на английском и говорят,
-что исправить.
+**Validation sits on the server, not only in the form.** The client's form prevents half of this
+anyway, and the rule still lives here: a form is a convenience, not a boundary, and behind it is
+open HTTP. The refusal texts are returned outward and shown to a person, which is why they are in
+English and say what to fix.
 
-## 4. Зависимости
+## 4. Dependencies
 
-| Вид | Что | Зачем |
+| Kind | Name | What for |
 |---|---|---|
-| Модуль | [shared](shared.md) | ресурсы и DTO |
-| Библиотека | Ktor server (`resources`, `content-negotiation`, `status-pages`, `cors`, `auth`) | HTTP |
-| Библиотека | Koin | DI, общий состав графа |
-| Библиотека | `cryptography-kotlin` (`-prebuilt`) | HMAC-SHA256 и SHA-256 на обеих сборках; на native — OpenSSL, поэтому `libssl-dev` на сборочной машине не нужен |
-| Библиотека | `com.auth0:java-jwt` — **только `jvmTest`** | эталон совместимости формата токена |
+| Module | [shared](shared.md) | resources and DTOs |
+| Library | Ktor server (`resources`, `content-negotiation`, `status-pages`, `cors`, `auth`) | HTTP |
+| Library | Koin | DI, the shared shape of the graph |
+| Library | `cryptography-kotlin` (`-prebuilt`) | HMAC-SHA256 and SHA-256 on both builds; OpenSSL on native, so `libssl-dev` is not needed on the build machine |
+| Library | `com.auth0:java-jwt` — **`jvmTest` only** | the reference for token format compatibility |
 
-## 5. Инфраструктура и выкат
+## 5. Infrastructure and deploy
 
-Своих нет: разворачивается внутри [server-native](server-native.md) (стенд) и
-[server](server.md) (локально).
+None of its own: it is deployed inside [server-native](server-native.md) (the deployed instance) and
+[server](server.md) (locally).
 
-## 6. Локальная сборка
+## 6. Local setup
 
 ```bash
 ./gradlew :server-common:jvmTest
 ```
 
-Нативный набор — на Linux, `mongod` для него не нужен (эти тесты в базу не ходят):
+The native set runs on Linux and needs no `mongod` — these tests do not go to the database:
 
 ```bash
 ./gradlew :server-common:linuxX64Test
 ```
 
-## 7. Конфигурация
+## 7. Configuration
 
-Все ключи объявлены в одном месте — `ManiConfig.fromEnv()`. Список с умолчаниями не дублируется
-здесь намеренно: он в `config/ManiConfig.kt` и в `README.md`, раздел «Configuration».
+Every key is declared in one place, `ManiConfig.fromEnv()`. The list with its defaults is
+deliberately not duplicated here: it is in `config/ManiConfig.kt` and in `README.md`, section
+"Configuration".
 
-Стоит знать про два:
+Two are worth knowing:
 
-| Ключ | Что будет, если не задать |
+| Key | What happens if it is unset |
 |---|---|
-| `JWT_SECRET` | случайный секрет на процесс + предупреждение в stdout; перезапуск разлогинивает всех |
-| `MANI_WEB_ROOT` | фронтенд не отдаётся, работает только API |
+| `JWT_SECRET` | a random per-process secret plus a warning on stdout; a restart logs everyone out |
+| `MANI_WEB_ROOT` | no frontend is served, the API only |
 
-## 8. Особенности
+## 8. Quirks
 
-* **Токен без claim `kind` принимается как refresh.** Временное окно совместимости с датой снятия
-  — см. §1.3 в [research-architecture](../research/research-architecture.md). Единственная вещь в
-  коде, которая должна исчезнуть сама.
-* **`currentUserId()` падает `error()`, а не отвечает 401.** Внутри `authenticate` ветка мертва:
-  запрос без принципала туда не доходит. Отсутствие принципала здесь означает **незащищённый
-  маршрут**, то есть ошибку проводки, и она обязана быть громкой. Прежняя версия возвращала пустую
-  строку, и та ушла бы в хранилище как владелец. Ловушку сторожит тест
-  `a route outside authenticate cannot ask who is calling`.
-* **`credentialsProblem` проверяет только регистрацию.** Вход обязан принимать имя, каким бы оно ни
-  было: у заведённых до этих правил имена им не подчиняются, и запрет на входе выселил бы
-  существующих пользователей.
-* **Имена, начинающиеся с префикса демо-песочницы, зарезервированы.** Иначе можно было завести
-  аккаунт, который через сутки унесёт уборщик песочниц.
-* **`UserResource.CurrentUserResource` (`/users/current`) не реализован ничем.** Класс объявлен в
-  контракте (`shared/.../feature/user/UserResource.kt:9`), но обработчика в `UserRouting.kt` нет,
-  и ни один клиент его не зовёт — поиск по `CurrentUserResource` во всём дереве даёт одно
-  вхождение, само объявление. То есть путь `/users/current` отдаёт то же, что любой неизвестный
-  путь. Контракт обещает больше, чем сервер умеет; проверено 08.09.2026.
+* **A token with no `kind` claim is accepted as a refresh token.** A temporary compatibility window
+  with a removal date — see §1.3 in
+  [research-architecture](../research/research-architecture.md). The one thing in the code that is
+  supposed to disappear on its own.
+* **`currentUserId()` throws `error()` rather than answering 401.** Inside `authenticate` that
+  branch is dead: a request without a principal never gets there. A missing principal here means an
+  **unprotected route**, that is a wiring mistake, and it has to be loud. The previous version
+  returned an empty string, which would have gone into storage as the owner. The trap is guarded by
+  the test `a route outside authenticate cannot ask who is calling`.
+* **`credentialsProblem` validates registration only.** Sign-in has to accept a name whatever it
+  looks like: names created before these rules do not obey them, and enforcing the rules at sign-in
+  would have evicted existing users.
+* **Names starting with the demo sandbox prefix are reserved.** Otherwise one could create an
+  account that the sandbox sweep carries off a day later.
+* **`UserResource.CurrentUserResource` (`/users/current`) is implemented by nothing.** The class is
+  declared in the contract (`shared/.../feature/user/UserResource.kt:9`), there is no handler in
+  `UserRouting.kt`, and no client calls it — searching the whole tree for `CurrentUserResource`
+  returns a single occurrence, the declaration itself. So `/users/current` returns whatever any
+  unknown path returns. The contract promises more than the server does; verified 2026-09-08.

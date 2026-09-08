@@ -1,6 +1,6 @@
 ---
 id: endpoint-currencies
-title: Валюты
+title: Currencies
 type: api_endpoints
 status: active
 services:
@@ -12,61 +12,60 @@ contract_source:
 parent_feature: feature-transactions
 ---
 
-# API: валюты
+# API: currencies
 
-> Один маршрут, и его **никто не вызывает**. Документ существует затем, чтобы это было записано, а
-> не обнаруживалось заново каждым, кто наткнётся на `CurrencyResource`.
+> One route, and **nobody calls it**. This document exists so that this is written down rather than
+> rediscovered by everyone who trips over `CurrencyResource`.
 
-## Маршруты — все
+## Routes — all of them
 
-| Метод и путь | Ярус | Назначение |
+| Method and path | Tier | Purpose |
 |---|---|---|
-| `GET /currencies` | открытый | список валют, известных серверу |
+| `GET /currencies` | open | the list of currencies the server knows about |
 
-Путь — `/currencies`, во множественном числе, хотя класс называется `CurrencyResource`, пакет —
-`feature/currency`, а тип — `Currency`. Единственное место, где стоит форма множественного числа,
-— строка в аннотации.
+The path is `/currencies`, plural, although the class is called `CurrencyResource`, the package is
+`feature/currency` and the type is `Currency`. The only place the plural appears is the string in
+the annotation.
 
-## Обработчик
+## Handler
 
-| Маршрут | Обработчик |
+| Route | Handler |
 |---|---|
 | `GET /currencies` | `server-common/.../feature/currency/CurrencyRouting.kt:9` |
 
-Обработчик целиком — один `respond` со списком из двух констант; ни хранилища, ни конфигурации за
-ним нет.
+The handler in its entirety is one `respond` with a list of two constants; there is no storage and
+no configuration behind it.
 
-## Тело ответа
+## Response body
 
-| Что | Класс |
+| What | Class |
 |---|---|
-| элемент ответа | `shared/.../feature/currency/Currency.kt` |
+| element of the response | `shared/.../feature/currency/Currency.kt` |
 
-## Ответы
+## Responses
 
-| Условие | Код | Тело |
+| Condition | Status | Body |
 |---|---|---|
-| всегда | `200` | `[Currency.Rub, Currency.Usd]` — зашитый список из двух |
+| always | `200` | `[Currency.Rub, Currency.Usd]` — a hard-coded list of two |
 
-## Особенности
+## Quirks
 
-Их здесь больше, чем самого маршрута.
+There are more of them here than there is route.
 
-* **Клиент этот маршрут не зовёт ни разу.** Поиск по `CurrencyResource` во всём дереве даёт два
-  вхождения: объявление в `:shared` и `get<CurrencyResource>` в маршрутизации. Ни одного вызова с
-  клиента нет. Проверено 08.09.2026.
-* **Валюта на клиенте берётся из локальных настроек.** `CurrentCurrencyRepositoryImpl` читает её из
-  `Settings` с умолчанием `Currency.Usd`
-  (`composeApp/.../feature/currency/data/CurrentCurrencyRepository.kt`). Все экраны получают её
-  через `GetCurrentCurrencyUseCase`.
-* **И никто её не записывает.** Сеттер `CurrentCurrencyRepository.currency` не вызывается нигде:
-  экрана выбора валюты в приложении нет. Значит в `Settings` всегда пусто, всегда возвращается
-  умолчание, и **приложение фактически работает только в долларах** — включая символ `$` во всех
-  суммах.
-* **`Currency.Rub` при этом объявлена и недостижима**, а её `name` — единственная кириллица в
-  контракте (`"Рубль"`).
+* **The client never calls this route.** Searching the whole tree for `CurrencyResource` returns two
+  occurrences: the declaration in `:shared` and `get<CurrencyResource>` in the routing. There is not
+  one call from the client. Verified 2026-09-08.
+* **On the client the currency comes from local settings.** `CurrentCurrencyRepositoryImpl` reads it
+  out of `Settings` with `Currency.Usd` as the default
+  (`composeApp/.../feature/currency/data/CurrentCurrencyRepository.kt`). Every screen gets it
+  through `GetCurrentCurrencyUseCase`.
+* **And nobody writes it.** The `CurrentCurrencyRepository.currency` setter is called nowhere: the
+  app has no currency picker. So `Settings` is always empty, the default is always what comes back,
+  and **the app effectively works in dollars only** — including the `$` symbol on every amount.
+* **`Currency.Rub` is therefore declared and unreachable**, and its `name` is the only Cyrillic in
+  the contract (`"Рубль"`).
 
-Из этого следует, что здесь **два разных незакрытых конца**, а не один: маршрут без потребителя и
-настройка без способа её задать. Починка одного не чинит другого — экран выбора валюты, если он
-появится, сможет брать список у сервера, но сегодня его отсутствие означает, что и список никому
-не нужен.
+What follows is that there are **two separate loose ends here, not one**: a route with no consumer,
+and a setting with no way to set it. Fixing either does not fix the other — a currency picker, if
+one appears, will be able to take the list from the server, but today its absence means nobody needs
+that list either.

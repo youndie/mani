@@ -1,6 +1,6 @@
 ---
 id: feature-health
-title: Живость, готовность и «какая сборка ответила»
+title: Liveness, readiness and "which build answered"
 type: feature
 status: active
 owner: unassigned
@@ -16,121 +16,126 @@ api:
 tags: [ops]
 ---
 
-# Живость, готовность и «какая сборка ответила»
+# Liveness, readiness and "which build answered"
 
-## 1. Обзор
+## 1. Overview
 
-Две пробы и одна витринная строка — три вещи, которые легко перепутать, поэтому они разведены
-намеренно.
+Two probes and one line on the welcome screen — three things that are easy to confuse, which is why
+they are kept deliberately apart.
 
-**`GET /health`** отвечает, жив ли процесс, и **базу не трогает**. **`GET /health/ready`**
-отвечает, есть ли ему с чем работать, и базу спрашивает по-настоящему. Разница не формальная: под
-без базы должен перестать получать трафик, а не уйти в перезапуск.
+**`GET /health`** answers whether the process is alive, and **does not touch the database**.
+**`GET /health/ready`** answers whether it has anything to work with, and really does ask the
+database. The difference is not formal: a pod without a database should stop receiving traffic, not
+go into a restart.
 
-Третье — то, ради чего проект отчасти и существует. `/health` называет **сборку**: `jvm` или
-`kotlin/native`. Витрина печатает эту строку вместо зашитой, так что посетитель видит, что его
-запрос обслужил нативный бинарь, а не текст в README.
+The third is part of why the project exists at all. `/health` names the **build**: `jvm` or
+`kotlin/native`. The welcome screen prints that string instead of a hard-coded one, so a visitor can
+see that their request was served by the native binary rather than by a sentence in the README.
 
-## 2. Правила
+## 2. Business rules
 
-* `/health` не зависит ни от одной зависимости. Проба живости, зависящая от базы, превращает её
-  падение в перезапуск всех подов — и лечит этим ровно ничего, только добавляет холодных стартов
-  к уже случившейся беде.
-* `/health/ready` **обязан сходить в базу**, а не вернуть закэшированное состояние клиента: драйвер
-  считает соединение живым до первой неудачной операции, и проба на таком ответе зеленела бы при
-  мёртвой базе.
-* Отказ драйвера — это «не готов» (`503`), а не `500`: пробе нужен код ответа, а не разбор причины.
-* Отмена запроса «не готов» не означает: проверка идёт через `suspendRunCatching`.
-* Своего таймаута у пробы готовности **нет намеренно** — обёртка вокруг блокирующего вызова его не
-  даёт, а ограничивает пробу kubelet своим `timeoutSeconds`, то есть тот, кто и решает, сколько
-  ждать.
-* Обе пробы **открыты**: это витрина и эксплуатация, а не данные.
-* Версия в ответе — та же `mani.version`, из которой собирается тег образа. По ответу сервера
-  находится образ, из которого он запущен.
-* `uptimeSeconds` считается от старта **этого процесса**.
+* `/health` depends on no dependency at all. A liveness probe that depends on the database turns its
+  outage into a restart of every pod — which cures precisely nothing and merely adds cold starts to
+  a problem that has already happened.
+* `/health/ready` **must go to the database** rather than return the client's cached state: the
+  driver considers a connection alive until the first failed operation, and a probe built on that
+  answer would go green against a dead database.
+* A driver failure means "not ready" (`503`), not `500`: a probe needs a status code, not an
+  analysis of the cause.
+* A cancelled request does not mean "not ready": the check goes through `suspendRunCatching`.
+* The readiness probe deliberately has **no timeout of its own** — a wrapper around a blocking call
+  does not give you one, and the kubelet bounds the probe with its own `timeoutSeconds`, which is
+  the party that decides how long to wait.
+* Both probes are **open**: this is the welcome screen and operations, not data.
+* The version in the response is the same `mani.version` the image tag is built from. The server's
+  answer locates the image it was started from.
+* `uptimeSeconds` counts from the start of **this process**.
 
-## 3. Ход
+## 3. Flow
 
 ```
-kubelet ──GET /health───────▶ 200 всегда, пока процесс жив   (livenessProbe, 10 с, 3 промаха)
-kubelet ──GET /health/ready─▶ запрос в базу ─┬─ отвечает ──▶ 200 "ready"
-                                             └─ нет ───────▶ 503 "storage unreachable"
-                                                             (readinessProbe, 5 с, 2 промаха)
+kubelet ──GET /health───────▶ 200 always, while the process is alive  (livenessProbe, 10 s, 3 misses)
+kubelet ──GET /health/ready─▶ a query to the DB ─┬─ answers ──▶ 200 "ready"
+                                                 └─ does not ─▶ 503 "storage unreachable"
+                                                                (readinessProbe, 5 s, 2 misses)
 
-витрина ──GET /health───────▶ «ktor · kotlin/native · 1.4.2»
+welcome ──GET /health───────▶ "ktor · kotlin/native · 1.4.2"
 ```
 
-`initialDelaySeconds` у пробы готовности нет: нативный бинарь отвечает через 87 мс после старта.
+The readiness probe has no `initialDelaySeconds`: the native binary answers 87 ms after startup.
 
-## 4. Код
+## 4. Code anchors
 
-| Сервис | Код |
+| Service | Code |
 |---|---|
-| shared | `shared/src/commonMain/kotlin/io/github/youndie/mani/feature/health/HealthResource.kt` — пути и `Health` |
-| server-common | `server-common/src/commonMain/kotlin/io/github/youndie/mani/feature/health/HealthRouting.kt` — оба маршрута |
-| server-common | `server-common/src/commonMain/kotlin/io/github/youndie/mani/feature/health/StorageHealth.kt` — порт «отвечает ли хранилище» |
+| shared | `shared/src/commonMain/kotlin/io/github/youndie/mani/feature/health/HealthResource.kt` — the paths and `Health` |
+| server-common | `server-common/src/commonMain/kotlin/io/github/youndie/mani/feature/health/HealthRouting.kt` — both routes |
+| server-common | `server-common/src/commonMain/kotlin/io/github/youndie/mani/feature/health/StorageHealth.kt` — the "does storage answer" port |
 | server-common | `server-common/src/jvmMain/kotlin/io/github/youndie/mani/feature/health/HealthRouting.jvm.kt` — `"jvm"` |
 | server-common | `server-common/src/linuxX64Main/kotlin/io/github/youndie/mani/feature/health/HealthRouting.linuxX64.kt` — `"kotlin/native"` |
-| server | `server/src/main/kotlin/io/github/youndie/mani/MongoStorageModule.kt` — реализация `StorageHealth` |
-| server-native | `server-native/src/linuxX64Main/kotlin/io/github/youndie/mani/MongknStorageModule.kt` — она же на mongkn |
-| инфраструктура | `.k8s-templates/deployment.yaml` — обе пробы с их периодами и порогами |
-| клиент | `composeApp/src/commonMain/kotlin/io/github/youndie/mani/feature/health/domain/GetHealthUseCase.kt` |
+| server | `server/src/main/kotlin/io/github/youndie/mani/MongoStorageModule.kt` — the `StorageHealth` implementation |
+| server-native | `server-native/src/linuxX64Main/kotlin/io/github/youndie/mani/MongknStorageModule.kt` — the same on mongkn |
+| infrastructure | `.k8s-templates/deployment.yaml` — both probes with their periods and thresholds |
+| client | `composeApp/src/commonMain/kotlin/io/github/youndie/mani/feature/health/domain/GetHealthUseCase.kt` |
 
-## 5. Сценарии
+## 5. Scenarios (BDD)
 
-### Scenario: готовность отвечает, пока отвечает база
+### Scenario: readiness answers while the database answers
 
-* **Given:** база доступна.
+* **Given:** the database is reachable.
 * **When:** `GET /health/ready`.
-* **Then:** `200` с телом `ready`.
+* **Then:** `200` with the body `ready`.
 * **Automated:** `HealthReadinessTest`
 
-### Scenario: база не отвечает — под снимается с трафика
+### Scenario: the database does not answer — the pod is taken out of traffic
 
-* **Given:** хранилище недоступно.
+* **Given:** storage is unreachable.
 * **When:** `GET /health/ready`.
-* **Then:** `503` с телом `storage unreachable`.
+* **Then:** `503` with the body `storage unreachable`.
 * **Automated:** `HealthReadinessTest`
 
-### Scenario: живость не зависит от базы
+### Scenario: liveness does not depend on the database
 
-* **Given:** хранилище недоступно.
+* **Given:** storage is unreachable.
 * **When:** `GET /health`.
-* **Then:** `200` — процесс жив, и перезапускать его незачем.
+* **Then:** `200` — the process is alive and there is no reason to restart it.
 * **Automated:** `HealthReadinessTest`
 
-### Scenario: то же на нативной сборке
+### Scenario: the same on the native build
 
-* **Given:** нативный бинарь и настоящий `mongod`.
+* **Given:** the native binary and a real `mongod`.
 * **When:** `GET /health/ready`.
 * **Then:** `200`.
 * **Automated:** `ManiApiTest`
 
-### Scenario: витрина показывает, кто ответил
+### Scenario: the welcome screen shows who answered
 
-* **Given:** сервер отвечает на `/health`.
-* **When:** открыта витрина.
-* **Then:** под заголовком строка `ktor · <build> · <version>` из ответа, а не зашитая.
-* **And:** отказ `/health` **молчаливый** — строка не появляется, но войти в демо это не мешает.
+* **Given:** the server answers `/health`.
+* **When:** the welcome screen is opened.
+* **Then:** below the heading is the line `ktor · <build> · <version>` from the response, not a
+  hard-coded one.
+* **And:** a failing `/health` is **silent** — the line does not appear, and that does not stop
+  anyone entering the demo.
 
-## 6. Вне охвата
+## 6. Out of scope
 
-* Метрик (`/metrics`) в продукте нет.
-* Проверки готовности к приёму трафика, отличной от «база отвечает», нет: других зависимостей у
-  сервера тоже нет.
-* Пробы старта (`startupProbe`) нет — нативный бинарь стартует за 87 мс.
+* The product has no metrics (`/metrics`).
+* There is no readiness check other than "the database answers": the server has no other
+  dependencies either.
+* There is no `startupProbe` — the native binary starts in 87 ms.
 
-## 7. Особенности
+## 7. Quirks
 
-* **`startedAt` — верхнеуровневое свойство, вычисляемое при загрузке файла.** Момент, от которого
-  считается `uptimeSeconds`, — это момент инициализации, а не старта `main()`. Для одного процесса
-  разница неразличима, но в тесте, поднимающем приложение несколько раз, счётчик общий на весь
-  прогон.
-* **Проба готовности ходит в базу на каждый запрос**, каждые 5 секунд на реплику. Кэша нет
-  намеренно: закэшированный ответ и есть та самая проба, которая зеленеет при мёртвой базе.
-* **`GET /health` — единственный маршрут, отдающий типизированный объект без авторизации.** Он же
-  единственное место, где `expect/actual` объявлен ради **строки**, а не ради платформенного
-  вызова: тип сборки — единственное, чем сборки обязаны отличаться.
-* **`livenessProbe` без базы означает, что мёртвая база даёт под, который жив и не готов** —
-  ровно то, что нужно: трафик уходит, перезапусков нет, и когда база вернётся, под примет трафик
-  сам.
+* **`startedAt` is a top-level property evaluated when the file is initialised.** The moment
+  `uptimeSeconds` counts from is initialisation, not the start of `main()`. For a single process the
+  difference is imperceptible, but in a test that brings the application up several times the
+  counter is shared across the whole run.
+* **The readiness probe goes to the database on every request**, every 5 seconds per replica. There
+  is no cache deliberately: a cached answer is exactly the probe that goes green against a dead
+  database.
+* **`GET /health` is the only route returning a typed object without authentication.** It is also
+  the only place where `expect/actual` is declared for a **string** rather than for a platform call:
+  the build kind is the one thing the builds are obliged to differ on.
+* **A `livenessProbe` without the database means a dead database yields a pod that is alive and not
+  ready** — exactly what is wanted: traffic drains away, nothing restarts, and when the database
+  comes back the pod takes traffic again on its own.
