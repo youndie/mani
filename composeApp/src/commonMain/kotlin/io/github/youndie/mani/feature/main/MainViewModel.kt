@@ -89,9 +89,17 @@ class MainViewModel(
                 retryAttempt = 0
                 state.value = state.value.copy(loading = true, transactions = emptyImmutableMap())
 
+                // Категории отказывают тем же способом, что и правила, и должны приводить к тому
+                // же экрану «сервер недоступен»: раньше их отказ летел мимо состояния экрана и
+                // ронял приложение, потому что читался через `get()`.
+                val categoriesFlow = getCategoriesUseCase().getOrElse { throwable ->
+                    showUnreachable(throwable)
+                    return
+                }
+
                 combine(
                     transactionsFlow,
-                    getCategoriesUseCase.get(),
+                    categoriesFlow,
                     filterUpcoming,
                     filterCategory,
                     transactionsUseCase.showingCacheFrom,
@@ -142,13 +150,17 @@ class MainViewModel(
                     state.update { result }
                 }
             },
-            onFailure = { throwable ->
-                // Показать нечего — ни свежего, ни сохранённого. Это не сообщение в углу, а
-                // состояние всего экрана, и у него должна быть причина и путь наружу.
-                state.value = MainUiState(unreachable = ServerUnreachableUiState(cause = describe(throwable)))
-                scheduleRetry()
-            },
+            onFailure = ::showUnreachable,
         )
+    }
+
+    /**
+     * Показать нечего — ни свежего, ни сохранённого. Это состояние всего экрана, а не сообщение
+     * в углу, и у него должна быть причина и путь наружу.
+     */
+    private fun showUnreachable(throwable: Throwable) {
+        state.value = MainUiState(unreachable = ServerUnreachableUiState(cause = describe(throwable)))
+        scheduleRetry()
     }
 
     /** Повтор вручную: отсчёт сбрасывается, чтобы автоповтор не выстрелил поверх. */

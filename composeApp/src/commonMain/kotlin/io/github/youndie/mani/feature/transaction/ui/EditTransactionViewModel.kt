@@ -39,18 +39,25 @@ class EditTransactionViewModel(
 
     init {
         viewModelScope.launch(dispatcher) {
-            val transaction = getTransactionUseCase.get(transactionId)
+            // Правило может не найтись — ссылку открыли по устаревшему идентификатору. Это
+            // сообщение на форме, а не падение: `get()` бросил бы отказ прямо в корутину.
+            getTransactionUseCase(transactionId).fold(
+                onSuccess = { transaction ->
+                    state.value = TransactionUiState(
+                        transaction,
+                        currency = getCurrentCurrencyUseCase.get(),
+                    ).copy(
+                        edit = true,
+                        periods = Transaction.Period.entries.toImmutableList(),
+                    )
 
-            state.value = TransactionUiState(
-                transaction,
-                currency = getCurrentCurrencyUseCase.get(),
-            ).copy(
-                edit = true,
-                periods = Transaction.Period.entries.toImmutableList(),
+                    observeCategories()
+                    observeTransactions()
+                },
+                onFailure = { throwable ->
+                    state.update { it.copy(loading = false, errorMessage = throwable.message) }
+                },
             )
-
-            observeCategories()
-            observeTransactions()
         }
     }
 
