@@ -32,4 +32,34 @@ class ManiConfigTest {
     fun aConfiguredSecretIsTakenAsIs() {
         assertEquals("from-the-environment", signingSecret("from-the-environment"))
     }
+
+    /**
+     * Логин и пароль доезжают до строки подключения.
+     *
+     * Раньше поля читались из окружения и никуда не попадали: задавший `MONGO_PASSWORD` получал
+     * подключение без пароля, и понять это по поведению было нельзя.
+     */
+    @Test
+    fun credentialsReachTheConnectionString() {
+        val withAuth = MongoConfig(userName = "mani", password = "hunter22", host = "db:27017")
+
+        assertEquals("mongodb://mani:hunter22@db:27017/?w=majority&appName=Mani", withAuth.connectionString)
+    }
+
+    /** Пустой логин — строка ровно та же, что была до этого: у mongod стенда аутентификации нет. */
+    @Test
+    fun noCredentialsMeansNoChange() {
+        assertEquals(
+            "mongodb://localhost/?w=majority&appName=Mani",
+            MongoConfig(host = "localhost").connectionString,
+        )
+    }
+
+    /** Пароль со служебными символами экранируется, иначе адрес разбирается не туда. */
+    @Test
+    fun aPasswordWithSeparatorsIsEscaped() {
+        val tricky = MongoConfig(userName = "mani", password = "p@ss:word", host = "db")
+
+        assertEquals("mongodb://mani:p%40ss%3Aword@db/?w=majority&appName=Mani", tricky.connectionString)
+    }
 }

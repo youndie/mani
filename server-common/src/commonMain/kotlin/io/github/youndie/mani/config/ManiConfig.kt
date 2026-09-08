@@ -2,6 +2,7 @@ package io.github.youndie.mani.config
 
 import dev.whyoleg.cryptography.random.CryptographyRandom
 import io.github.youndie.mani.security.toHex
+import io.ktor.http.encodeURLParameter
 
 /**
  * Конфигурация сервера — из переменных окружения, одинаково для обеих сборок.
@@ -27,8 +28,8 @@ data class ManiConfig(
             port = readEnv("PORT")?.toIntOrNull() ?: 8080,
             mongo =
             MongoConfig(
-                userName = readEnv("MONGO_USERNAME") ?: "root",
-                password = readEnv("MONGO_PASSWORD") ?: "example",
+                userName = readEnv("MONGO_USERNAME").orEmpty(),
+                password = readEnv("MONGO_PASSWORD").orEmpty(),
                 host = readEnv("MONGO_HOST") ?: "localhost",
                 database = readEnv("MONGO_DATABASE") ?: "mani",
             ),
@@ -84,11 +85,22 @@ data class MongoConfig(
     val database: String = "mani",
 ) {
     /**
-     * Строка подключения. Логин и пароль в неё намеренно не подставляются: mongod стенда поднят
-     * без аутентификации, и так же собирала её JVM-сборка. Поля оставлены, чтобы включение
-     * аутентификации было правкой одного места, а не поиском по репозиторию.
+     * Строка подключения.
+     *
+     * Логин и пароль ПОДСТАВЛЯЮТСЯ, если заданы. Раньше поля читались из окружения и никуда не
+     * попадали: тот, кто задавал `MONGO_PASSWORD`, получал подключение без пароля и узнавал об
+     * этом не из отказа, а из того, что всё почему-то работает. Умолчание пустое — mongod стенда
+     * поднят без аутентификации, и с пустыми полями строка та же, что была.
+     *
+     * Значения экранируются: пароль с `@` или `:` иначе рвёт разбор адреса, и подключение уходит
+     * не туда, куда просили.
      */
-    val connectionString: String get() = "mongodb://$host/?w=majority&appName=Mani"
+    val connectionString: String get() = when {
+        userName.isEmpty() -> "mongodb://$host/?w=majority&appName=Mani"
+
+        else -> "mongodb://${userName.encodeURLParameter()}:${password.encodeURLParameter()}@" +
+            "$host/?w=majority&appName=Mani"
+    }
 }
 
 data class JWTConfig(

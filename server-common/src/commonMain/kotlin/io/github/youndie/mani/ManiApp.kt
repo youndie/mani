@@ -70,7 +70,6 @@ fun Application.configureManiPlugins(config: ManiConfig) {
             allowMethod(HttpMethod.Patch)
             allowMethod(HttpMethod.Delete)
             allowMethod(HttpMethod.Get)
-            allowHeader(HttpHeaders.AccessControlAllowOrigin)
             allowHeader(HttpHeaders.ContentType)
             allowHeadersPrefixed("sec-")
             allowHeader(HttpHeaders.Authorization)

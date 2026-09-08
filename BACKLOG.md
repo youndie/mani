@@ -262,7 +262,7 @@
     `composeApp/build.gradle.kts`, `androidApp/build.gradle.kts`, `.github/workflows/deploy.yml`,
     `.k8s-templates/deployment.yaml`
 
-- [ ] **M3-03 · P3 · XS** — Мёртвый код и мёртвая конфигурация
+- [x] **M3-03 · P3 · XS** — Мёртвый код и мёртвая конфигурация
   - `UserService` в `SignupUseCase.kt`; `MongoConfig.userName` и `password`, которые в строку
     подключения не попадают (либо подставлять, либо убрать вместе с `MONGO_USERNAME`/`MONGO_PASSWORD`);
     копия devServer-конфига wasmJs в `shared/build.gradle.kts` — у библиотеки нет dev-сервера;
