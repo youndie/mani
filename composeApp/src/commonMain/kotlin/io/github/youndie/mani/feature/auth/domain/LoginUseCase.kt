@@ -11,27 +11,23 @@ import io.ktor.client.call.*
 import io.ktor.client.plugins.resources.*
 import io.ktor.client.request.*
 import io.ktor.http.*
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 
 class LoginUseCase(private val httpClient: HttpClient, private val tokenRepository: TokenRepository) : AuthUseCase() {
 
     override suspend operator fun invoke(params: LoginParams): Result<Boolean> = suspendRunCatching {
-        withContext(Dispatchers.Default) {
-            val response = httpClient.post(AuthResource()) {
-                setBody(params)
-            }
+        val response = httpClient.post(AuthResource()) {
+            setBody(params)
+        }
 
-            if (response.status == HttpStatusCode.NotFound) {
-                Result.failure(UserNotFoundException())
-            } else {
-                val result = response.body<Tokens>()
-                tokenRepository.set(
-                    accessToken = result.accessToken,
-                    refreshToken = result.refreshToken,
-                )
-                Result.success(true)
-            }
+        if (response.status == HttpStatusCode.NotFound) {
+            Result.failure(UserNotFoundException())
+        } else {
+            val result = response.body<Tokens>()
+            tokenRepository.set(
+                accessToken = result.accessToken,
+                refreshToken = result.refreshToken,
+            )
+            Result.success(true)
         }
     }.getOrElse { Result.failure(ServerException(message = "Network Error", cause = it)) }
 }

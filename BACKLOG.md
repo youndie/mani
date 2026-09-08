@@ -188,7 +188,7 @@
   - Якоря: `composeApp/.../data/Network.kt`, `composeApp/.../feature/auth/data/TokenRepository.kt`,
     `composeApp/.../App.kt`, `composeApp/.../navigation/ManiAppNavHost.kt`
 
-- [ ] **M2-03 · P3 · XS** — `withContext(Dispatchers.Default)` вокруг сетевых вызовов
+- [x] **M2-03 · P3 · XS** — `withContext(Dispatchers.Default)` вокруг сетевых вызовов
   - Сейчас: в `LoginUseCase`, `GetHealthUseCase`, `StartDemoUseCase`, `SeedDemoDataUseCase`;
     Ktor и так не блокирует вызывающий поток, в одном месте это уже убрано как no-op (`7ce11cf`).
   - Решение: убрать во всех четырёх; диспетчер остаётся там, где есть счёт — симуляция в VM.
