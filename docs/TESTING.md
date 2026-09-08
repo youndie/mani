@@ -48,6 +48,11 @@ import org.junit.Test            // ❌
 `org.junit.*` nails a test to the JVM, and moving it into a shared suite later means rewriting it.
 `kotlin.test` expands into whichever runner the build selects and travels with it.
 
+One module is exempt, and only one: `:baselineprofile`. Macrobenchmark and baseline-profile
+generation are built on JUnit 4 rules — `@get:Rule` with `BaselineProfileRule`, `@RunWith` — which
+`kotlin.test` cannot express. Those files are Android instrumentation, not unit tests, and they
+never move anywhere.
+
 ## Seven suites and what belongs in each
 
 | Suite | Platforms | What it covers |

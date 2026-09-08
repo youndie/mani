@@ -16,7 +16,6 @@ import io.github.youndie.mani.feature.user.data.UserDb
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.runBlocking
 import org.bson.types.ObjectId
-import org.junit.Test
 import org.koin.core.context.GlobalContext.stopKoin
 import kotlin.test.*
 
