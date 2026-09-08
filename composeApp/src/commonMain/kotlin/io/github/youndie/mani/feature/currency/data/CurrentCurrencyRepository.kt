@@ -11,9 +11,14 @@ interface CurrentCurrencyRepository {
     var currency: Currency
 }
 
-class CurrentCurrencyRepositoryImpl : CurrentCurrencyRepository {
-
-    private val settings: Settings = Settings()
+/**
+ * Выбранная валюта живёт в настройках платформы.
+ *
+ * Хранилище приходит параметром: с `Settings()` внутри класса тест писал бы в настоящие настройки
+ * машины, на которой идёт прогон, — прогоны мешали бы друг другу и оставляли бы за собой чужой
+ * выбор. Умолчание оставлено, чтобы боевой вызов остался без аргументов.
+ */
+class CurrentCurrencyRepositoryImpl(private val settings: Settings = Settings()) : CurrentCurrencyRepository {
 
     @OptIn(ExperimentalSettingsApi::class, ExperimentalSerializationApi::class)
     override var currency: Currency
