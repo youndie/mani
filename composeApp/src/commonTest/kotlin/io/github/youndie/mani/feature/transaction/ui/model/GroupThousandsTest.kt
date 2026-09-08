@@ -3,6 +3,13 @@ package io.github.youndie.mani.feature.transaction.ui.model
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
+/**
+ * Разряды в суммах.
+ *
+ * Функция маленькая, а случаев у неё четыре, и три из них — края: знак не должен уезжать
+ * внутрь числа, дробная часть не должна разбиваться на группы, короткое число не должно
+ * меняться вовсе. Разделитель — неразрывный пробел: обычный переносит сумму на две строки.
+ */
 class GroupThousandsTest {
     private val nbsp = '\u00A0'
 

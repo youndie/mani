@@ -19,6 +19,14 @@ import org.bson.types.ObjectId
 import org.koin.core.context.GlobalContext.stopKoin
 import kotlin.test.*
 
+/**
+ * Категории в JVM-сборке: они лежат массивом внутри документа пользователя, а не своей коллекцией.
+ *
+ * Отсюда и проверки по сырому документу, а не по возвращаемому значению: создание, чтение,
+ * переименование и удаление вложенного элемента — четыре разных выражения MongoDB, и ошибка в
+ * любом из них ничего не роняет, а просто ничего не находит. Парный набор для нативной сборки —
+ * `MongknStorageTest`.
+ */
 class MongoCategoryRepositoryTest {
 
     lateinit var running: TransitionWalker.ReachedState<RunningMongodProcess>

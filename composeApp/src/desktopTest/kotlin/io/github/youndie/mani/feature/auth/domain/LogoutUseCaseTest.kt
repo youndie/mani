@@ -1,4 +1,4 @@
-package io.github.youndie.mani.feature.transaction.ui.io.github.youndie.mani.feature.auth.domain
+package io.github.youndie.mani.feature.auth.domain
 
 import com.ionspin.kotlin.bignum.decimal.toBigDecimal
 import io.github.youndie.mani.feature.auth.data.TokenRepository
@@ -15,6 +15,12 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
+/**
+ * Выход уносит и токены, и данные.
+ *
+ * Забыть вторую половину легко, и наружу это выходит не ошибкой, а чужой лентой правил на
+ * экране следующего, кто войдёт на этом устройстве.
+ */
 class LogoutUseCaseTest {
     @Test
     fun logoutTest() = runTest {

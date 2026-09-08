@@ -9,6 +9,13 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
+/**
+ * Форма учётных данных как таковая: поля, кнопка, строка ошибки.
+ *
+ * Компонент общий у входа и регистрации, поэтому проверяется он, а не два экрана. Состояние
+ * приходит снаружи и меняется тестом по ходу — так видно, что форма отражает состояние, а не
+ * хранит своё.
+ */
 class AuthComponentTest {
 
     @OptIn(ExperimentalTestApi::class)

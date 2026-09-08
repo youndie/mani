@@ -37,6 +37,14 @@ private class FailingSource(var fail: Boolean) : DataSource<Transaction> {
     override suspend fun delete(id: String) = true
 }
 
+/**
+ * Последний известный список правил.
+ *
+ * Порядок здесь важнее самого кэша: сеть спрашивается ВСЕГДА, сохранённое идёт в ход, только
+ * если она отказала. Обратный порядок дал бы вчерашние данные при живом соединении, и заметить
+ * это можно было бы лишь по несвежим суммам. Отсюда `FailingSource`: отказ включается на ходу,
+ * чтобы проверить обе ветки на одном и том же наборе.
+ */
 class TransactionsCacheTest {
     @Test
     fun `empty cache reads as nothing`() {

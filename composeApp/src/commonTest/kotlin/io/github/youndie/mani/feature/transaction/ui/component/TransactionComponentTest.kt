@@ -11,6 +11,13 @@ import io.github.youndie.mani.feature.transaction.ui.model.TransactionUiState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlin.test.Test
 
+/**
+ * Форма правила в исходном состоянии: что показано до единого ввода.
+ *
+ * Проверяется набор и расположение полей, а не поведение: сумма в фокусе, расход выбран по
+ * умолчанию, «до какого дня» скрыто у разовой траты, кнопка недоступна. Всё это решения макета,
+ * и любое из них легко потерять при правке соседнего поля.
+ */
 class TransactionComponentTest : LifecycleOwner {
     override val lifecycle = LifecycleRegistry(this)
 
