@@ -21,7 +21,16 @@ plugins {
  * держит общую часть честной — всё, что перестанет компилироваться под JVM, ломается здесь.
  */
 group = "io.github.youndie.mani"
-version = "0.2.${providers.gradleProperty("BUILD_NUMBER").getOrElse("snapshot")}"
+
+/*
+ * Версия продукта плюс номер сборки: одно число на приложение, второе отличает выкаты друг от
+ * друга. Раньше здесь стояла своя линия `0.2.x`, не совпадавшая ни с чем — ни с ответом
+ * `/health`, ни с версией клиентов.
+ */
+val maniVersion = providers.gradleProperty("mani.version").get()
+val buildNumber = providers.gradleProperty("BUILD_NUMBER").getOrElse("snapshot")
+
+version = "$maniVersion.$buildNumber"
 
 application {
     mainClass.set("io.github.youndie.mani.ApplicationKt")
@@ -88,7 +97,7 @@ ktor {
     docker {
         jreVersion.set(JavaVersion.VERSION_21)
         localImageName.set("mani-backend")
-        imageTag.set("0.2.${providers.gradleProperty("BUILD_NUMBER").getOrElse("snapshot")}")
+        imageTag.set("$maniVersion.$buildNumber")
         customBaseImage.set("gcr.io/distroless/java21-debian12")
         externalRegistry.set(
             DockerImageRegistry.externalRegistry(

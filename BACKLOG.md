@@ -251,7 +251,7 @@
   - Якоря: `shared/src/commonMain/kotlin/io/github/youndie/mani/`, `shared/build.gradle.kts`,
     `composeApp/build.gradle.kts`, `README.md`
 
-- [ ] **M3-02 · P2 · S** — Четыре несвязанные версии
+- [x] **M3-02 · P2 · S** — Четыре несвязанные версии
   - Сейчас: `MANI_VERSION = "1.4.2"` в `/health`, сервер `0.2.${BUILD_NUMBER}`, десктоп
     `packageVersion = "1.0.0"`, Android `versionName = "1.0"`, тег образа `0.2.<run_number>`.
   - Решение: одно число в `gradle.properties` (`mani.version`), из него `MANI_VERSION` через

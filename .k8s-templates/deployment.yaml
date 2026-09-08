@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: mani-backend
-          image: ghcr.io/youndie/mani-kotlin-fullstack:0.2.$buildnumber
+          image: ghcr.io/youndie/mani-kotlin-fullstack:$version.$buildnumber
           ports:
             - name: http
               containerPort: 8080

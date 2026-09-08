@@ -19,12 +19,44 @@ plugins {
  * Реализации хранилища сюда не входят: официальный драйвер существует только на JVM, mongkn —
  * только под linuxX64. В общей части живут интерфейсы, реализации — в сборочных модулях.
  */
+/*
+ * Версия продукта приезжает из `gradle.properties`, а не лежит константой в коде: держать её
+ * в двух местах — значит однажды выкатить образ, чей `/health` называет прошлую.
+ */
+val maniVersion = providers.gradleProperty("mani.version")
+
+val generateVersion by tasks.registering {
+    val version = maniVersion
+    val output = layout.buildDirectory.dir("generated/version/commonMain/kotlin")
+
+    inputs.property("version", version)
+    outputs.dir(output)
+
+    doLast {
+        val file = output.get().file("io/github/youndie/mani/ManiVersion.kt").asFile
+        file.parentFile.mkdirs()
+        file.writeText(
+            """
+            package io.github.youndie.mani
+
+            /** Версия продукта. Сгенерировано из `mani.version` в `gradle.properties`. */
+            const val MANI_VERSION: String = "${version.get()}"
+
+            """.trimIndent(),
+        )
+    }
+}
+
 kotlin {
     jvm()
 
     linuxX64()
 
     sourceSets {
+        commonMain {
+            kotlin.srcDir(generateVersion)
+        }
+
         commonMain.dependencies {
             api(projects.shared)
 

@@ -1,14 +1,12 @@
 package io.github.youndie.mani.feature.health
 
+import io.github.youndie.mani.MANI_VERSION
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.resources.get
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Routing
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
-
-/** Версия приложения. Одна на обе сборки — они собираются из одного кода. */
-const val MANI_VERSION = "1.4.2"
 
 /**
  * Тип сборки — единственное, чем сборки обязаны отличаться, и потому единственный

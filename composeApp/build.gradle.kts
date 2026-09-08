@@ -185,7 +185,8 @@ compose.desktop {
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "io.github.youndie.mani"
-            packageVersion = "1.0.0"
+            // Та же версия, что называет `/health` и несёт тег образа.
+            packageVersion = providers.gradleProperty("mani.version").get()
         }
     }
 }
