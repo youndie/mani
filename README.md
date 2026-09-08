@@ -34,6 +34,10 @@ the interface it advertises.</sup>
 
 Live instance: **[mani.kotlin.website](https://mani.kotlin.website)**
 
+Documentation for anyone — or anything — about to change this code: **[docs/](docs/)**. It is
+layered and written in Russian: why the architecture is what it is, what each feature does with its
+BDD scenarios, the screens, the complete route reference, and one document per Gradle module.
+
 ## Its own dependencies
 
 Two of the moving parts are written for this project and used from here first:
