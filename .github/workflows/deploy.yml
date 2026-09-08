@@ -33,7 +33,7 @@ jobs:
           ref: ${{ github.event.workflow_run.head_sha || github.ref }}
 
       - name: Setup kubectl
-        uses: azure/setup-kubectl@v4
+        uses: azure/setup-kubectl@v5
         with:
           version: 'latest'
 
@@ -63,7 +63,7 @@ jobs:
           password: ${{ secrets.REGISTRY_PASSWORD }}
 
       - name: Build and push image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: server-native/Dockerfile
