@@ -288,7 +288,7 @@
   - AC: `Mongod.instance().start` встречается в `:server` ровно один раз.
   - Якоря: `server/src/test/kotlin/`
 
-- [ ] **M3-05 · P3 · XS** — JVM-jar стартует в dev-режиме Ktor
+- [x] **M3-05 · P3 · XS** — JVM-jar стартует в dev-режиме Ktor
   - Сейчас: `io.ktor.development=true` в `gradle.properties` уходит в `applicationDefaultJvmArgs`.
   - Решение: убрать из `gradle.properties`, оставить флаг для `:server:run` через `MANI_DEVELOPMENT`,
     которым уже управляется CORS.

@@ -34,9 +34,17 @@ version = "$maniVersion.$buildNumber"
 
 application {
     mainClass.set("io.github.youndie.mani.ApplicationKt")
-    applicationDefaultJvmArgs =
-        listOf("-Dio.ktor.development=${extra["io.ktor.development"] ?: "true"}")
 }
+
+/*
+ * Без `-Dio.ktor.development`.
+ *
+ * Свойство стояло в `gradle.properties` со значением `true` и уезжало в аргументы запуска, то
+ * есть и в образ: сервер работал в режиме разработки, где Ktor следит за классами и подробно
+ * рассказывает об ошибках наружу. Автоперезагрузкой здесь никто не пользовался, а то
+ * единственное, ради чего режим включали, — CORS для фронтенда с чужого порта — давно живёт
+ * своей переменной `MANI_DEVELOPMENT` и работает в обеих сборках.
+ */
 
 dependencies {
     implementation(projects.shared)
