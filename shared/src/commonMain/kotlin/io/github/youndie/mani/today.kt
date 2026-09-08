@@ -2,23 +2,19 @@
 
 package io.github.youndie.mani
 
-import kotlinx.collections.immutable.*
-import kotlinx.datetime.DateTimeUnit
-import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
-import kotlinx.datetime.minus
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 
-fun <T> emptyImmutableList(): ImmutableList<T> = persistentListOf()
-fun <K, V> emptyImmutableMap(): ImmutableMap<K, V> = persistentMapOf()
-fun <T> emptyImmutableSet(): ImmutableSet<T> = persistentSetOf()
-
+/**
+ * Сегодняшний календарный день.
+ *
+ * Живёт в контракте, а не у клиента: по нему разворачивается сид песочницы и считается прогноз,
+ * то есть он нужен и серверу.
+ */
 @Suppress(
     "ktlint:kapkan:wall-clock",
     "местный календарный день — ровно то, ради чего эта функция есть",
 )
 fun today() = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
-val LocalDate?.orToday get() = this ?: today()
-val defaultMinDate get() = today().minus(1, DateTimeUnit.MONTH)

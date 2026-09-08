@@ -52,7 +52,7 @@ redesign could not be checked without the second.
 
 | Module | What it is | Targets |
 |---|---|---|
-| `:shared` | API contract: resources, model, serializers | android, ios, jvm, wasmJs, linuxX64 |
+| `:shared` | the wire contract, and nothing else: resources, model, serializers | android, ios, jvm, wasmJs, linuxX64 |
 | `:composeApp` | the app itself — one UI for every platform | android, ios, desktop, wasmJs |
 | `:server-common` | server code: routes, storage ports, config, auth | jvm, linuxX64 |
 | `:server` | JVM build of the server | jvm |

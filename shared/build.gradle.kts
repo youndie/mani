@@ -64,7 +64,6 @@ kotlin {
 
             api(libs.ktor.client.resources)
             api(libs.kotlinx.datetime)
-            api(libs.kotlinx.collections.immutable)
             api(libs.kotlinx.serialization.json)
         }
 

@@ -7,10 +7,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.withContext
 
-interface WithId {
-    val id: String
-}
-
 interface StateFlowRepository<T : WithId> {
     val dataStateFlow: StateFlow<List<T>>
     suspend fun load()

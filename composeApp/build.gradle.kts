@@ -110,6 +110,9 @@ kotlin {
         }
         commonMain.dependencies {
             implementation(libs.bignum)
+            // Объявлено здесь, а не приезжает из `:shared`: неизменяемые коллекции нужны
+            // состояниям экранов, а контракту — нет.
+            implementation(libs.kotlinx.collections.immutable)
 
             implementation(libs.ktor.client.core)
             implementation(libs.ktor.client.auth)
