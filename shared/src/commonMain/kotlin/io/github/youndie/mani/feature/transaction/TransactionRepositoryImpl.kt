@@ -4,6 +4,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.withContext
 
 interface WithId {
@@ -27,21 +28,27 @@ interface DataSource<T : WithId> {
     suspend fun delete(id: String): Boolean
 }
 
+/**
+ * Список меняется только через [MutableStateFlow.update]: `data.value += x` — это чтение,
+ * сложение и запись тремя шагами, и параллельные вызовы затирают друг друга. Удаление
+ * выбранного идёт четырьмя корутинами сразу, так что терялись именно удаления — строки
+ * возвращались в список до следующей загрузки.
+ */
 abstract class BaseFlowRepository<T : WithId>(private val dataSource: DataSource<T>) : StateFlowRepository<T> {
     private val data = MutableStateFlow(emptyList<T>())
     private val dispatcher = Dispatchers.Default
     override val dataStateFlow: StateFlow<List<T>> = data.asStateFlow()
 
     override suspend fun create(params: T): T {
-        data.value += params
+        data.update { it + params }
 
         try {
             val created = dataSource.create(params)
 
-            data.value = data.value - params + created
+            data.update { it - params + created }
             return created
         } catch (e: Exception) {
-            data.value -= params
+            data.update { it - params }
             throw e
         }
     }
@@ -60,19 +67,19 @@ abstract class BaseFlowRepository<T : WithId>(private val dataSource: DataSource
     override suspend fun update(params: T): Boolean {
         val old = data.value.first { it.id == params.id }
 
-        data.value -= old
+        data.update { it - old }
 
         try {
             val updated = dataSource.update(params)
 
             if (updated != null) {
-                data.value += updated
+                data.update { it + updated }
                 return true
             } else {
-                data.value += old
+                data.update { it + old }
             }
         } catch (e: Exception) {
-            data.value += old
+            data.update { it + old }
             throw e
         }
 
@@ -82,16 +89,14 @@ abstract class BaseFlowRepository<T : WithId>(private val dataSource: DataSource
     override suspend fun delete(transactionId: String): Boolean {
         val transaction = dataStateFlow.value.find { it.id == transactionId } ?: return true
 
-        data.value -= transaction
+        data.update { it - transaction }
 
-        try {
-            return dataSource.delete(transactionId)
+        return try {
+            dataSource.delete(transactionId)
         } catch (e: Exception) {
-            data.value += transaction
+            data.update { it + transaction }
             throw e
         }
-
-        return false
     }
 
     override fun reset() {
