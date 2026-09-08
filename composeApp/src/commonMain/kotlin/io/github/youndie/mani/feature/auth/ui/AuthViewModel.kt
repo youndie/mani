@@ -6,7 +6,6 @@ import io.github.youndie.mani.feature.auth.LoginParams
 import io.github.youndie.mani.feature.auth.domain.AuthUseCase
 import io.github.youndie.mani.feature.auth.domain.DemoUseCase
 import io.github.youndie.mani.feature.auth.ui.model.AuthUiState
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
@@ -56,9 +55,7 @@ class AuthViewModel(private val authUseCase: AuthUseCase, private val startDemoU
                 it.copy(loading = true, errorMessage = null)
             }
 
-            val result = with(Dispatchers.Default) {
-                authUseCase.invoke(LoginParams(state.value.username, state.value.password))
-            }
+            val result = authUseCase(LoginParams(state.value.username, state.value.password))
 
             result.fold(
                 onSuccess = {
