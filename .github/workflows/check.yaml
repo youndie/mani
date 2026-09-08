@@ -1,0 +1,53 @@
+name: docs
+
+# Без фильтров по путям. Фильтр экономит секунды и покупает красную ветку по умолчанию: карта
+# покрытия расходится с файлами, когда двигается что-то вне перечисленных путей, а новый каталог —
+# ровно то, что забывают добавить в список. Пятнадцать документов проверяются за секунды.
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: "0 6 * * 1"          # понедельник — для джобы anchors ниже
+  workflow_dispatch:
+
+jobs:
+  # Гейт. Ровно та цель, которую запускает человек: локальный набор, отличающийся от набора CI,
+  # превращает «здесь зелено, там красно» в норму, и тогда не читают ни то ни другое.
+  check:
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - run: pip install pyyaml
+
+      - run: make check
+
+      # Только ветка по умолчанию. `status: draft` законен в pull request'е, где означает «эта
+      # ветка сделает написанное правдой», и становится дефектом в момент слияния.
+      - if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        run: python3 scripts/docs_check.py --on-main
+
+  # Отдельно от гейта и по расписанию, а не на pull request: якорь протухает из-за переименования
+  # в коде, и красная сборка, которой автор не вызывал, учит игнорировать сборки. Не блокирует:
+  # путь, процитированный КАК устаревший, машина не отличит от живого. Ставить `--check`, когда
+  # список протухших дойдёт до нуля.
+  anchors:
+    if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - run: pip install pyyaml
+
+      # Код лежит в этом же checkout'е, поэтому его родитель — каталог, единственный подкаталог
+      # которого и есть репозиторий; ровно этого ждёт --repos.
+      - run: python3 scripts/code_anchors.py --repos ..
