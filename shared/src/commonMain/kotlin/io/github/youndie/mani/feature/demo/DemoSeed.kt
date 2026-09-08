@@ -1,4 +1,4 @@
-package io.github.youndie.mani.demo
+package io.github.youndie.mani.feature.demo
 
 import com.ionspin.kotlin.bignum.decimal.toBigDecimal
 import io.github.youndie.mani.feature.transaction.Category

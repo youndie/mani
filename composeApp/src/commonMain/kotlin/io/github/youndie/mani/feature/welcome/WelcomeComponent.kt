@@ -39,10 +39,10 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.youndie.mani.components.LoadingButton
 import io.github.youndie.mani.components.MainAppBarState
-import io.github.youndie.mani.demo.DemoSeed
 import io.github.youndie.mani.feature.chart.ui.ChartComponent
 import io.github.youndie.mani.feature.chart.ui.model.ChartUi
 import io.github.youndie.mani.feature.currency.Currency
+import io.github.youndie.mani.feature.demo.DemoSeed
 import io.github.youndie.mani.feature.main.MainViewModel
 import io.github.youndie.mani.feature.main.ui.ForecastUiState
 import io.github.youndie.mani.feature.transaction.defaultPeriod

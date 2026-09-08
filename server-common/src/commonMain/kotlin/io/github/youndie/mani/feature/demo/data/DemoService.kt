@@ -1,10 +1,10 @@
 package io.github.youndie.mani.feature.demo.data
 
-import io.github.youndie.mani.demo.DemoSeed
 import io.github.youndie.mani.feature.auth.LoginParams
 import io.github.youndie.mani.feature.auth.Tokens
 import io.github.youndie.mani.feature.auth.data.AuthService
 import io.github.youndie.mani.feature.category.CategoryRepository
+import io.github.youndie.mani.feature.demo.DemoSeed
 import io.github.youndie.mani.feature.transaction.Category
 import io.github.youndie.mani.feature.transaction.data.TransactionRepository
 import io.github.youndie.mani.feature.user.data.UserRepository
