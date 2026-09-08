@@ -7,6 +7,9 @@ import io.github.youndie.mani.feature.currency.Currency
 import io.github.youndie.mani.feature.currency.GetCurrentCurrencyUseCase
 import io.github.youndie.mani.feature.main.MainViewModel
 import io.github.youndie.mani.feature.main.MainViewModel.Companion.loadingItems
+import io.github.youndie.mani.feature.main.formatTakenAt
+import io.github.youndie.mani.feature.main.ui.RetrySchedule
+import io.github.youndie.mani.feature.main.ui.ServerUnreachableUiState
 import io.github.youndie.mani.feature.transaction.Transaction
 import io.github.youndie.mani.feature.transaction.amountSigned
 import io.github.youndie.mani.feature.transaction.domain.DeleteTransactionsUseCase
@@ -37,9 +40,26 @@ class TransactionsViewModel(
     private val state = MutableStateFlow(TransactionListUiState(loading = true, data = loadingItems))
     val observe = state.asStateFlow()
 
+    /**
+     * Тот же отсчёт и повтор, что на главной.
+     *
+     * До этого история при пропаже сети показывала строку «Network Error» и больше не пыталась
+     * ничего: два экрана одного приложения переживали одну и ту же беду по-разному, и на одном
+     * из них выйти из неё было нельзя.
+     */
+    private val retries = RetrySchedule(
+        scope = viewModelScope,
+        onCountdown = { left ->
+            state.update { current -> current.copy(unreachable = current.unreachable?.copy(retryInSeconds = left)) }
+        },
+        load = { load() },
+    )
+
     init {
         load()
     }
+
+    fun onRetryClicked() = retries.retryNow()
 
     @OptIn(ExperimentalCoroutinesApi::class)
     fun load() {
@@ -49,12 +69,15 @@ class TransactionsViewModel(
             val currency = getCurrentCurrencyUseCase.get()
             getTransactionsUseCase().fold(
                 onSuccess = { transactionsFlow ->
+                    retries.succeeded()
                     state.update { state -> state.copy(loading = false, data = emptyImmutableMap()) }
 
-                    transactionsFlow.mapLatest { transactions ->
+                    combine(transactionsFlow, getTransactionsUseCase.showingCacheFrom) { transactions, cacheFrom ->
+                        transactions to cacheFrom
+                    }.mapLatest { (transactions, cacheFrom) ->
                         val simulated = transactions.simulate()
 
-                        simulated
+                        val byDays = simulated
                             .filterValues { transactions -> transactions.isNotEmpty() }
                             .filterKeys {
                                 today() > it
@@ -68,11 +91,16 @@ class TransactionsViewModel(
                             .sortedByDescending { it.key }
                             .associate {
                                 it.key to it.value
-                            }.toImmutableMap() to simulated
-                    }.flowOn(Dispatchers.Default).collectLatest { (byDays, simulated) ->
+                            }.toImmutableMap()
+
+                        Triple(byDays, simulated, cacheFrom)
+                    }.flowOn(Dispatchers.Default).collectLatest { (byDays, simulated, cacheFrom) ->
                         state.value =
                             TransactionListUiState(
                                 data = byDays,
+                                // Показанное может быть последним известным, а не свежим. Не
+                                // сказать об этом — значит выдать вчерашние данные за сегодняшние.
+                                showingCacheFrom = cacheFrom?.let(::formatTakenAt),
                                 dayBalances = MainViewModel.buildDayBalances(simulated, currency),
                                 monthTitle = today().format(monthFormat) + " so far",
                                 monthChange =
@@ -96,8 +124,13 @@ class TransactionsViewModel(
                             )
                     }
                 },
+                // Показать нечего — ни свежего, ни сохранённого. Это состояние всего экрана,
+                // а не строка в углу, и у него должна быть причина и путь наружу.
                 onFailure = { throwable ->
-                    state.value = TransactionListUiState(errorMessage = throwable.message.orEmpty())
+                    state.value = TransactionListUiState(
+                        unreachable = ServerUnreachableUiState(cause = MainViewModel.describe(throwable)),
+                    )
+                    retries.schedule()
                 },
             )
         }

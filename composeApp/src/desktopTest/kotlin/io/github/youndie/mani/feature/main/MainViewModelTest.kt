@@ -17,6 +17,7 @@ import io.github.youndie.mani.feature.currency.GetCurrentCurrencyUseCase
 import io.github.youndie.mani.feature.currency.data.CurrentCurrencyRepository
 import io.github.youndie.mani.feature.demo.domain.SeedUseCase
 import io.github.youndie.mani.feature.main.ui.ForecastUiState
+import io.github.youndie.mani.feature.main.ui.RETRY_SECONDS
 import io.github.youndie.mani.feature.transaction.*
 import io.github.youndie.mani.feature.transaction.data.FakeTransactionsRepository
 import io.github.youndie.mani.feature.transaction.domain.DeleteTransactionsUseCase
@@ -84,7 +85,7 @@ class MainViewModelTest : KoinTest {
         val unreachable = viewModel.observe.value.unreachable
         assertNotNull(unreachable)
         assertTrue(unreachable.cause?.contains("no response") == true, unreachable.cause)
-        assertEquals(MainViewModel.RETRY_SECONDS, unreachable.retryInSeconds)
+        assertEquals(RETRY_SECONDS, unreachable.retryInSeconds)
 
         get<TransactionRepository>().reset()
     }

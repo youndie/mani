@@ -24,6 +24,7 @@ import com.ionspin.kotlin.bignum.decimal.BigDecimal
 import com.valentinilk.shimmer.shimmer
 import io.github.youndie.mani.components.MainAppBarState
 import io.github.youndie.mani.feature.currency.Currency
+import io.github.youndie.mani.feature.main.ui.ServerUnreachable
 import io.github.youndie.mani.feature.main.ui.TransactionDeleteDialog
 import io.github.youndie.mani.feature.main.ui.connectToAppBarState
 import io.github.youndie.mani.feature.transaction.ui.TransactionsViewModel
@@ -82,6 +83,7 @@ fun TransactionsListComponent(
         modifier,
         appBarState.contextMode,
         onTransactionSelected = viewModel::onTransactionSelected,
+        onRetry = viewModel::onRetryClicked,
     ) {
         onTransactionClicked(it.id)
     }
@@ -98,8 +100,17 @@ fun TransactionsListContent(
     // Стоит до колбэков, чтобы вызов с trailing lambda не привязывал её сюда.
     today: LocalDate = today(),
     onTransactionSelected: (TransactionUiItem) -> Unit = {},
+    onRetry: () -> Unit = {},
     onTransactionClicked: (TransactionUiItem) -> Unit = {},
 ) {
+    // Показать нечего и взять неоткуда — это состояние всего экрана, такое же, как на главной.
+    // Раньше история в этом случае рисовала пустой список: он выглядит как «правил нет», а
+    // правила на месте, пропала связь.
+    state.unreachable?.let { unreachable ->
+        ServerUnreachable(unreachable, modifier, onRetry = onRetry)
+        return
+    }
+
     if (!state.loading && state.data.isEmpty()) {
         TrasactionsEmpty()
     } else {
@@ -112,6 +123,18 @@ fun TransactionsListContent(
             // Сводка месяца — то же, что в макете: сколько накопилось с начала месяца и сколько
             // денег сейчас. Без неё история — просто перечень, из которого итог надо считать
             // глазами.
+            // Та же надпись, что на главной: показанное — последнее известное, а не свежее.
+            state.showingCacheFrom?.let { takenAt ->
+                item {
+                    Text(
+                        "No connection · showing data from $takenAt",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.padding(start = 24.dp, bottom = 12.dp).testTag("offlineBanner"),
+                    )
+                }
+            }
+
             item {
                 MonthSummary(
                     title = state.monthTitle,
