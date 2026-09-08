@@ -59,10 +59,12 @@ class StartDemoUseCaseTest {
     fun theSandboxHandsBackASessionAndItIsStored() = runTest {
         val tokenRepository = tokens()
 
-        val result = StartDemoUseCase(
-            client(HttpStatusCode.OK, """{"accessToken":"access-from-sandbox","refreshToken":"refresh-from-sandbox"}"""),
-            tokenRepository,
-        )(EmptyParams)
+        val sandbox = client(
+            HttpStatusCode.OK,
+            """{"accessToken":"access-from-sandbox","refreshToken":"refresh-from-sandbox"}""",
+        )
+
+        val result = StartDemoUseCase(sandbox, tokenRepository)(EmptyParams)
 
         assertTrue(result.isSuccess)
         assertEquals("access-from-sandbox", tokenRepository.getToken().accessToken)
