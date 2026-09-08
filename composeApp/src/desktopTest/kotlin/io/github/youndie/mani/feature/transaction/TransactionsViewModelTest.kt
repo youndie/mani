@@ -21,14 +21,15 @@ import org.koin.test.get
 import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 val testCurrencyRepository = object : CurrentCurrencyRepository {
     override var currency = Currency.Usd
 }
 
-private fun testModule(withError: Boolean = false) = module {
-    single<TransactionRepository> { FakeTransactionsRepository({ withError }) }
+private fun testModule(repository: TransactionRepository) = module {
+    single<TransactionRepository> { repository }
     single<GetTransactionsUseCase> { GetTransactionsUseCase(get()) }
     single<GetCurrentCurrencyUseCase> { GetCurrentCurrencyUseCase(get()) }
     single<CurrentCurrencyRepository> { testCurrencyRepository }
@@ -45,7 +46,7 @@ class TransactionsViewModelTest : KoinTest {
     fun setUp() {
         // Start Koin
         startKoin {
-            modules(testModule(false))
+            modules(testModule(FakeTransactionsRepository()))
         }
         viewModel = get()
         Dispatchers.setMain(StandardTestDispatcher())
@@ -80,22 +81,72 @@ class TransactionsViewModelErrorTest : KoinTest {
     fun setUp() {
         // Start Koin
         startKoin {
-            modules(testModule(true))
+            modules(testModule(FakeTransactionsRepository({ true })))
         }
         viewModel = get()
         Dispatchers.setMain(StandardTestDispatcher())
     }
 
+    /**
+     * Отказ сети — состояние всего экрана, как на главной.
+     *
+     * Раньше история показывала строку «Network Error» поверх пустого списка и больше ничего не
+     * пыталась: пустой список читается как «правил нет», хотя правила на месте, а пропала связь.
+     */
     @Test
     fun testLoadTransactionsFailed() = runTest {
         while (viewModel.observe.value.loading) {
             runCurrent()
         }
 
-        assertTrue(viewModel.observe.value.errorMessage == "Network Error")
+        val unreachable = assertNotNull(viewModel.observe.value.unreachable, "история промолчала об отказе")
+        assertNotNull(
+            unreachable.cause,
+            "причина не названа: по коду и адресу человек отличает свою сеть от чужого сервера",
+        )
         assertTrue(
             viewModel.observe.value.data.isEmpty(),
             "Expected an empty list due to API failure but got ${viewModel.observe.value.data.size} items.",
+        )
+    }
+
+    @AfterTest
+    fun tearDown() {
+        stopKoin()
+        Dispatchers.resetMain()
+    }
+}
+
+/**
+ * Показанное может быть последним известным, а не свежим, и история обязана это сказать.
+ *
+ * Кэш подставляет репозиторий: сеть спрашивается всегда, сохранённое идёт в ход, только если она
+ * отказала. Без отметки времени экран выдавал вчерашние данные за сегодняшние — и на главной
+ * такая отметка была, а здесь нет.
+ */
+@OptIn(ExperimentalCoroutinesApi::class, kotlin.time.ExperimentalTime::class)
+class TransactionsViewModelCacheTest : KoinTest {
+
+    private val repository = FakeTransactionsRepository()
+    private lateinit var viewModel: TransactionsViewModel
+
+    @BeforeTest
+    fun setUp() {
+        Dispatchers.setMain(StandardTestDispatcher())
+        repository.showingCacheFrom.value = kotlin.time.Instant.fromEpochSeconds(1_800_000_000)
+        startKoin { modules(testModule(repository)) }
+        viewModel = get()
+    }
+
+    @Test
+    fun cachedDataSaysWhenItWasTaken() = runTest {
+        while (viewModel.observe.value.data.isEmpty()) {
+            runCurrent()
+        }
+
+        assertNotNull(
+            viewModel.observe.value.showingCacheFrom,
+            "история выдала последние известные данные за свежие",
         )
     }
 

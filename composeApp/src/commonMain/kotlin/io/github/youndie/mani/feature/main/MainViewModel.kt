@@ -17,6 +17,7 @@ import io.github.youndie.mani.feature.demo.domain.SeedUseCase
 import io.github.youndie.mani.feature.main.ui.FiltersState
 import io.github.youndie.mani.feature.main.ui.ForecastUiState
 import io.github.youndie.mani.feature.main.ui.MainUiState
+import io.github.youndie.mani.feature.main.ui.RetrySchedule
 import io.github.youndie.mani.feature.main.ui.ServerUnreachableUiState
 import io.github.youndie.mani.feature.transaction.*
 import io.github.youndie.mani.feature.transaction.domain.DeleteTransactionsUseCase
@@ -34,7 +35,6 @@ import kotlinx.collections.immutable.toImmutableMap
 import kotlinx.collections.immutable.toImmutableSet
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -50,7 +50,6 @@ import kotlinx.datetime.format.char
 import kotlinx.datetime.plus
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Clock
-import kotlin.time.Duration.Companion.seconds
 
 class MainViewModel(
     private val transactionsUseCase: GetTransactionsUseCase,
@@ -78,15 +77,21 @@ class MainViewModel(
         }
     }
 
-    private var retryJob: Job? = null
-    private var retryAttempt = 0
+    /** Отсчёт и повтор — общие с историей: см. [RetrySchedule]. */
+    private val retries = RetrySchedule(
+        scope = viewModelScope,
+        onCountdown = { left ->
+            state.update { current -> current.copy(unreachable = current.unreachable?.copy(retryInSeconds = left)) }
+        },
+        load = { load() },
+    )
 
     private suspend fun load() {
         state.value = MainUiState(loading = true, transactions = loadingItems)
 
         withContext(dispatcher) { transactionsUseCase() }.fold(
             onSuccess = { transactionsFlow ->
-                retryAttempt = 0
+                retries.succeeded()
                 state.value = state.value.copy(loading = true, transactions = emptyImmutableMap())
 
                 // Категории отказывают тем же способом, что и правила, и должны приводить к тому
@@ -160,40 +165,10 @@ class MainViewModel(
      */
     private fun showUnreachable(throwable: Throwable) {
         state.value = MainUiState(unreachable = ServerUnreachableUiState(cause = describe(throwable)))
-        scheduleRetry()
+        retries.schedule()
     }
 
-    /** Повтор вручную: отсчёт сбрасывается, чтобы автоповтор не выстрелил поверх. */
-    fun onRetryClicked() {
-        retryJob?.cancel()
-        // Нажали руками — значит, ждать снова готовы: счётчик автоматических попыток обнуляется.
-        retryAttempt = 0
-        viewModelScope.launch { load() }
-    }
-
-    /**
-     * Автоповтор с обратным отсчётом.
-     *
-     * Молча повторять нельзя: экран выглядел бы застывшим. Секунды на экране — обещание, что
-     * приложение занято делом, а не ждёт, пока на него нажмут.
-     */
-    private fun scheduleRetry() {
-        // Попытки не бесконечны: если сервера нет и через три захода, экран перестаёт дёргаться
-        // и ждёт человека. Бесконечный цикл к тому же держал бы приложение занятым в фоне.
-        if (retryAttempt >= MAX_RETRIES) return
-        retryAttempt++
-
-        retryJob?.cancel()
-        retryJob = viewModelScope.launch {
-            for (left in RETRY_SECONDS downTo 1) {
-                state.update { current ->
-                    current.copy(unreachable = current.unreachable?.copy(retryInSeconds = left))
-                }
-                delay(1.seconds)
-            }
-            load()
-        }
-    }
+    fun onRetryClicked() = retries.retryNow()
 
     fun onTransactionSelected(transactionUiItem: TransactionUiItem) {
         if (transactionUiItem in state.value.selectedTransactions) {
@@ -311,9 +286,6 @@ class MainViewModel(
             ).toImmutableMap()
         }
 
-        internal const val RETRY_SECONDS = 8
-        internal const val MAX_RETRIES = 3
-
         /**
          * «HTTP 503 · mani.kotlin.website · 11:42:07».
          *
@@ -424,9 +396,13 @@ class MainViewModel(
     }
 }
 
-/** «11:42» — время последнего удачного ответа, как в макете офлайна. */
+/**
+ * «11:42» — время последнего удачного ответа, как в макете офлайна.
+ *
+ * `internal`, потому что то же самое показывает история: одна пропажа сети — одна надпись.
+ */
 @OptIn(kotlin.time.ExperimentalTime::class)
-private fun formatTakenAt(at: kotlin.time.Instant): String = at
+internal fun formatTakenAt(at: kotlin.time.Instant): String = at
     .toLocalDateTime(kotlinx.datetime.TimeZone.currentSystemDefault())
     .time
     .toString()

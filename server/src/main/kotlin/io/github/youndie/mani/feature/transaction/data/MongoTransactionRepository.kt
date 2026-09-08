@@ -30,9 +30,23 @@ class MongoTransactionRepository(mongoDatabase: MongoDatabase) : TransactionRepo
         .toList()
         .map { it.toRecord() }
 
+    /**
+     * Владелец — часть фильтра, а не только проверка в маршруте.
+     *
+     * Маршрут и так отказывает на чужой записи, но условие здесь стоит вторым рубежом: следующий
+     * вызов `update` из другого места окажется безопасным по умолчанию, а не потому, что о
+     * проверке вспомнили. Чужой документ при таком фильтре просто не совпадает — `matchedCount`
+     * ноль, и ничего не переписывается.
+     */
     override suspend fun update(transaction: Transaction, userId: String) {
         val id = ObjectId(transaction.id)
-        db.replaceOne(Filters.eq("_id", id), mapToDb(transaction, id, userId))
+        db.replaceOne(
+            Filters.and(
+                Filters.eq("_id", id),
+                Filters.eq(TransactionDb::userId.name, userId),
+            ),
+            mapToDb(transaction, id, userId),
+        )
     }
 
     override suspend fun delete(id: String): Boolean = db.deleteById(id)

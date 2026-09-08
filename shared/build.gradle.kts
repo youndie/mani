@@ -1,6 +1,5 @@
 import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-import org.jetbrains.kotlin.gradle.targets.js.webpack.KotlinWebpackConfig
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
@@ -36,23 +35,11 @@ kotlin {
     // клиента и обе сборки сервера, и без этого таргета `:server-common` не слинкуется.
     linuxX64()
 
+    // Без настройки dev-сервера: она была скопирована из `:composeApp`, а у библиотеки нет ни
+    // страницы, ни сервера, который её отдаёт, — webpack здесь только собирает klib в модуль.
     @OptIn(ExperimentalWasmDsl::class)
     wasmJs {
-        browser {
-            val rootDirPath = project.rootDir.path
-            val projectDirPath = project.projectDir.path
-            commonWebpackConfig {
-                devServer =
-                    (devServer ?: KotlinWebpackConfig.DevServer()).apply {
-                        static =
-                            (static ?: mutableListOf()).apply {
-                                // Serve sources to debug inside browser
-                                add(rootDirPath)
-                                add(projectDirPath)
-                            }
-                    }
-            }
-        }
+        browser()
     }
 
     sourceSets {
@@ -64,7 +51,6 @@ kotlin {
 
             api(libs.ktor.client.resources)
             api(libs.kotlinx.datetime)
-            api(libs.kotlinx.collections.immutable)
             api(libs.kotlinx.serialization.json)
         }
 

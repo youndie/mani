@@ -19,17 +19,25 @@ import io.github.youndie.mani.security.TokenService
 import io.github.youndie.mani.security.maniJwt
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
+import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
 import io.ktor.server.auth.Authentication
+import io.ktor.server.plugins.BadRequestException
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.plugins.cors.routing.CORS
+import io.ktor.server.plugins.statuspages.StatusPages
+import io.ktor.server.request.httpMethod
+import io.ktor.server.request.uri
 import io.ktor.server.resources.Resources
+import io.ktor.server.response.respond
 import io.ktor.server.routing.Routing
+import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import org.koin.core.module.Module
 import org.koin.dsl.module
+import kotlin.coroutines.cancellation.CancellationException
 
 /**
  * DI, общий для обеих сборок: конфигурация, токены, хеширование, логин.
@@ -62,7 +70,6 @@ fun Application.configureManiPlugins(config: ManiConfig) {
             allowMethod(HttpMethod.Patch)
             allowMethod(HttpMethod.Delete)
             allowMethod(HttpMethod.Get)
-            allowHeader(HttpHeaders.AccessControlAllowOrigin)
             allowHeader(HttpHeaders.ContentType)
             allowHeadersPrefixed("sec-")
             allowHeader(HttpHeaders.Authorization)
@@ -71,13 +78,45 @@ fun Application.configureManiPlugins(config: ManiConfig) {
         }
     }
 
+    // Что отвечать на то, чего маршрут не ждал.
+    //
+    // Без этого невалидный ObjectId в пути давал 500, а на нативной сборке ещё и молча: логгера
+    // в общей части нет ни у одной сборки, и причина отказа не доезжала никуда. `CallLogging`
+    // сюда не годится — он существует только на JVM.
+    install(StatusPages) {
+        exception<Throwable> { call, cause ->
+            // Отмена — не отказ. Запрос, от которого отказался клиент, не должен ни отвечать
+            // 500, ни попадать в лог как ошибка сервера.
+            if (cause is CancellationException) throw cause
+
+            when (cause) {
+                // Испорченный ввод: не разобранное тело, не разобранный параметр пути,
+                // не-ObjectId там, где хранилище ждёт ObjectId. Это 400, и текст общий —
+                // подробности отказа рассказывают об устройстве сервера больше, чем нужно.
+                is BadRequestException,
+                is IllegalArgumentException,
+                is SerializationException,
+                -> call.respond(HttpStatusCode.BadRequest, "Malformed request")
+
+                else -> {
+                    // `println`, а не логгер: его в общей части нет ни у одной сборки, а в
+                    // контейнере stdout и есть лог. Без этой строки нативная сборка отвечала
+                    // 500, не оставляя следа, по которому его можно объяснить.
+                    println("mani: ${call.request.httpMethod.value} ${call.request.uri} — $cause")
+                    call.respond(HttpStatusCode.InternalServerError)
+                }
+            }
+        }
+    }
+
     install(Resources)
     install(ContentNegotiation) {
         json(
-            Json {
-                prettyPrint = true
-                isLenient = true
-            },
+            // Без `isLenient`: он разрешал телу приходить без кавычек и с прочими вольностями,
+            // то есть сервер брался угадывать, что имел в виду отправитель. Наши клиенты пишут
+            // JSON сериализатором, а не руками, так что послабление обслуживало только того,
+            // кто ходит сюда мимо них.
+            Json { prettyPrint = true },
         )
     }
 }

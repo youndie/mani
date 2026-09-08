@@ -8,8 +8,6 @@ import io.github.youndie.mani.utilz.suspendRunCatching
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.resources.post
 import io.ktor.http.HttpStatusCode
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 
 /**
  * Заполняет **текущий** аккаунт данными сида — тем же, что видит гость песочницы.
@@ -22,15 +20,13 @@ class SeedDemoDataUseCase(
     private val transactionRepository: TransactionRepository,
 ) : SeedUseCase() {
     override suspend operator fun invoke(params: EmptyParams): Result<Boolean> = suspendRunCatching {
-        withContext(Dispatchers.Default) {
-            val response = httpClient.post(DemoResource.Seed())
+        val response = httpClient.post(DemoResource.Seed())
 
-            if (response.status != HttpStatusCode.Created) {
-                Result.failure(ServerException("Couldn't fill the demo data"))
-            } else {
-                transactionRepository.load()
-                Result.success(true)
-            }
+        if (response.status != HttpStatusCode.Created) {
+            Result.failure(ServerException("Couldn't fill the demo data"))
+        } else {
+            transactionRepository.load()
+            Result.success(true)
         }
     }.getOrElse { Result.failure(ServerException(message = "Couldn't fill the demo data", cause = it)) }
 }

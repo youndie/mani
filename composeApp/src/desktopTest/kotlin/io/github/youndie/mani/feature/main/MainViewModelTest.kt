@@ -7,6 +7,7 @@ import io.github.youndie.mani.feature.auth.data.TokenRepository
 import io.github.youndie.mani.feature.auth.data.TokenRepositoryCommon
 import io.github.youndie.mani.feature.auth.data.TokenStorage
 import io.github.youndie.mani.feature.auth.data.TokenStorageImpl
+import io.github.youndie.mani.feature.auth.data.temporarySessionFile
 import io.github.youndie.mani.feature.auth.domain.LogoutUseCase
 import io.github.youndie.mani.feature.categories.CATEGORIES_SOURCE
 import io.github.youndie.mani.feature.categories.data.CategoriesRepository
@@ -17,6 +18,7 @@ import io.github.youndie.mani.feature.currency.GetCurrentCurrencyUseCase
 import io.github.youndie.mani.feature.currency.data.CurrentCurrencyRepository
 import io.github.youndie.mani.feature.demo.domain.SeedUseCase
 import io.github.youndie.mani.feature.main.ui.ForecastUiState
+import io.github.youndie.mani.feature.main.ui.RETRY_SECONDS
 import io.github.youndie.mani.feature.transaction.*
 import io.github.youndie.mani.feature.transaction.data.FakeTransactionsRepository
 import io.github.youndie.mani.feature.transaction.domain.DeleteTransactionsUseCase
@@ -84,7 +86,7 @@ class MainViewModelTest : KoinTest {
         val unreachable = viewModel.observe.value.unreachable
         assertNotNull(unreachable)
         assertTrue(unreachable.cause?.contains("no response") == true, unreachable.cause)
-        assertEquals(MainViewModel.RETRY_SECONDS, unreachable.retryInSeconds)
+        assertEquals(RETRY_SECONDS, unreachable.retryInSeconds)
 
         get<TransactionRepository>().reset()
     }
@@ -400,7 +402,7 @@ class MainViewModelTest : KoinTest {
         factory<MainViewModel> { MainViewModel(get(), get(), get(), get(), get(), get(), Dispatchers.Unconfined) }
 
         singleOf(::TokenRepositoryCommon).bind<TokenRepository>()
-        singleOf(::TokenStorageImpl).bind<TokenStorage>()
+        single<TokenStorage> { TokenStorageImpl(temporarySessionFile()) }
         singleOf(::LogoutUseCase)
         singleOf(::FakeCategoriesDataSource)
         // Тот же объект — и под именем, которое спрашивает репозиторий категорий.

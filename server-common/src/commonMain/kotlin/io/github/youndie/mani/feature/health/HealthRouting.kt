@@ -1,14 +1,14 @@
 package io.github.youndie.mani.feature.health
 
+import io.github.youndie.mani.MANI_VERSION
+import io.github.youndie.mani.utilz.suspendRunCatching
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.resources.get
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Routing
+import org.koin.ktor.ext.inject
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
-
-/** Версия приложения. Одна на обе сборки — они собираются из одного кода. */
-const val MANI_VERSION = "1.4.2"
 
 /**
  * Тип сборки — единственное, чем сборки обязаны отличаться, и потому единственный
@@ -33,6 +33,27 @@ private val startedAt = Clock.System.now()
 )
 @OptIn(ExperimentalTime::class)
 fun Routing.healthRouting() {
+    val storageHealth by inject<StorageHealth>()
+
+    /*
+     * Готовность: один запрос в базу на каждую пробу.
+     *
+     * Отказ драйвера — это «не готов», а не 500: пробе нужен код ответа, а не разбор причины.
+     * Через `suspendRunCatching`, чтобы отменённый запрос не превратился в «база лежит».
+     *
+     * Своего таймаута здесь нет намеренно. Обёртка вокруг блокирующего вызова его не даёт, а
+     * ограничивает пробу kubelet своим `timeoutSeconds` — тем, кто и решает, сколько ждать.
+     */
+    get<HealthResource.Ready> {
+        val reachable = suspendRunCatching { storageHealth.isReachable() }.getOrElse { false }
+
+        if (reachable) {
+            call.respond(HttpStatusCode.OK, "ready")
+        } else {
+            call.respond(HttpStatusCode.ServiceUnavailable, "storage unreachable")
+        }
+    }
+
     get<HealthResource> {
         call.respond(
             HttpStatusCode.OK,

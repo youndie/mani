@@ -27,8 +27,10 @@ the interface it advertises.</sup>
 > when every part of it is real — the same `@Resource` classes route requests on the server and
 > build URLs on the client, the same code signs a token in both server builds. It is not a
 > product: there is no email confirmation, no password recovery, no rate limiting, and passwords
-> are hashed with salted SHA-256 rather than a slow KDF. The public instance is a playground —
-> please do not keep anything you would miss in it.
+> are hashed with salted SHA-256 rather than a slow KDF. In the browser the session tokens live in
+> `localStorage`, which any script on the page can read; a single-page app without cookie sessions
+> has nowhere better to put them. The desktop, Android and iOS clients keep them in the platform's
+> own store. The public instance is a playground — please do not keep anything you would miss in it.
 
 Live instance: **[mani.kotlin.website](https://mani.kotlin.website)**
 
@@ -50,7 +52,7 @@ redesign could not be checked without the second.
 
 | Module | What it is | Targets |
 |---|---|---|
-| `:shared` | API contract: resources, model, serializers | android, ios, jvm, wasmJs, linuxX64 |
+| `:shared` | the wire contract, and nothing else: resources, model, serializers | android, ios, jvm, wasmJs, linuxX64 |
 | `:composeApp` | the app itself — one UI for every platform | android, ios, desktop, wasmJs |
 | `:server-common` | server code: routes, storage ports, config, auth | jvm, linuxX64 |
 | `:server` | JVM build of the server | jvm |
@@ -206,4 +208,9 @@ Both builds read the environment, with the same names:
 | `JWT_SECRET`, `JWT_AUDIENCE`, `JWT_ISSUER`, `JWT_EXPIRATION_SECONDS` | |
 | `MANI_WEB_ROOT` | directory with the wasm bundle; unset — no frontend, API only |
 | `MANI_DEVELOPMENT` | `true` enables CORS |
+
+`JWT_SECRET` has no default. Left unset, the server signs with a random secret generated for that
+process and says so on startup: sessions then do not survive a restart. That is deliberate — the
+previous default was the word `secret`, printed in the source, and `docker-compose.yaml` never set
+the variable, so anyone following the README signed tokens with a value anybody could read.
 

@@ -14,6 +14,15 @@ fun Routing.userRouting() {
 
     post<UserResource> {
         val params = call.receive<LoginParams>()
+
+        // Раньше сюда проходило что угодно, включая пустое имя с пустым паролем. Проверка стоит
+        // до обращения к хранилищу: отказ по форме ввода незачем оплачивать запросом в базу.
+        val problem = credentialsProblem(params)
+        if (problem != null) {
+            call.respond(HttpStatusCode.BadRequest, problem)
+            return@post
+        }
+
         if (userRepository.findByUsername(params.name) != null) {
             call.respond(HttpStatusCode.BadRequest, "User already exist")
             return@post

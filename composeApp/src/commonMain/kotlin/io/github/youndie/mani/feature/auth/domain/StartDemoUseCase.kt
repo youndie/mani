@@ -9,8 +9,6 @@ import io.github.youndie.mani.utilz.suspendRunCatching
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.plugins.resources.post
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 
 /**
  * Вход в песочницу: сервер сам заводит одноразового пользователя с готовыми данными и отдаёт
@@ -22,14 +20,12 @@ import kotlinx.coroutines.withContext
 class StartDemoUseCase(private val httpClient: HttpClient, private val tokenRepository: TokenRepository) :
     DemoUseCase() {
     override suspend operator fun invoke(params: EmptyParams): Result<Boolean> = suspendRunCatching {
-        withContext(Dispatchers.Default) {
-            val tokens = httpClient.post(DemoResource()).body<Tokens>()
+        val tokens = httpClient.post(DemoResource()).body<Tokens>()
 
-            tokenRepository.set(
-                accessToken = tokens.accessToken,
-                refreshToken = tokens.refreshToken,
-            )
-            Result.success(true)
-        }
+        tokenRepository.set(
+            accessToken = tokens.accessToken,
+            refreshToken = tokens.refreshToken,
+        )
+        Result.success(true)
     }.getOrElse { Result.failure(ServerException(message = "Couldn't start the demo", cause = it)) }
 }

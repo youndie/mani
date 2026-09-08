@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    То же, что backup_rules.xml, для Android 31 и новее.
+
+    Исключение повторено для обоих направлений: копия в облако и перенос на новое устройство.
+    Второе выглядит безобиднее, но токен при этом всё равно покидает устройство.
+-->
+<data-extraction-rules>
+    <cloud-backup>
+        <exclude
+                domain="sharedpref"
+                path="io.github.youndie.mani_preferences.xml"/>
+    </cloud-backup>
+    <device-transfer>
+        <exclude
+                domain="sharedpref"
+                path="io.github.youndie.mani_preferences.xml"/>
+    </device-transfer>
+</data-extraction-rules>

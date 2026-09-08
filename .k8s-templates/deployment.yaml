@@ -17,11 +17,34 @@ spec:
     spec:
       containers:
         - name: mani-backend
-          image: ghcr.io/youndie/mani-kotlin-fullstack:0.2.$buildnumber
+          image: ghcr.io/youndie/mani-kotlin-fullstack:$version.$buildnumber
           ports:
             - name: http
               containerPort: 8080
           imagePullPolicy: Always
+
+          # Жив ли процесс. НЕ трогает базу намеренно: проба живости, зависящая от базы,
+          # превращает её падение в перезапуск всех подов — и лечит этим ровно ничего, только
+          # добавляет холодных стартов к уже случившейся беде.
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 10
+            failureThreshold: 3
+
+          # Есть ли с чем работать. Здесь база спрашивается: под, который её не видит, не должен
+          # получать трафик. Без этой пробы k8s считал готовым любой запустившийся процесс, и
+          # выкат с недоступной базой доезжал до конца зелёным.
+          #
+          # `initialDelaySeconds` не нужен: нативный бинарь отвечает через 87 мс после старта.
+          readinessProbe:
+            httpGet:
+              path: /health/ready
+              port: http
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 2
           # Под нативный бинарь: JVM здесь больше нет, а с ней ушли и heap, и метаспейс.
           # Снято на образе: 42 МиБ в покое, пик 45 МиБ, старт до первого ответа 87 мс.
           # Замер без нагрузки и на одной реплике — под трафиком не мерили.

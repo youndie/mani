@@ -1,5 +1,6 @@
 package io.github.youndie.mani.feature.demo.data
 
+import dev.whyoleg.cryptography.random.CryptographyRandom
 import io.github.youndie.mani.feature.auth.LoginParams
 import io.github.youndie.mani.feature.auth.Tokens
 import io.github.youndie.mani.feature.auth.data.AuthService
@@ -8,8 +9,8 @@ import io.github.youndie.mani.feature.demo.DemoSeed
 import io.github.youndie.mani.feature.transaction.Category
 import io.github.youndie.mani.feature.transaction.data.TransactionRepository
 import io.github.youndie.mani.feature.user.data.UserRepository
+import io.github.youndie.mani.security.toHex
 import io.github.youndie.mani.utilz.suspendRunCatching
-import kotlin.random.Random
 
 /**
  * Разворачивает песочницу: одноразовый пользователь с данными из [DemoSeed] и токены к нему.
@@ -27,27 +28,43 @@ class DemoService(
     private val transactionRepository: TransactionRepository,
     private val authService: AuthService,
     private val cleaner: DemoSandboxCleaner,
+    /** Параметром, а не константой в теле: иначе потолок нечем проверить, кроме как достичь его. */
+    private val maxLiveSandboxes: Int = MAX_LIVE_SANDBOXES,
 ) {
-    /** @return токены к заведённой песочнице либо `null`, если хранилище отказало */
+    /** Чем кончилась попытка развернуть песочницу. */
+    sealed interface Outcome {
+        data class Created(val tokens: Tokens) : Outcome
+
+        /** Мест нет: живых песочниц столько, сколько стенд готов держать. */
+        data object NoRoom : Outcome
+
+        /** Хранилище отказало. */
+        data object Refused : Outcome
+    }
+
     @Suppress(
         "ktlint:kapkan:swallowed-failure",
         "отказ уборки не должен стоить посетителю входа — причина расписана выше",
     )
-    suspend fun createSandbox(): Tokens? {
+    suspend fun createSandbox(): Outcome {
         // Отказ уборки не должен стоить посетителю входа: мусор подождёт следующего вызова,
         // а пустой экран вместо витрины — нет. Логгера в общей части нет ни у одной сборки,
         // поэтому отказ именно проглатывается, а не пишется в никуда.
         //
         // Именно отказ, но не отмена: обычный `runCatching` проглотил бы и её, и метод
         // продолжил бы заводить песочницу для клиента, который уже отвалился.
-        suspendRunCatching { cleaner.sweep() }
+        val live = suspendRunCatching { cleaner.sweep() }.getOrNull()
 
-        val credentials = freeCredentials() ?: return null
-        val userId = userRepository.save(credentials) ?: return null
+        // Не сосчитали — не запрещаем. Уборка отказала редко, а закрытая витрина из-за сбоя
+        // подсчёта — это отказ по причине, к посетителю не относящейся.
+        if (live != null && live >= maxLiveSandboxes) return Outcome.NoRoom
+
+        val credentials = freeCredentials() ?: return Outcome.Refused
+        val userId = userRepository.save(credentials) ?: return Outcome.Refused
 
         seed(userId)
 
-        return authService.authenticate(credentials)
+        return authService.authenticate(credentials)?.let(Outcome::Created) ?: Outcome.Refused
     }
 
     /**
@@ -82,18 +99,19 @@ class DemoService(
         }
         .firstOrNull { userRepository.findByUsername(it.name) == null }
 
-    private fun randomHex(bytes: Int): String = (1..bytes).joinToString("") {
-        Random
-            .nextInt(BYTE_VALUES)
-            .toString(HEX)
-            .padStart(2, '0')
-    }
+    /**
+     * Тем же источником, что соль пароля и `jti` токена, — `kotlin.random.Random` здесь стоял
+     * по недосмотру.
+     *
+     * Он предсказуем по нескольким выданным значениям, а это пароль: угадавший его входит
+     * в чужую песочницу. Данных там всего лишь сид, но криптостойкий источник в этом проекте
+     * уже есть, и выбирать между ним и обычным ГПСЧ незачем.
+     */
+    private fun randomHex(bytes: Int): String = CryptographyRandom.nextBytes(bytes).toHex()
 
     private companion object {
         const val CREDENTIALS_ATTEMPTS = 5
         const val NAME_BYTES = 4
         const val PASSWORD_BYTES = 16
-        const val BYTE_VALUES = 256
-        const val HEX = 16
     }
 }

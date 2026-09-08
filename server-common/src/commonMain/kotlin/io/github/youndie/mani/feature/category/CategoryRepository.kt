@@ -9,7 +9,12 @@ interface CategoryRepository {
 
     suspend fun getById(categoryId: String): Category?
 
-    suspend fun update(category: Category): Category
+    /**
+     * @param userId владелец. Категория лежит в его документе, и без этого параметра фильтр
+     *   опирался бы на один лишь идентификатор категории — то есть на значение, пришедшее от
+     *   клиента.
+     */
+    suspend fun update(category: Category, userId: String): Category
 
     suspend fun delete(categoryId: String)
 }

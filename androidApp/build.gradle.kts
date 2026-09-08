@@ -27,7 +27,8 @@ android {
                 .get()
                 .toInt()
         versionCode = 1
-        versionName = "1.0"
+        // Та же версия, что называет `/health` и несёт тег образа.
+        versionName = providers.gradleProperty("mani.version").get()
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 

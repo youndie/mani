@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.NonRestartableComposable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -51,6 +52,20 @@ fun ManiAppNavHost(
     val startDestination = remember {
         val authorized = tokenRepository.observeToken().value.refreshToken?.isNotEmpty() == true
         if (authorized) ManiScreen.Main.name else ManiScreen.Welcome.name
+    }
+
+    // Сессия могла кончиться не по воле человека: сервер отверг refresh-токен, и токенов больше
+    // нет. Без этого экран оставался на главной и показывал «сервер недоступен» с обратным
+    // отсчётом — то есть предлагал ждать того, чего ждать бессмысленно.
+    //
+    // Подписка на СОБЫТИЕ, а не на токен: подписка на токен пересобирала граф и сама сбрасывала
+    // навигацию на его точку входа, о чём выше.
+    LaunchedEffect(Unit) {
+        tokenRepository.expired.collect {
+            if (navController.currentDestination?.route != ManiScreen.Welcome.name) {
+                navController.navigateAndClean(ManiScreen.Welcome.name)
+            }
+        }
     }
 
     StableNavHost(

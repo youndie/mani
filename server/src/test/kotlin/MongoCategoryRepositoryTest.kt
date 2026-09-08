@@ -119,7 +119,7 @@ class MongoCategoryRepositoryTest {
                 Updates.addToSet(UserDb::categories.name, categoryDb),
             )
 
-            categoryRepository.update(updated)
+            categoryRepository.update(updated, testUser.id.toHexString())
             val actualUser = collection.find(Filters.eq("_id", testUser.id)).firstOrNull()
             val actualCategory = actualUser?.categories?.firstOrNull()
 

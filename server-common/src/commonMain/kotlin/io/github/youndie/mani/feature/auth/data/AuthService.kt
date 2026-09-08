@@ -5,6 +5,7 @@ import io.github.youndie.mani.feature.auth.Tokens
 import io.github.youndie.mani.feature.user.User
 import io.github.youndie.mani.feature.user.data.TokenRepository
 import io.github.youndie.mani.feature.user.data.UserRepository
+import io.github.youndie.mani.security.TokenKind
 import io.github.youndie.mani.security.TokenService
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.TimeZone
@@ -32,7 +33,7 @@ class AuthService(
     }
 
     suspend fun refreshToken(refreshToken: String): Tokens? {
-        val claims = tokenService.verify(refreshToken) ?: return null
+        val claims = tokenService.verify(refreshToken, TokenKind.Refresh) ?: return null
 
         // Подписи мало: предъявленный refresh-токен обязан ещё и лежать в базе. Иначе однажды
         // отозванный токен продолжал бы работать до самого истечения.
@@ -51,11 +52,12 @@ class AuthService(
         "срок задаётся здесь и уходит в TokenService параметром — это точка входа времени",
     )
     private suspend fun newTokens(user: User): Tokens = Tokens(
-        accessToken = tokenService.issue(user.id, user.username),
+        accessToken = tokenService.issue(user.id, user.username, TokenKind.Access),
         refreshToken =
         tokenService.issue(
             user.id,
             user.username,
+            TokenKind.Refresh,
             expiration =
             Clock.System
                 .now()

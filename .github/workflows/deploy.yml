@@ -1,7 +1,16 @@
 name: Deploy
 
+# Выкат идёт ПОСЛЕ прогона тестов, а не параллельно с ним.
+#
+# Раньше `deploy` висел на `push` в `main`, а `Test` — только на `pull_request`: коммит, приехавший
+# в `main`, разворачивался на стенд, ни разу не проверенный в том виде, в каком разворачивается.
+# Теперь запуск цепляется за завершение `Test` на `main` и стартует только на зелёном.
+#
+# `workflow_dispatch` остаётся: ручной выкат нужен, когда чинят сам стенд.
 on:
-  push:
+  workflow_run:
+    workflows: [ "Test" ]
+    types: [ completed ]
     branches: [ main ]
   workflow_dispatch:
 
@@ -11,9 +20,17 @@ on:
 jobs:
   build:
     runs-on: ubuntu-24.04
+    # Ручной запуск идёт всегда; запуск по цепочке — только если `Test` завершился успехом.
+    # Без этого условия красный прогон точно так же приводил бы к выкату, только позже.
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     steps:
       - name: Checkout sources
         uses: actions/checkout@v7
+        with:
+          # Тот самый коммит, который проверяли. `workflow_run` по умолчанию берёт голову ветки
+          # по умолчанию, а не то, из-за чего запустился, — и выкатить можно было бы не то,
+          # что проверено.
+          ref: ${{ github.event.workflow_run.head_sha || github.ref }}
 
       - name: Setup kubectl
         uses: azure/setup-kubectl@v4
@@ -32,6 +49,12 @@ jobs:
       - name: Build native server and frontend
         run: ./gradlew :server-native:linkReleaseExecutableLinuxX64 :composeApp:wasmJsBrowserDistribution --no-daemon
 
+      # Версия читается из `gradle.properties` — того же места, откуда её берут сборки и откуда
+      # она попадает в ответ `/health`. Иначе тег образа и ответ сервера, запущенного из этого
+      # образа, называли бы разные числа, и по первому нельзя было бы найти второе.
+      - name: Read the product version
+        run: echo "MANI_VERSION=$(sed -n 's/^mani\.version=//p' gradle.properties)" >> "$GITHUB_ENV"
+
       - name: Log in to registry
         uses: docker/login-action@v4
         with:
@@ -46,7 +69,7 @@ jobs:
           file: server-native/Dockerfile
           push: true
           platforms: linux/amd64
-          tags: ${{ vars.REGISTRY_HOSTNAME }}/mani-kotlin-fullstack:0.2.${{ github.run_number }}
+          tags: ${{ vars.REGISTRY_HOSTNAME }}/mani-kotlin-fullstack:${{ env.MANI_VERSION }}.${{ github.run_number }}
 
       - name: Configure Kubeconfig
         run: |
@@ -56,6 +79,7 @@ jobs:
       - name: Apply deployment
         env:
           buildnumber: ${{ github.run_number }}
+          version: ${{ env.MANI_VERSION }}
         run: |
           envsubst < .k8s-templates/deployment.yaml > .k8s/deployment.yaml
           kubectl apply -f .k8s/

@@ -4,6 +4,7 @@ import com.ionspin.kotlin.bignum.decimal.toBigDecimal
 import io.github.youndie.mani.feature.auth.data.TokenRepository
 import io.github.youndie.mani.feature.auth.data.TokenRepositoryCommon
 import io.github.youndie.mani.feature.auth.data.TokenStorageImpl
+import io.github.youndie.mani.feature.auth.data.temporarySessionFile
 import io.github.youndie.mani.feature.auth.domain.LogoutUseCase
 import io.github.youndie.mani.feature.transaction.Category
 import io.github.youndie.mani.feature.transaction.Transaction
@@ -18,7 +19,7 @@ class LogoutUseCaseTest {
     @Test
     fun logoutTest() = runTest {
         val transactionRepository = FakeTransactionsRepository()
-        val tokenRepository: TokenRepository = TokenRepositoryCommon(TokenStorageImpl())
+        val tokenRepository: TokenRepository = TokenRepositoryCommon(TokenStorageImpl(temporarySessionFile()))
         val logoutUseCase = LogoutUseCase(tokenRepository, transactionRepository)
         transactionRepository.create(
             Transaction(

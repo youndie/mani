@@ -2,6 +2,7 @@ package io.github.youndie.mani.feature.transaction.ui.model
 
 import io.github.youndie.mani.emptyImmutableList
 import io.github.youndie.mani.emptyImmutableMap
+import io.github.youndie.mani.feature.main.ui.ServerUnreachableUiState
 import io.github.youndie.mani.uiState.CommonUiState
 import kotlinx.collections.immutable.ImmutableList
 import kotlinx.collections.immutable.ImmutableMap
@@ -19,6 +20,10 @@ data class TransactionListUiState(
     val monthTitle: String = "",
     val monthChange: String = "",
     val balanceToday: String = "",
+    /** Не `null` — сети нет, и показано последнее известное, снятое в это время. */
+    val showingCacheFrom: String? = null,
+    /** Не `null` — сервер не ответил и показать нечего: ни свежего, ни сохранённого. */
+    val unreachable: ServerUnreachableUiState? = null,
 ) : CommonUiState<TransactionsByDays> {
     override fun load() = copy(loading = true)
     override fun showError(message: String) = copy(errorMessage = message, loading = false)

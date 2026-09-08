@@ -9,8 +9,6 @@ import io.github.youndie.mani.utilz.suspendRunCatching
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.plugins.resources.get
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 
 /**
  * Спрашивает у сервера, чем он собран.
@@ -23,8 +21,6 @@ abstract class HealthUseCase : NonParameterizedUseCase<Health>()
 
 class GetHealthUseCase(private val httpClient: HttpClient) : HealthUseCase() {
     override suspend operator fun invoke(params: EmptyParams): Result<Health> = suspendRunCatching {
-        withContext(Dispatchers.Default) {
-            Result.success(httpClient.get(HealthResource()).body<Health>())
-        }
+        Result.success(httpClient.get(HealthResource()).body<Health>())
     }.getOrElse { Result.failure(ServerException(message = "Couldn't reach the server", cause = it)) }
 }

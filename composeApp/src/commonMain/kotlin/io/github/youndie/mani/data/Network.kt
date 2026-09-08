@@ -1,9 +1,6 @@
 package io.github.youndie.mani.data
 
 import io.github.youndie.mani.data.serverConfig
-import io.github.youndie.mani.feature.auth.AuthResource
-import io.github.youndie.mani.feature.auth.RefreshParams
-import io.github.youndie.mani.feature.auth.Tokens
 import io.github.youndie.mani.feature.auth.data.TokenRepository
 import io.ktor.client.*
 import io.ktor.client.call.*
@@ -49,33 +46,7 @@ val networkModule = module {
                     loadTokens {
                         get<TokenRepository>().getToken()
                     }
-                    refreshTokens {
-                        val tokenRepository = get<TokenRepository>()
-                        val httpClient = get<HttpClient>()
-
-                        val refreshToken = tokenRepository.getToken().refreshToken
-
-                        if (refreshToken == null || refreshToken.isEmpty()) {
-                            return@refreshTokens null
-                        }
-
-                        val response = httpClient.post(AuthResource.Refresh()) {
-                            markAsRefreshTokenRequest()
-                            setBody(RefreshParams(refreshToken.orEmpty()))
-                        }
-
-                        if (response.status == HttpStatusCode.Unauthorized) {
-                            tokenRepository.set("", "")
-                        }
-
-                        val data = response.body<Tokens>()
-
-                        tokenRepository.set(
-                            accessToken = data.accessToken,
-                            refreshToken = data.refreshToken,
-                        )
-                        tokenRepository.getToken()
-                    }
+                    refreshTokens { refreshSession(get(), get()) { markAsRefreshTokenRequest() } }
                 }
             }
             defaultRequest {

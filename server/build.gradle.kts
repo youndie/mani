@@ -21,13 +21,30 @@ plugins {
  * держит общую часть честной — всё, что перестанет компилироваться под JVM, ломается здесь.
  */
 group = "io.github.youndie.mani"
-version = "0.2.${providers.gradleProperty("BUILD_NUMBER").getOrElse("snapshot")}"
+
+/*
+ * Версия продукта плюс номер сборки: одно число на приложение, второе отличает выкаты друг от
+ * друга. Раньше здесь стояла своя линия `0.2.x`, не совпадавшая ни с чем — ни с ответом
+ * `/health`, ни с версией клиентов.
+ */
+val maniVersion = providers.gradleProperty("mani.version").get()
+val buildNumber = providers.gradleProperty("BUILD_NUMBER").getOrElse("snapshot")
+
+version = "$maniVersion.$buildNumber"
 
 application {
     mainClass.set("io.github.youndie.mani.ApplicationKt")
-    applicationDefaultJvmArgs =
-        listOf("-Dio.ktor.development=${extra["io.ktor.development"] ?: "true"}")
 }
+
+/*
+ * Без `-Dio.ktor.development`.
+ *
+ * Свойство стояло в `gradle.properties` со значением `true` и уезжало в аргументы запуска, то
+ * есть и в образ: сервер работал в режиме разработки, где Ktor следит за классами и подробно
+ * рассказывает об ошибках наружу. Автоперезагрузкой здесь никто не пользовался, а то
+ * единственное, ради чего режим включали, — CORS для фронтенда с чужого порта — давно живёт
+ * своей переменной `MANI_DEVELOPMENT` и работает в обеих сборках.
+ */
 
 dependencies {
     implementation(projects.shared)
@@ -41,6 +58,7 @@ dependencies {
     implementation(libs.ktor.server.cio)
     implementation(libs.ktor.server.auth)
     implementation(libs.ktor.server.cors)
+    implementation(libs.ktor.server.status.pages)
     implementation(libs.ktor.server.resources)
     implementation(libs.ktor.server.content.negotiation)
     implementation(libs.ktor.serialization.kotlinx.json)
@@ -87,7 +105,7 @@ ktor {
     docker {
         jreVersion.set(JavaVersion.VERSION_21)
         localImageName.set("mani-backend")
-        imageTag.set("0.2.${providers.gradleProperty("BUILD_NUMBER").getOrElse("snapshot")}")
+        imageTag.set("$maniVersion.$buildNumber")
         customBaseImage.set("gcr.io/distroless/java21-debian12")
         externalRegistry.set(
             DockerImageRegistry.externalRegistry(
