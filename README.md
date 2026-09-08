@@ -207,3 +207,8 @@ Both builds read the environment, with the same names:
 | `MANI_WEB_ROOT` | directory with the wasm bundle; unset — no frontend, API only |
 | `MANI_DEVELOPMENT` | `true` enables CORS |
 
+`JWT_SECRET` has no default. Left unset, the server signs with a random secret generated for that
+process and says so on startup: sessions then do not survive a restart. That is deliberate — the
+previous default was the word `secret`, printed in the source, and `docker-compose.yaml` never set
+the variable, so anyone following the README signed tokens with a value anybody could read.
+

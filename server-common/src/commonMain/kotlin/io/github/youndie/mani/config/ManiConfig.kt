@@ -1,5 +1,8 @@
 package io.github.youndie.mani.config
 
+import dev.whyoleg.cryptography.random.CryptographyRandom
+import io.github.youndie.mani.security.toHex
+
 /**
  * Конфигурация сервера — из переменных окружения, одинаково для обеих сборок.
  *
@@ -33,7 +36,7 @@ data class ManiConfig(
             JWTConfig(
                 name = readEnv("JWT_NAME") ?: "auth-jwt",
                 realm = readEnv("JWT_REALM") ?: "mani",
-                secret = readEnv("JWT_SECRET") ?: "secret",
+                secret = signingSecret(readEnv("JWT_SECRET")),
                 audience = readEnv("JWT_AUDIENCE") ?: "jwt-audience",
                 issuer = readEnv("JWT_ISSUER") ?: "jwt-issuer",
                 expirationSeconds = readEnv("JWT_EXPIRATION_SECONDS")?.toLongOrNull() ?: 3600L,
@@ -43,6 +46,35 @@ data class ManiConfig(
         )
     }
 }
+
+/**
+ * Секрет подписи токенов: из окружения, а если его там нет — случайный на этот процесс.
+ *
+ * Прежнее умолчание было строкой `secret`, и это не теоретическая беда: переменную задаёт только
+ * `.k8s-templates/deployment.yaml`, а `docker-compose.yaml` из README — нет. Любой, кто поднял
+ * стенд по инструкции, подписывал токены значением, напечатанным в исходниках, то есть подделать
+ * их мог кто угодно.
+ *
+ * Падать без переменной было бы честнее всего, но это сломало бы `docker compose up` из README
+ * ради выгоды, которой у локального стенда нет. Случайный секрет оставляет стенд рабочим, а
+ * плату делает видимой: перезапуск процесса разлогинивает всех, и строка в логе говорит почему.
+ *
+ * Отдельной функцией, а не `?:` внутри [ManiConfig.fromEnv]: решение принимается по значению
+ * переменной, и проверять его надо по значению, а не по окружению машины, на которой идут тесты.
+ */
+internal fun signingSecret(fromEnvironment: String?): String {
+    if (fromEnvironment != null) return fromEnvironment
+
+    // `println`, а не логгер: его в общей части нет ни у одной сборки, а в контейнере stdout
+    // и есть лог.
+    println(
+        "mani: JWT_SECRET не задан — токены подписываются случайным секретом этого процесса. " +
+            "Перезапуск разлогинит всех; для стенда задайте переменную.",
+    )
+    return CryptographyRandom.nextBytes(SECRET_BYTES).toHex()
+}
+
+private const val SECRET_BYTES = 32
 
 data class MongoConfig(
     val userName: String = "",
