@@ -15,12 +15,16 @@ fun Routing.demoRouting() {
     val jwtConfig by inject<JWTConfig>()
 
     post<DemoResource> {
-        val tokens = demoService.createSandbox()
-        if (tokens == null) {
-            call.respond(HttpStatusCode.InternalServerError)
-            return@post
+        when (val outcome = demoService.createSandbox()) {
+            is DemoService.Outcome.Created -> call.respond(HttpStatusCode.Created, outcome.tokens)
+
+            // 503, а не 500: сервер исправен, мест нет — и через час, скорее всего, будут.
+            // Текст уходит на витрину как есть.
+            DemoService.Outcome.NoRoom ->
+                call.respond(HttpStatusCode.ServiceUnavailable, "The demo is full right now, try again later")
+
+            DemoService.Outcome.Refused -> call.respond(HttpStatusCode.InternalServerError)
         }
-        call.respond(HttpStatusCode.Created, tokens)
     }
 
     // Засев своего аккаунта — операция владельца, поэтому под проверкой токена, в отличие от

@@ -1,5 +1,6 @@
 package io.github.youndie.mani
 
+import com.mongodb.kotlin.client.coroutine.MongoClient
 import de.flapdoodle.embed.mongo.distribution.Version
 import de.flapdoodle.embed.mongo.transitions.Mongod
 import de.flapdoodle.embed.mongo.transitions.RunningMongodProcess
@@ -9,8 +10,12 @@ import io.github.youndie.mani.config.ManiConfig
 import io.github.youndie.mani.config.MongoConfig
 import io.github.youndie.mani.feature.auth.Tokens
 import io.github.youndie.mani.feature.demo.DemoSeed
+import io.github.youndie.mani.feature.demo.data.DEMO_USERNAME_PREFIX
+import io.github.youndie.mani.feature.demo.data.DemoService
 import io.github.youndie.mani.feature.transaction.Category
 import io.github.youndie.mani.feature.transaction.Transaction
+import io.github.youndie.mani.feature.user.data.USER_COLLECTION
+import io.github.youndie.mani.feature.user.data.UserDb
 import io.github.youndie.mani.security.TokenService
 import io.ktor.client.HttpClient
 import io.ktor.client.request.bearerAuth
@@ -23,8 +28,11 @@ import io.ktor.server.application.install
 import io.ktor.server.routing.routing
 import io.ktor.server.testing.ApplicationTestBuilder
 import io.ktor.server.testing.testApplication
+import kotlinx.coroutines.flow.toList
 import kotlinx.serialization.json.Json
 import org.koin.core.context.stopKoin
+import org.koin.core.module.Module
+import org.koin.dsl.module
 import org.koin.ktor.ext.get
 import org.koin.ktor.plugin.Koin
 import kotlin.test.AfterTest
@@ -67,18 +75,23 @@ class DemoRoutingTest {
         running.close()
     }
 
-    private fun demoTest(block: suspend ApplicationTestBuilder.() -> Unit) = testApplication {
-        val maniConfig = config
-        application {
-            configureManiPlugins(maniConfig)
-            install(Koin) {
-                modules(coreModule(maniConfig), mongoStorageModule(maniConfig.mongo))
+    /**
+     * @param overrides модули, объявленные после общих: Koin берёт последнее определение, и так
+     *   тест подменяет одну зависимость, не собирая граф заново
+     */
+    private fun demoTest(overrides: List<Module> = emptyList(), block: suspend ApplicationTestBuilder.() -> Unit) =
+        testApplication {
+            val maniConfig = config
+            application {
+                configureManiPlugins(maniConfig)
+                install(Koin) {
+                    modules(listOf(coreModule(maniConfig), mongoStorageModule(maniConfig.mongo)) + overrides)
+                }
+                configureManiAuth(maniConfig, get<TokenService>())
+                routing { maniApiRouting() }
             }
-            configureManiAuth(maniConfig, get<TokenService>())
-            routing { maniApiRouting() }
+            block()
         }
-        block()
-    }
 
     /**
      * Тело разбирается сериализатором вручную: клиентский content-negotiation в зависимостях
@@ -145,5 +158,49 @@ class DemoRoutingTest {
         // Ради этого всё и затевалось: витрина на общем аккаунте позволяла любому посетителю
         // править и удалять чужие данные.
         assertEquals(DemoSeed.rules.size, client.transactions(second.accessToken).size)
+    }
+
+    /**
+     * Витрина не бесконечна.
+     *
+     * `POST /demo` не требует ни ввода, ни входа, а база стенда живёт на 256 МиБ: цикл запросов
+     * заводил пользователя с семью правилами столько раз, сколько успеет. Уборка от этого не
+     * спасает — она уносит то, чему больше суток.
+     *
+     * Потолок здесь занижен подменой зависимости: проверять его настоящим значением означало бы
+     * завести пятьсот песочниц, то есть измерять терпение прогона, а не правило.
+     */
+    @Test
+    fun `a full demo answers 503 and creates nobody`() {
+        val small = module {
+            single { DemoService(get(), get(), get(), get(), get(), maxLiveSandboxes = 2) }
+        }
+
+        demoTest(overrides = listOf(small)) {
+            val client = createClient { }
+
+            client.post("/demo").tokens()
+            client.post("/demo").tokens()
+
+            val refused = client.post("/demo")
+            assertEquals(HttpStatusCode.ServiceUnavailable, refused.status)
+
+            // Третьей песочницы нет: отказ по потолку не должен оставлять за собой половину
+            // заведённого пользователя.
+            assertEquals(2, users().count { it.startsWith(DEMO_USERNAME_PREFIX) })
+        }
+    }
+
+    /** Имена песочниц, как их видит база. */
+    private suspend fun users(): List<String> {
+        val client = MongoClient.create("mongodb://${running.current().serverAddress}")
+        return client.use {
+            it
+                .getDatabase("demo-test")
+                .getCollection<UserDb>(USER_COLLECTION)
+                .find<UserDb>()
+                .toList()
+                .map(UserDb::username)
+        }
     }
 }

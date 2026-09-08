@@ -27,27 +27,43 @@ class DemoService(
     private val transactionRepository: TransactionRepository,
     private val authService: AuthService,
     private val cleaner: DemoSandboxCleaner,
+    /** Параметром, а не константой в теле: иначе потолок нечем проверить, кроме как достичь его. */
+    private val maxLiveSandboxes: Int = MAX_LIVE_SANDBOXES,
 ) {
-    /** @return токены к заведённой песочнице либо `null`, если хранилище отказало */
+    /** Чем кончилась попытка развернуть песочницу. */
+    sealed interface Outcome {
+        data class Created(val tokens: Tokens) : Outcome
+
+        /** Мест нет: живых песочниц столько, сколько стенд готов держать. */
+        data object NoRoom : Outcome
+
+        /** Хранилище отказало. */
+        data object Refused : Outcome
+    }
+
     @Suppress(
         "ktlint:kapkan:swallowed-failure",
         "отказ уборки не должен стоить посетителю входа — причина расписана выше",
     )
-    suspend fun createSandbox(): Tokens? {
+    suspend fun createSandbox(): Outcome {
         // Отказ уборки не должен стоить посетителю входа: мусор подождёт следующего вызова,
         // а пустой экран вместо витрины — нет. Логгера в общей части нет ни у одной сборки,
         // поэтому отказ именно проглатывается, а не пишется в никуда.
         //
         // Именно отказ, но не отмена: обычный `runCatching` проглотил бы и её, и метод
         // продолжил бы заводить песочницу для клиента, который уже отвалился.
-        suspendRunCatching { cleaner.sweep() }
+        val live = suspendRunCatching { cleaner.sweep() }.getOrNull()
 
-        val credentials = freeCredentials() ?: return null
-        val userId = userRepository.save(credentials) ?: return null
+        // Не сосчитали — не запрещаем. Уборка отказала редко, а закрытая витрина из-за сбоя
+        // подсчёта — это отказ по причине, к посетителю не относящейся.
+        if (live != null && live >= maxLiveSandboxes) return Outcome.NoRoom
+
+        val credentials = freeCredentials() ?: return Outcome.Refused
+        val userId = userRepository.save(credentials) ?: return Outcome.Refused
 
         seed(userId)
 
-        return authService.authenticate(credentials)
+        return authService.authenticate(credentials)?.let(Outcome::Created) ?: Outcome.Refused
     }
 
     /**
