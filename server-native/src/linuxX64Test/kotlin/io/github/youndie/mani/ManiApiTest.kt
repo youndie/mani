@@ -451,4 +451,20 @@ class ManiApiTest {
             assertEquals(emptyList(), categories(auth))
         }
     }
+
+    /**
+     * Готовность нативной сборки: `ping` действительно уходит в базу через mongkn.
+     *
+     * Парный случай на JVM живёт в `HealthReadinessTest`; общего у них только маршрут, драйверы
+     * разные, и «сходить в базу» у них тоже разное.
+     */
+    @Test
+    fun `readiness answers while the database answers`() = runBlocking {
+        withMani {
+            assertEquals(HttpStatusCode.OK, http.get("/health/ready").status)
+
+            // И живость отвечает, ничего не спрашивая у базы.
+            assertEquals(HttpStatusCode.OK, http.get("/health").status)
+        }
+    }
 }
