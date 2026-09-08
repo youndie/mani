@@ -8,6 +8,7 @@ import io.github.youndie.mani.feature.transaction.Category
 import io.github.youndie.mani.feature.transaction.Transaction
 import io.ktor.client.call.body
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.client.request.delete
 import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.patch
@@ -345,6 +346,34 @@ class ManiApiTest {
                     setBody(RefreshParams(pair.refreshToken))
                 }
             assertEquals(HttpStatusCode.OK, refreshed.status)
+        }
+    }
+
+    /**
+     * Испорченный ввод — это 400, а не 500.
+     *
+     * `not-an-id` доходит до хранилища и падает там: на JVM его отвергает конструктор
+     * `ObjectId`, на нативной сборке — сериализатор поля. Отказ у двух реализаций разный, и
+     * потому проверяется в каждой; общая здесь только раскладка исключения в ответ.
+     */
+    @Test
+    fun `a malformed id in the path is a bad request`() = runBlocking {
+        withMani {
+            val auth = signIn("malformed", "hunter2")
+
+            val deleted = http.delete("/transactions/not-an-id") { header(HttpHeaders.Authorization, auth) }
+            assertEquals(HttpStatusCode.BadRequest, deleted.status)
+
+            // Тело, которое не разбирается, Ktor отвергал сам и до `StatusPages`. Но общий
+            // обработчик ловит `Throwable`, а значит перехватывает и его: без ветки
+            // `BadRequestException` ответ стал бы 500. Сторожится это, а не поведение Ktor.
+            val posted =
+                http.post("/transactions") {
+                    header(HttpHeaders.Authorization, auth)
+                    contentType(ContentType.Application.Json)
+                    setBody("{\"amount\": ")
+                }
+            assertEquals(HttpStatusCode.BadRequest, posted.status)
         }
     }
 }

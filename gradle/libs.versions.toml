@@ -90,6 +90,7 @@ ktor-server-content-negotiation = { module = "io.ktor:ktor-server-content-negoti
 ktor-server-resources = { module = "io.ktor:ktor-server-resources", version.ref = "ktor" }
 ktor-server-auth = { module = "io.ktor:ktor-server-auth", version.ref = "ktor" }
 ktor-server-cors = { module = "io.ktor:ktor-server-cors", version.ref = "ktor" }
+ktor-server-status-pages = { module = "io.ktor:ktor-server-status-pages", version.ref = "ktor" }
 
 logback = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
 # Без суффикса `-jvm`: артефакты тянет и KMP-модуль `:server-common`, а `*-jvm` под linuxX64
