@@ -1,6 +1,6 @@
 ---
 id: composeApp
-title: ":composeApp — клиент под четыре платформы"
+title: ":composeApp — the client for four platforms"
 type: service
 repo_url: https://github.com/youndie/mani-kotlin-fullstack
 module: ":composeApp"
@@ -10,111 +10,117 @@ depends_on:
   - shared
   - server-native
 publishes:
-  - APK, десктопный дистрибутив, wasm-бандл (едет внутрь образа сервера)
+  - APK, desktop distribution, wasm bundle (which travels inside the server image)
 ---
 
-# :composeApp — клиент под четыре платформы
+# :composeApp — the client for four platforms
 
-## 1. Ответственность
+## 1. Responsibility
 
-**Весь интерфейс продукта, одним кодом на Android, iOS, десктоп и браузер.** Экраны, состояния,
-навигация, сетевой слой, хранение токенов, кэш последнего известного списка.
+**The entire interface of the product, one body of code for Android, iOS, desktop and the browser.**
+Screens, states, navigation, the network layer, token storage, the cache of the last known list.
 
-Платформенного кода здесь на удивление мало — четыре пары файлов:
+There is surprisingly little platform code here — four pairs of files:
 
-| Что | Зачем платформенное |
+| What | Why it is platform-specific |
 |---|---|
-| `TokenStorageImpl` | у каждой платформы своё хранилище секретов; в браузере — `localStorage` |
-| `authModulePlatform` | подключает этот `TokenStorageImpl` в граф |
-| `ServerConfigPlatform` | откуда берётся адрес сервера (см. §3) |
-| точка входа (`main.kt`) | десктоп и wasm запускаются каждый по-своему |
+| `TokenStorageImpl` | every platform has its own secret store; in the browser it is `localStorage` |
+| `authModulePlatform` | binds that `TokenStorageImpl` into the graph |
+| `ServerConfigPlatform` | where the server address comes from (see §3) |
+| the entry point (`main.kt`) | desktop and wasm each start their own way |
 
-`:androidApp` и `:iosApp` — **тонкие пусковые модули** без логики: они лишь поднимают
-`App()`. `:baselineprofile` — генерация baseline-профиля для Android. Отдельных документов у них
-нет намеренно: описывать в них нечего, а пустой документ создаёт вид покрытия.
+`:androidApp` and `:iosApp` are **thin launcher modules** with no logic: all they do is bring up
+`App()`. `:baselineprofile` generates the Android baseline profile. None of them has a document of
+its own, deliberately: there would be nothing to describe, and an empty document creates the
+appearance of coverage.
 
-## 2. Контракты
+## 2. API contracts
 
-Клиент ходит на сервер **теми же `@Resource`-классами**, которыми сервер разбирает путь, — они
-лежат в [shared](shared.md). Разбор по кодам ответов: [endpoint-auth](../api/endpoint-auth.md),
-[endpoint-transactions](../api/endpoint-transactions.md).
+The client calls the server with **the same `@Resource` classes** the server parses paths with —
+they live in [shared](shared.md). The breakdown by status code:
+[endpoint-transactions](../api/endpoint-transactions.md),
+[endpoint-categories](../api/endpoint-categories.md), [endpoint-auth](../api/endpoint-auth.md),
+[endpoint-demo](../api/endpoint-demo.md).
 
-## 2a. Код
+## 2a. Code anchors
 
-| Файл | Что там |
+| File | What is there |
 |---|---|
-| `composeApp/src/commonMain/kotlin/io/github/youndie/mani/App.kt` | корень приложения |
-| `composeApp/src/commonMain/kotlin/io/github/youndie/mani/appModule.kt` | список Koin-модулей фич |
-| `composeApp/src/commonMain/kotlin/io/github/youndie/mani/navigation/` | граф (`ManiAppNavHost.kt`), список экранов (`ManiScreen.kt`), правило стрелки «назад» |
-| `composeApp/src/commonMain/kotlin/io/github/youndie/mani/data/Network.kt` | `HttpClient`: Resources, ContentNegotiation, Bearer-плагин |
-| `composeApp/src/commonMain/kotlin/io/github/youndie/mani/data/RefreshSession.kt` | обмен refresh-токена на новую пару |
-| `composeApp/src/commonMain/kotlin/io/github/youndie/mani/feature/<фича>/` | `data/` → `domain/` → `ui/`, DI в `module.kt` |
-| `composeApp/src/commonMain/kotlin/io/github/youndie/mani/Constants.kt` | адрес сервера по умолчанию |
-| `composeApp/src/commonMain/kotlin/io/github/youndie/mani/uiState/UiState.kt` | общие интерфейсы состояний: `LoadingState`, `ErrorState`, `DataState` |
-| `composeApp/src/desktopTest/kotlin/io/github/youndie/mani/screenshots/Screens.kt` | набор скриншот-тестов |
-| `composeApp/src/desktopTest/snapshots/` | голдены (записаны **на Linux**) |
-| `composeApp/src/commonMain/kotlin/ir/ehsannarmani/compose_charts/` | вендоренный `compose-charts` с местными правками |
+| `composeApp/src/commonMain/kotlin/io/github/youndie/mani/App.kt` | the root of the application |
+| `composeApp/src/commonMain/kotlin/io/github/youndie/mani/appModule.kt` | the list of feature Koin modules |
+| `composeApp/src/commonMain/kotlin/io/github/youndie/mani/navigation/` | the graph (`ManiAppNavHost.kt`), the screen list (`ManiScreen.kt`), the back-arrow rule |
+| `composeApp/src/commonMain/kotlin/io/github/youndie/mani/data/Network.kt` | `HttpClient`: Resources, ContentNegotiation, the Bearer plugin |
+| `composeApp/src/commonMain/kotlin/io/github/youndie/mani/data/RefreshSession.kt` | exchanging a refresh token for a new pair |
+| `composeApp/src/commonMain/kotlin/io/github/youndie/mani/feature/<feature>/` | `data/` → `domain/` → `ui/`, wiring in `module.kt` |
+| `composeApp/src/commonMain/kotlin/io/github/youndie/mani/Constants.kt` | the default server address |
+| `composeApp/src/commonMain/kotlin/io/github/youndie/mani/uiState/UiState.kt` | the shared state interfaces: `LoadingState`, `ErrorState`, `DataState` |
+| `composeApp/src/desktopTest/kotlin/io/github/youndie/mani/screenshots/Screens.kt` | the screenshot test set |
+| `composeApp/src/desktopTest/snapshots/` | the goldens (recorded **on Linux**) |
+| `composeApp/src/commonMain/kotlin/ir/ehsannarmani/compose_charts/` | the vendored `compose-charts` with local changes |
 
-Раскладка фичи одинаковая: `data/` (репозиторий, источник данных, кэш) → `domain/` (use case'ы) →
-`ui/` (ViewModel, состояние, компоненты), плюс `module.kt` с проводкой.
+Every feature has the same layout: `data/` (repository, data source, cache) → `domain/` (use cases)
+→ `ui/` (view model, state, components), plus `module.kt` with the wiring.
 
-## 3. Как это устроено
+## 3. How it is built
 
-**Адрес сервера ищется в три хода.** В браузере клиент говорит с тем origin, что отдал страницу, —
-поэтому правок в исходниках для локального запуска не нужно. Десктоп берёт переопределение из
-`MANI_SERVER`. Остальные падают на умолчание из `Constants.kt` (`mani.kotlin.website`).
+**The server address is resolved in three steps.** In the browser the client talks to whichever
+origin served the page — which is why running locally needs no source edits. Desktop takes an
+override from `MANI_SERVER`. The rest fall back to the default in `Constants.kt`
+(`mani.kotlin.website`).
 
-**Обновление токена вынесено из настройки клиента отдельной функцией.** Тело `refreshTokens { }`
-внутри `HttpClient` проверяется только живым сервером; `refreshSession()` проверяется подставным
-движком, как и всё остальное в слое (`RefreshSessionTest`). Пометка `markAsRefreshTokenRequest()`
-приходит параметром, потому что этот метод существует только внутри области `refreshTokens { }`, а
-без неё плагин пытался бы обновить токен для самого запроса обновления — то есть закольцевался бы.
+**Token refresh is lifted out of the client configuration into a function of its own.** The body of
+`refreshTokens { }` inside `HttpClient` can only be exercised by a live server; `refreshSession()`
+is exercised by a mock engine, like everything else in this layer (`RefreshSessionTest`). The
+`markAsRefreshTokenRequest()` marker arrives as a parameter because that method exists only inside
+the `refreshTokens { }` scope, and without it the plugin would try to refresh the token for the
+refresh request itself — that is, loop.
 
-**Отказ обновления разобран по видам, и это не педантизм:**
+**Refresh failures are sorted by kind, and that is not pedantry:**
 
-| Ответ на `/auth/refresh` | Что делает клиент |
+| Response to `/auth/refresh` | What the client does |
 |---|---|
-| `401` | сессия кончилась: токены сбрасываются, поднимается событие `expired` |
-| прочий не-2xx | сессию **не** трогает: 500 у сервера её не отменяет |
-| `2xx` | новая пара ложится в хранилище |
+| `401` | the session is over: tokens are cleared and the `expired` event is raised |
+| any other non-2xx | leaves the session **alone**: a 500 on the server does not end it |
+| `2xx` | the new pair goes into storage |
 
-Раньше на `401` токены сбрасывались, а тело всё равно читалось — которого у 401 нет. Разбор падал,
-и наружу выходило не «сессия истекла», а отказ сети: экран «сервер недоступен» с обратным отсчётом,
-из которого нет пути на витрину.
+Previously a `401` cleared the tokens and the body was read anyway — and a 401 has none. Parsing
+failed, and what surfaced was not "the session expired" but a network failure: the "server
+unreachable" screen with a countdown, from which there is no path back to the welcome screen.
 
-**Точка входа навигации читается один раз и на токен не подписана.** Подписка пересобирает граф, а
-новый граф сбрасывает навигацию на свою точку входа — то есть каждый приход токена молча
-перекидывал экран. Истечение сессии приходит **событием** (`TokenRepository.expired`, `replay = 0`),
-переходы «вошёл»/«вышел» делаются явно. Подробности — в §1.9
+**The navigation start destination is read once and is not subscribed to the token.** A subscription
+rebuilds the graph, and a new graph resets navigation to its own start destination — so every
+arrival of a token silently threw the screen somewhere else. Session expiry arrives as an **event**
+(`TokenRepository.expired`, `replay = 0`), and the "signed in" / "signed out" transitions are made
+explicitly. The details are in §1.9 of
 [research-architecture](../research/research-architecture.md).
 
-**Без сети показывается последний известный список** с отметкой времени его снятия. Правила — не
-лента событий: вчерашний список верен и сегодня. Состояние экрана различает «показываю кэш»
-(`showingCacheFrom`) и «показать нечего» (`unreachable`), и это разные экраны, а не разные значения
-одного поля.
+**With no network, the last known list is shown** together with the time it was taken. Rules are not
+an event feed: yesterday's list is still correct today. The screen state distinguishes "showing the
+cache" (`showingCacheFrom`) from "nothing to show" (`unreachable`), and those are different screens
+rather than different values of one field.
 
-## 4. Зависимости
+## 4. Dependencies
 
-| Вид | Что | Зачем |
+| Kind | Name | What for |
 |---|---|---|
-| Модуль | [shared](shared.md) | ресурсы, модель, симуляция баланса |
-| Сервис | [server-native](server-native.md) | API стенда |
-| Библиотека | Ktor client (`resources`, `auth`, `content-negotiation`, `logging`) | HTTP |
-| Библиотека | Koin (`koin-compose`) | DI, модули подключаются экраном через `rememberKoinModules` |
-| Библиотека | `androidx.navigation` (Compose) | граф экранов |
-| Библиотека | `multiplatform-settings` | токены и кэш списка |
-| Библиотека | `kotlinx.collections.immutable` | состояния экранов стабильны для Compose |
-| Библиотека | [viddik](https://github.com/youndie/viddik) | скриншот-тесты |
-| Вендоренный код | `compose-charts` | график; правка внутри канваса — маркер дня обнуления |
+| Module | [shared](shared.md) | resources, model, balance simulation |
+| Service | [server-native](server-native.md) | the deployed instance's API |
+| Library | Ktor client (`resources`, `auth`, `content-negotiation`, `logging`) | HTTP |
+| Library | Koin (`koin-compose`) | DI; screens attach their modules with `rememberKoinModules` |
+| Library | `androidx.navigation` (Compose) | the screen graph |
+| Library | `multiplatform-settings` | tokens and the list cache |
+| Library | `kotlinx.collections.immutable` | screen states stay stable for Compose |
+| Library | [viddik](https://github.com/youndie/viddik) | screenshot tests |
+| Vendored code | `compose-charts` | the chart; the local change draws the run-out marker inside its canvas |
 
-## 5. Инфраструктура и выкат
+## 5. Infrastructure and deploy
 
-Отдельного стенда нет. Wasm-бандл собирается в выкате сервера
-(`:composeApp:wasmJsBrowserDistribution`), сжимается на сборке образа и едет внутрь образа
-[server-native](server-native.md). Android и десктоп собираются отдельными workflow
+There is no deployment of its own. The wasm bundle is built during the server deploy
+(`:composeApp:wasmJsBrowserDistribution`), compressed while the image is built, and travels inside
+the [server-native](server-native.md) image. Android and desktop are built by separate workflows
 (`.github/workflows/build_android.yml`, `build_desktop.yml`).
 
-## 6. Локальный запуск
+## 6. Local setup
 
 ```bash
 ./gradlew :composeApp:run
@@ -132,9 +138,9 @@ MANI_SERVER=http://localhost:8080 ./gradlew :composeApp:run
 ./gradlew :composeApp:wasmJsBrowserDevelopmentRun
 ```
 
-iOS — открыть `iosApp/iosApp.xcodeproj` в Xcode.
+For iOS, open `iosApp/iosApp.xcodeproj` in Xcode.
 
-Тесты:
+Tests:
 
 ```bash
 ./gradlew :composeApp:desktopTest
@@ -148,25 +154,28 @@ iOS — открыть `iosApp/iosApp.xcodeproj` в Xcode.
 ./gradlew :composeApp:viddikRecord
 ```
 
-## 7. Конфигурация
+## 7. Configuration
 
-| Ключ | Где действует | Описание |
+| Key | Where it applies | Description |
 |---|---|---|
-| `MANI_SERVER` | десктоп | переопределяет адрес сервера |
-| — | браузер | адрес берётся из origin страницы, настраивать нечего |
-| — | Android, iOS | умолчание из `Constants.kt` |
+| `MANI_SERVER` | desktop | overrides the server address |
+| — | browser | the address comes from the page's origin; there is nothing to configure |
+| — | Android, iOS | the default from `Constants.kt` |
 
-## 8. Особенности
+## 8. Quirks
 
-* **Скриншот-тесты не гоняются в PR, и это решение.** Голдены записаны на Linux; тот же код на
-  macOS рисует текст иначе — разница 1–4 % пикселей, далеко за любым разумным допуском. Голден,
-  воспроизводимый на одной ОС, не годится в проверку, гейтящую слияния.
-* **Скриншот из `README.md` — это сам голден**, а не его копия. Перезапись голденов перерисовывает
-  и картинку в README, так что она не может тихо разойтись с интерфейсом.
-* **`:composeApp:wasmJsTest` требует ChromeHeadless.** В CI браузер есть; на машине без него задача
-  падает на запуске, хотя компиляция wasm проходит целиком.
-* **Свой `.editorconfig`, а не общий.** Отключено правило имени файла (файлы собраны по смыслу:
-  `module.kt` — DI одной фичи) и разрешены унаследованные звёздочные импорты — 80 штук в 35 файлах.
-  Причина записана в `gradle.properties`, у ключа `sborka.editorconfig`.
-* **`TransactionUiState.categoriesExpanded` возвращает константу `true`.** Свойство есть, решения
-  за ним нет — в отличие от соседнего `periodsExpanded`, которое сравнивает список с умолчанием.
+* **Screenshot tests do not run on pull requests, and that is a decision.** The goldens were
+  recorded on Linux; the same code on macOS renders text differently — 1–4 % of the pixels, far past
+  any tolerance worth keeping. A golden that only reproduces on one operating system does not belong
+  in a check that gates merges.
+* **The screenshot in `README.md` is a golden itself**, not a copy of one. Re-recording the goldens
+  redraws the README picture too, so it cannot quietly drift away from the interface.
+* **`:composeApp:wasmJsTest` requires ChromeHeadless.** CI has the browser; on a machine without it
+  the task fails at launch even though the wasm compilation completes.
+* **A local `.editorconfig` rather than the shared one.** The filename rule is disabled (files are
+  grouped by meaning: `module.kt` is one feature's DI) and inherited star imports are allowed — 80
+  of them across 35 files. The reason is recorded in `gradle.properties`, under the
+  `sborka.editorconfig` key.
+* **`TransactionUiState.categoriesExpanded` returns a constant `true`.** The property exists, but
+  there is no decision behind it — unlike the neighbouring `periodsExpanded`, which compares the
+  list against the default.

@@ -1,6 +1,6 @@
 ---
 id: server
-title: ":server — JVM-сборка"
+title: ":server — the JVM build"
 type: service
 repo_url: https://github.com/youndie/mani-kotlin-fullstack
 module: ":server"
@@ -11,95 +11,97 @@ depends_on:
   - shared
   - MongoDB
 publishes:
-  - локальный образ через `publishImageToLocalRegistry`
+  - a local image via `publishImageToLocalRegistry`
 ---
 
-# :server — JVM-сборка
+# :server — the JVM build
 
-## 1. Ответственность
+## 1. Responsibility
 
-Сборка сервера под JVM. Своего в ней **только хранилище и отдача статики**: реализации портов на
-официальном драйвере MongoDB плюс `staticResources` из ресурсов jar'а. Всё остальное берётся из
-[server-common](server-common.md).
+The JVM build of the server. All it owns is **storage and serving static files**: implementations of
+the ports on the official MongoDB driver, plus `staticResources` out of the jar. Everything else
+comes from [server-common](server-common.md).
 
-Это сборка для разработки: единственная, что собирается **на macOS**, где нативный таргет не
-линкуется вовсе. На стенде работает не она, а [server-native](server-native.md).
+This is the development build — the only one that compiles **on macOS**, where the native target
+cannot be linked at all. The deployed instance does not run it; it runs
+[server-native](server-native.md).
 
-## 2. Контракты
+## 2. API contracts
 
-Те же, что у [server-common](server-common.md) — маршруты общие. Собственных маршрутов нет, кроме
-отдачи статики.
+The same as [server-common](server-common.md) — the routes are shared. It adds no routes of its
+own beyond serving static files.
 
-## 2a. Код
+## 2a. Code anchors
 
-| Файл | Что там |
+| File | What is there |
 |---|---|
-| `server/src/main/kotlin/io/github/youndie/mani/Application.kt` | точка входа: `EngineMain`, порядок сборки приложения |
-| `server/src/main/kotlin/io/github/youndie/mani/Routing.kt` | `maniApiRouting()` + отдача wasm-приложения |
-| `server/src/main/kotlin/io/github/youndie/mani/MongoStorageModule.kt` | DI хранилища: клиент, база, репозитории, `StorageHealth` |
-| `server/src/main/kotlin/io/github/youndie/mani/feature/*/data/` | реализации портов на официальном драйвере |
-| `server/src/main/kotlin/io/github/youndie/mani/feature/*/data/*Db.kt` | форма документа: `@BsonId val id: ObjectId`, `amount: java.math.BigDecimal` |
-| `server/src/main/kotlin/io/github/youndie/mani/utilz/wasmJsApp.kt` | статика из ресурсов jar'а |
-| `server/src/main/resources/application.conf` | читает только `EngineMain`, и только порт |
-| `server/src/test/kotlin/ManiTestServer.kt` | общая обвязка тестов сборки |
+| `server/src/main/kotlin/io/github/youndie/mani/Application.kt` | entry point: `EngineMain`, and the order the application is assembled in |
+| `server/src/main/kotlin/io/github/youndie/mani/Routing.kt` | `maniApiRouting()` plus serving the wasm app |
+| `server/src/main/kotlin/io/github/youndie/mani/MongoStorageModule.kt` | storage wiring: client, database, repositories, `StorageHealth` |
+| `server/src/main/kotlin/io/github/youndie/mani/feature/*/data/` | the ports implemented on the official driver |
+| `server/src/main/kotlin/io/github/youndie/mani/feature/*/data/*Db.kt` | the document shape: `@BsonId val id: ObjectId`, `amount: java.math.BigDecimal` |
+| `server/src/main/kotlin/io/github/youndie/mani/utilz/wasmJsApp.kt` | static files out of the jar's resources |
+| `server/src/main/resources/application.conf` | read only by `EngineMain`, and only for the port |
+| `server/src/test/kotlin/ManiTestServer.kt` | the shared harness for this build's tests |
 
-## 3. Как это устроено
+## 3. How it is built
 
-**`application.conf` остался ради одной вещи — порта.** `EngineMain` читает его сам, и это
-JVM-only механизм. Всё остальное берётся из ENV теми же именами, что у нативной сборки
-(`ManiConfig.fromEnv()`), поэтому две сборки конфигурируются **одинаково**, а не по-разному.
+**`application.conf` survives for one thing — the port.** `EngineMain` reads it itself, and that is
+a JVM-only mechanism. Everything else comes from ENV under the same names as the native build
+(`ManiConfig.fromEnv()`), so the two builds are configured **identically** rather than differently.
 
-**Форма документа в базе — та же, что у нативной сборки, но достигается иначе.** Здесь её задают
-кодеки официального драйвера: `@BsonId val id: ObjectId` даёт `_id` как `ObjectId`, а
-`java.math.BigDecimal` драйвер пишет как `decimal128`. У нативной сборки то же самое делают свои
-сериализаторы (`StringAsBsonObjectId`, `BigDecimalAsBsonDecimal128`). Расхождение здесь ничего не
-роняет — запрос просто не находит существующие документы, — поэтому сторожат его тесты, смотрящие
-на **сырой документ**, а не на результат `find`.
+**The document shape in the database matches the native build's, but is arrived at differently.**
+Here it is set by the official driver's codecs: `@BsonId val id: ObjectId` gives `_id` as an
+`ObjectId`, and the driver writes `java.math.BigDecimal` as `decimal128`. On the native build the
+same thing is done by our own serializers (`StringAsBsonObjectId`, `BigDecimalAsBsonDecimal128`). A
+divergence here breaks nothing loudly — the query simply fails to find existing documents — which is
+why it is guarded by tests that look at the **raw document** rather than at the result of `find`.
 
-## 4. Зависимости
+## 4. Dependencies
 
-| Вид | Что | Зачем |
+| Kind | Name | What for |
 |---|---|---|
-| Модуль | [server-common](server-common.md) | весь сервер, кроме хранилища |
-| База | MongoDB | `MONGO_HOST`, `MONGO_DATABASE` |
-| Библиотека | MongoDB Kotlin Driver (официальный) | доступ к базе |
-| Библиотека | Ktor CIO + `ktor-server-*` (JVM) | HTTP, статика, логирование |
-| Библиотека | `koin-logger-slf4j`, logback | логи (JVM-only, у нативной сборки их нет) |
+| Module | [server-common](server-common.md) | the whole server except storage |
+| Database | MongoDB | `MONGO_HOST`, `MONGO_DATABASE` |
+| Library | MongoDB Kotlin Driver (official) | database access |
+| Library | Ktor CIO + `ktor-server-*` (JVM) | HTTP, static files, logging |
+| Library | `koin-logger-slf4j`, logback | logs (JVM-only; the native build has none) |
 
-## 5. Инфраструктура и выкат
+## 5. Infrastructure and deploy
 
-**На стенд не едет.** Стенд разворачивает образ из [server-native](server-native.md).
+**It does not reach the deployed instance.** That runs the image from
+[server-native](server-native.md).
 
-Локальный образ:
+A local image:
 
 ```bash
 ./gradlew publishImageToLocalRegistry
 docker compose up -d
 ```
 
-`GET /health` этой сборки отвечает `{"build": "jvm", ...}` — по этому полю видно, какая сборка
-ответила.
+`GET /health` on this build answers `{"build": "jvm", ...}` — that field is how you tell which build
+answered.
 
-## 6. Локальный запуск
+## 6. Local setup
 
-Порядок из `README.md`: собрать образ, поднять рядом с MongoDB, открыть
-[http://localhost:8080/](http://localhost:8080/) и нажать **Try the demo**.
+The sequence from `README.md`: build the image, bring it up next to MongoDB, open
+[http://localhost:8080/](http://localhost:8080/) and press **Try the demo**.
 
-Тесты:
+Tests:
 
 ```bash
 ./gradlew :server:test
 ```
 
-## 7. Конфигурация
+## 7. Configuration
 
-Те же переменные, что у [server-common](server-common.md) (`ManiConfig.fromEnv()`), плюс порт из
-`server/src/main/resources/application.conf`, который читает `EngineMain`.
+The same variables as [server-common](server-common.md) (`ManiConfig.fromEnv()`), plus the port from
+`server/src/main/resources/application.conf`, which `EngineMain` reads.
 
-## 8. Особенности
+## 8. Quirks
 
-* **`docker-compose.yaml` не задаёт `JWT_SECRET`.** Это не упущение: без переменной сервер
-  подписывает случайным секретом на процесс и пишет об этом в stdout. Перезапуск контейнера
-  разлогинивает всех — ожидаемое поведение локального стенда, а не поломка.
-* **Режим разработки в этой сборке выключен по умолчанию.** CORS ставится только при
+* **`docker-compose.yaml` does not set `JWT_SECRET`.** That is not an oversight: without the
+  variable the server signs with a random per-process secret and says so on stdout. Restarting the
+  container logs everyone out — expected behaviour for a local instance, not a breakage.
+* **Development mode is off by default in this build.** CORS is installed only when
   `MANI_DEVELOPMENT=true`.

@@ -1,329 +1,342 @@
 ---
 id: research-architecture
-title: mani — архитектурное исследование
+title: mani — architecture research
 type: research
 status: active
 date: 2026-09-08
 ---
 
-# Исследование: как устроен mani и почему именно так
+# Research: how mani is built, and why this way
 
-mani — планировщик бюджета, целиком написанный на Kotlin: клиент на Compose Multiplatform под
-Android, iOS, десктоп и браузер, сервер на Ktor, собирающийся и в JVM-байткод, и в нативный
-linuxX64-бинарь, и один модуль контракта на всех. Отличает его от соседних демонстраций KMP не
-список таргетов, а то, что общее здесь **не декоративно**: те же классы `@Resource` маршрутизируют
-запрос на сервере и собирают URL на клиенте, тот же код подписывает токен в обеих сборках, и
-`GET /health` называет, какая из них ответила.
+mani is a budget planner written end to end in Kotlin: a Compose Multiplatform client for Android,
+iOS, desktop and the browser; a Ktor server that compiles both to JVM bytecode and to a native
+linuxX64 binary; and one contract module shared by all of them. What separates it from the
+neighbouring KMP demonstrations is not the list of targets but that the sharing here is **not
+decorative**: the same `@Resource` classes route the request on the server and build the URL on the
+client, the same code signs a token in both builds, and `GET /health` says which of them answered.
 
-Продукт при этом заявлен демонстрационным: подтверждения почты, восстановления пароля и
-ограничения частоты запросов нет, пароли хешируются солёным SHA-256, а не медленным KDF
-(`README.md`, врезка «This is a demo project»). Это влияет на то, какие вещи ниже названы риском, а
-какие — принятой платой.
+The product declares itself a demonstration: there is no email confirmation, no password recovery
+and no rate limiting, and passwords are hashed with salted SHA-256 rather than a slow KDF
+(`README.md`, the "This is a demo project" callout). That shapes what is called a risk below and
+what is called an accepted price.
 
-Документ записывает **проверенные факты** (то, что прочитано в этом коде), **принятые решения** и
-**риски**. Непроверенное помечено гипотезой и говорит, где проверится.
+This document records **verified facts** (what was actually read in this code), **decisions taken**
+and **risks**. Anything unverified is marked as a hypothesis and says where it will be settled.
 
-Это точка входа документации: слои говорят, что система делает, а этот файл — почему она так
-устроена. Он живёт постоянно и правится по месту расхождения, а не переписывается.
-
----
-
-## 1. Проверенные факты
-
-### 1.1 Сервер собирается дважды из одного исходника
-
-| Факт | Где проверено |
-|---|---|
-| Модулей шесть: `:shared`, `:composeApp`, `:server-common`, `:server`, `:server-native`, `:androidApp`, `:iosApp`, `:baselineprofile` | `settings.gradle.kts` |
-| Маршруты, конфигурация, выдача и проверка токенов, хеширование живут в `:server-common` (jvm + linuxX64) | `server-common/src/commonMain/kotlin/io/github/youndie/mani/ManiApp.kt` |
-| Хранилище — единственное, что каждая сборка приносит своё | `ManiApp.kt:48` (`coreModule`), `server/src/main/kotlin/io/github/youndie/mani/MongoStorageModule.kt`, `server-native/src/linuxX64Main/kotlin/io/github/youndie/mani/MongknStorageModule.kt` |
-| Порты хранилища объявлены интерфейсами в общей части | `server-common/.../feature/user/data/UserRepository.kt`, `.../feature/transaction/data/TransactionRepository.kt`, `.../feature/health/StorageHealth.kt` |
-| Нативная сборка — только `linuxX64`, потому что столько таргетов публикует mongkn | `README.md`, раздел «Two server builds» |
-
-**Следствие 1.** Всё, что не является обращением к базе, обязано лежать в `commonMain`. Каждая
-вещь, вынесенная в `expect/actual` без нужды, — это две реализации, которые разъедутся молча:
-компилятор проверит сигнатуру и не проверит поведение.
-
-**Следствие 2.** «Собралось и позеленело на JVM» ничего не говорит о том, что поедет на стенд.
-Отсюда отдельная джоба `test-native` в CI (`.github/workflows/main.yml`), и отсюда же требование
-гонять релизный набор, а не только отладочный (§1.5).
-
-### 1.2 Токены выдаются и проверяются одним кодом на обеих сборках
-
-| Факт | Где проверено |
-|---|---|
-| `TokenService` — обычный класс в `commonMain` поверх `cryptography-kotlin`, без `expect/actual` | `server-common/.../security/TokenService.kt:49` |
-| Алгоритм `HS256`, `sub` всегда `"Authentication"` — так подписывал `com.auth0:java-jwt` | `TokenService.kt:170`, `TokenService.kt:174` |
-| В payload пишутся `sub`, `aud`, `iss`, `id`, `username`, `exp`, `jti`, `kind` | `TokenService.kt:78` |
-| `aud`/`iss` разбираются и строкой, и массивом строк (RFC 7519) | `TokenService.kt:163` |
-| Совместимость с прежним форматом проверяется токеном, подписанным `java-jwt` | `server-common/src/jvmTest/.../LegacyTokenCompatibilityTest.kt` |
-| Проверка Bearer-заголовка своя, а не `ktor-server-auth-jwt` (тот JVM-only) | `server-common/.../security/ManiAuth.kt:22` |
-
-**Следствие.** Токен, выданный JVM-сборкой, принимается нативной и наоборот. Это не удобство, а
-условие выката: стенд можно переключить между сборками, не разлогинив всех.
-
-**Почему не `expect/actual`.** Записано в KDoc самого класса и стоит повторить: две реализации
-подписи расходятся не на сборке, а в тот день, когда токен одной не примет другая. Отсутствие
-нативной сборки вовсе было бы дешевле такой ошибки.
-
-### 1.3 Различение access и refresh держится на claim `kind`
-
-| Факт | Где проверено |
-|---|---|
-| `kind` пишется в токен и сверяется при проверке | `TokenService.kt:93`, `TokenService.kt:146` |
-| Bearer-провайдер требует именно `TokenKind.Access` | `ManiAuth.kt:32` |
-| `/auth/refresh` требует `TokenKind.Refresh` **и** наличия токена в базе | `server-common/.../feature/auth/data/AuthService.kt:36` |
-| Refresh живёт месяц, access — `JWT_EXPIRATION_SECONDS`, по умолчанию 3600 | `AuthService.kt:64`, `server-common/.../config/ManiConfig.kt:43` |
-| `jti` из 16 случайных байт — иначе два токена одной секунды совпадают побайтно | `TokenService.kt:92` |
-
-**Следствие.** Пока вида в токене не было, refresh принимался везде, где ждали access, — то есть
-срок access-токена не значил ничего. Ротация refresh-токена без `jti` тоже была мнимой: `exp` в JWT
-хранится в секундах, остальные claim'ы совпадают, и «новый» токен равнялся старому.
-
-**Временная поблажка с датой снятия.** Токен без claim `kind` принимается как refresh
-(`TokenService.kt:146`). Это осознанное окно совместимости: такие токены лежат в базе стенда, и
-отказ разлогинил бы каждого, кто вошёл до выката. Подлога не открывает — `/auth/refresh` сверяет
-предъявленный токен с базой, а access-токены туда не попадают. **Снимается**, когда истечёт
-последний выданный до выката refresh-токен, то есть через месяц после первого выката сборки с
-`kind`. Проверка — ветка `kind == null && expect == TokenKind.Refresh` в `TokenService.verify`.
-
-### 1.4 Формат хеша пароля воспроизведён за прежней JVM-реализацией
-
-| Факт | Где проверено |
-|---|---|
-| `sha256(hex(соль) + пароль)`, всё в hex; соль из CSPRNG | `server-common/.../feature/auth/data/hashing/HashingService.kt:33` |
-| Сравнение — за постоянное время | `HashingService.kt:42`, `server-common/.../security/Base64Url.kt:78` (`constantTimeEquals`) |
-| Формат сверяется тестом с записью, снятой с прежней реализации на `commons-codec` | `server-common/src/commonTest/.../security/HashingServiceTest.kt` |
-
-**Следствие.** Главное требование к этому классу — не его устройство, а побайтовое совпадение с
-тем, что уже лежит в базе стенда. Любое отклонение (другой порядок конкатенации, соль в base64,
-иной регистр hex) означало бы, что ни один существующий пользователь больше не войдёт.
-
-**Это наследство, а не решение.** SHA-256 без итераций для придуманных человеком паролей — не то,
-чем их надо хешировать. См. риск 1.
-
-### 1.5 Нативная сборка требует своих проверок и своей пары к образу
-
-| Факт | Где проверено |
-|---|---|
-| В CI гоняются `:server-common:linuxX64Test`, `:server-native:linuxX64Test` **и** `:server-native:linuxX64ReleaseTest` | `.github/workflows/main.yml`, джоба `test-native` |
-| Раннер прибит к `ubuntu-24.04` и в тестах, и в выкате | `.github/workflows/main.yml`, `.github/workflows/deploy.yml` |
-| База образа — `ubuntu:24.04`, рантайм-пакет `libmongoc-1.0-0t64` | `server-native/Dockerfile` |
-| Бинарь линкуется снаружи и только копируется в образ | `server-native/Dockerfile`, шаг `Build native server and frontend` в `deploy.yml` |
-| Нативным тестам нужен настоящий `mongod`: то, что они ищут, не поднимает ошибок | `README.md`, раздел «Tests»; `server-native/src/linuxX64Test/.../TestMongo.kt` |
-
-**Следствие 1.** Релизный прогон обязателен, а не желателен: Kotlin/Native в релизе не вставляет
-проверок приведения типов, и код, падающий в отладке ловимым исключением, в релизе уходит в
-неопределённое поведение. Комментарий в `main.yml` называет случай, когда это уже произошло:
-`/auth/refresh` отдавал 500 на стенде при зелёном CI.
-
-**Следствие 2.** Версия дистрибутива раннера и базы образа — **пара**. Soname `libmongoc-1.0.so.0`
-у веток общий, поэтому подмена не ловится ни сборкой, ни стартом: она проявится отсутствующим
-символом на первом обращении к Mongo. Меняете одно — меняйте оба.
-
-### 1.6 Совместимость с базой держится на двух сериализаторах
-
-| Факт | Где проверено |
-|---|---|
-| `_id` пишется как `ObjectId`, суммы — как `decimal128` | JVM: `server/.../feature/transaction/data/TransactionDb.kt`, `.../feature/user/data/UserDb.kt` (`@BsonId` + `java.math.BigDecimal`); native: `server-native/.../db/DbModel.kt:38` (`StringAsBsonObjectId`, `BigDecimalAsBsonDecimal128`) |
-| Проверяется тестами, которые смотрят на **сырой документ**, а не на результат `find` | тесты `user id lands in mongo as ObjectId`, `transaction amount lands in mongo as decimal128` (`server-native/src/linuxX64Test/.../MongknStorageTest.kt`) |
-| Категории лежат внутри документа пользователя, а не рядом с транзакцией | `server-common/.../feature/transaction/data/TransactionRepository.kt:9`, тест `categories live inside the user document` |
-
-**Следствие.** Расхождение здесь ничего не роняет: запрос просто не находит существующие
-документы. Поэтому оракулом служит сырой документ — тест, проверяющий `find`, прошёл бы и на
-разъехавшемся формате, потому что писал и читал бы одинаково неправильно.
-
-### 1.7 Конфигурация — из окружения, обеими сборками одинаково
-
-| Факт | Где проверено |
-|---|---|
-| Всё читается из ENV; `readEnv` — единственный `expect/actual` конфигурации | `server-common/.../config/ManiConfig.kt:118` |
-| Имена те же, что стояли в `application.conf` как `${?...}` и в `.k8s-templates/deployment.yaml` | `ManiConfig.kt:8` (KDoc), `server/src/main/resources/application.conf` |
-| `JWT_SECRET` без значения — случайный секрет на процесс плюс строка в stdout | `ManiConfig.kt:66` |
-| Пароль и логин Mongo экранируются перед подстановкой в строку подключения | `ManiConfig.kt:98` |
-| Порт JVM-сборки берёт `EngineMain` из `application.conf`, остальное — из ENV | `server/src/main/kotlin/io/github/youndie/mani/Application.kt:20` |
-
-**Следствие.** HOCON читает JVM-only код Ktor, поэтому нативной сборке он недоступен. Переход на
-ENV не только вынужденный: имена совпали с уже существовавшими, так что конфигурация двух сборок
-**сходится**, а не расходится.
-
-### 1.8 Версия продукта — одна на всё
-
-| Факт | Где проверено |
-|---|---|
-| `mani.version` в `gradle.properties` — единственный источник | `gradle.properties` |
-| Ответ `/health` называет её же | `server-common/.../feature/health/HealthRouting.kt:62` (`MANI_VERSION`) |
-| Тег образа — `<mani.version>.<номер прогона CI>` | `.github/workflows/deploy.yml`, шаги `Read the product version` и `Build and push image` |
-
-**Следствие.** До этого чисел было четыре, и ответ сервера называл одно, а тег образа, из которого
-он запущен, — другое. Теперь по ответу `/health` находится образ. Номер прогона приписывается
-суффиксом, а не заменяет версию.
-
-### 1.9 Клиент: точка входа навигации читается один раз
-
-| Факт | Где проверено |
-|---|---|
-| Стартовый экран вычисляется в `remember` и на токен **не подписан** | `composeApp/.../navigation/ManiAppNavHost.kt:52` |
-| Истечение сессии приходит **событием** (`TokenRepository.expired`), а не состоянием | `composeApp/.../feature/auth/data/TokenRepository.kt:20`, `TokenRepositoryCommon.kt:22` |
-| Событие без повтора (`replay = 0`) | `TokenRepositoryCommon.kt:22` |
-| Переходы «вошёл» и «вышел» делаются явно | `ManiAppNavHost.kt:82`, `ManiAppNavHost.kt:92`, `ManiAppNavHost.kt:106` |
-
-**Следствие.** Подписка навигации на сам токен пересобирает граф, а новый граф сбрасывает
-навигацию на свою точку входа — то есть каждый приход токена молча перекидывал экран. Пока точка
-входа считалась от того же токена, это выглядело как исправная работа; стоило её зафиксировать —
-вход стал возвращать на витрину. То же с `replay`: повтор события доставался бы каждому новому
-подписчику и выкидывал человека на витрину при следующей пересборке экрана.
-
-### 1.10 Клиент показывает последний известный список без сети
-
-| Факт | Где проверено |
-|---|---|
-| Кэш транзакций лежит в тех же `Settings`, что и токены | `composeApp/.../feature/transaction/data/TransactionsCache.kt` |
-| Хранится сам список и **отметка времени** его снятия | `TransactionsCache.kt:33` |
-| Битый или отсутствующий кэш — повод сходить в сеть, а не упасть | `TransactionsCache.kt:44` |
-| Состояние экрана различает «показываю кэш» и «показать нечего» | `composeApp/.../feature/main/ui/MainUiState.kt:24`, `MainUiState.kt:26` |
-| Экран «сервер недоступен» печатает машинную причину: код, адрес, время | `composeApp/.../feature/main/ui/ServerUnreachable.kt:30` |
-
-**Следствие.** Правила — не лента событий: вчерашний список остаётся верным и сегодня. Показать
-его с отметкой времени честнее, чем не показать ничего. А сообщение об ошибке без кода и адреса не
-отличает «мой вайфай» от «у них всё лежит».
+It is the entry point of the documentation: the layers say what the system does, this file says why
+it is built that way. It lives here permanently and is amended at the point of divergence rather
+than rewritten.
 
 ---
 
-## 2. Решения
+## 1. Verified facts
 
-### D1. Сервер собирается дважды из одного исходника, а не переписывается
+### 1.1 The server is compiled twice from one source
 
-Первая мысль: раз нативная сборка нужна ради быстрого старта и малой памяти, написать её отдельно.
+| Fact | Where verified |
+|---|---|
+| Eight modules: `:shared`, `:composeApp`, `:server-common`, `:server`, `:server-native`, `:androidApp`, `:iosApp`, `:baselineprofile` | `settings.gradle.kts` |
+| Routes, configuration, token issuing and verification, and hashing live in `:server-common` (jvm + linuxX64) | `server-common/src/commonMain/kotlin/io/github/youndie/mani/ManiApp.kt` |
+| Storage is the only thing each build brings of its own | `ManiApp.kt:48` (`coreModule`), `server/src/main/kotlin/io/github/youndie/mani/MongoStorageModule.kt`, `server-native/src/linuxX64Main/kotlin/io/github/youndie/mani/MongknStorageModule.kt` |
+| The storage ports are declared as interfaces in the common source set | `server-common/.../feature/user/data/UserRepository.kt`, `.../feature/transaction/data/TransactionRepository.kt`, `.../feature/health/StorageHealth.kt` |
+| The native build is `linuxX64` only, because that is the single target mongkn publishes | `README.md`, section "Two server builds" |
 
-Решение: `:server-common` компилируется в оба таргета, различие сведено к модулю хранилища.
+**Consequence 1.** Everything that is not a call into the database has to live in `commonMain`.
+Every item moved into `expect/actual` without need is two implementations that will diverge
+silently: the compiler checks the signature and does not check the behaviour.
 
-Почему:
+**Consequence 2.** "It compiled and went green on the JVM" says nothing about what will reach the
+deployed instance. Hence the separate `test-native` job in CI (`.github/workflows/main.yml`), and
+hence the requirement to run the release set and not only the debug one (§1.5).
 
-- разъехаться могут только те места, где есть две реализации; сведя их к одному модулю, мы свели к
-  одному модулю и риск;
-- JVM-сборка остаётся единственной, что собирается на macOS (`README.md`), — без неё разработка на
-  маке требовала бы линуксовой машины на каждый запуск;
-- плата: любая библиотека, которой нет под Kotlin/Native, выселяется из общей части — так ушли
-  `ktor-server-auth-jwt`, `ktor-server-compression`, `CallLogging`, HOCON и slf4j-логгер Koin.
+### 1.2 Tokens are issued and verified by one body of code on both builds
 
-### D2. Свой разбор JWT вместо `expect/actual` над двумя библиотеками
+| Fact | Where verified |
+|---|---|
+| `TokenService` is an ordinary class in `commonMain` over `cryptography-kotlin`, with no `expect/actual` | `server-common/.../security/TokenService.kt:49` |
+| Algorithm `HS256`, `sub` always `"Authentication"` — that is how `com.auth0:java-jwt` signed | `TokenService.kt:170`, `TokenService.kt:174` |
+| The payload carries `sub`, `aud`, `iss`, `id`, `username`, `exp`, `jti`, `kind` | `TokenService.kt:78` |
+| `aud`/`iss` are parsed both as a string and as an array of strings (RFC 7519) | `TokenService.kt:163` |
+| Compatibility with the old format is checked with a token signed by `java-jwt` | `server-common/src/jvmTest/.../LegacyTokenCompatibilityTest.kt` |
+| The Bearer header check is our own rather than `ktor-server-auth-jwt`, which is JVM-only | `server-common/.../security/ManiAuth.kt:22` |
 
-Первая мысль: `java-jwt` на JVM, что-нибудь нативное на linuxX64, общий интерфейс сверху.
+**Consequence.** A token issued by the JVM build is accepted by the native one and the other way
+round. That is not a convenience but a condition of deployment: the instance can be switched
+between builds without logging everyone out.
 
-Решение: одна реализация в `commonMain` поверх `cryptography-kotlin`.
+**Why not `expect/actual`.** It is written in the class's own KDoc and worth repeating: two
+signing implementations diverge not at build time but on the day a token from one is refused by the
+other. Having no native build at all would have been cheaper than that mistake.
 
-Почему:
+### 1.3 Telling access from refresh rests on the `kind` claim
 
-- подпись, набор claim'ов и правила проверки при двух реализациях расходятся **молча** — это видно
-  не на сборке, а в день, когда токен одной сборки не примет другая;
-- совместимость со старым форматом всё равно требовалась (в базе лежат токены от `java-jwt`), и
-  проверять её на двух реализациях пришлось бы дважды;
-- `cryptography-kotlin` берёт `-prebuilt`-провайдер OpenSSL, поэтому `libssl-dev` на сборочной
-  машине не нужен;
-- плата: разбор JWT написан руками, включая `aud`/`iss` строкой-или-массивом
-  (`TokenService.kt:163`). `java-jwt` остался в `jvmTest` как эталон.
+| Fact | Where verified |
+|---|---|
+| `kind` is written into the token and checked on verification | `TokenService.kt:93`, `TokenService.kt:146` |
+| The Bearer provider demands `TokenKind.Access` specifically | `ManiAuth.kt:32` |
+| `/auth/refresh` demands `TokenKind.Refresh` **and** the token's presence in the database | `server-common/.../feature/auth/data/AuthService.kt:36` |
+| Refresh lives a month, access lives `JWT_EXPIRATION_SECONDS`, 3600 by default | `AuthService.kt:64`, `server-common/.../config/ManiConfig.kt:43` |
+| `jti` of 16 random bytes — without it two tokens issued in the same second are byte-identical | `TokenService.kt:92` |
 
-### D3. Пароли остаются на SHA-256, миграция — отдельной задачей
+**Consequence.** While the kind was not in the token, a refresh token was accepted everywhere an
+access token was expected — that is, the access token's lifetime meant nothing. Refresh rotation
+without `jti` was equally illusory: `exp` in a JWT is stored in seconds and the other claims match,
+so the "new" token equalled the old one.
 
-Решение: формат не трогать, а недостаток записать.
+**A temporary allowance with a removal date.** A token with no `kind` claim is accepted as a
+refresh token (`TokenService.kt:146`). This is a deliberate compatibility window: such tokens are
+in the deployed instance's database, and refusing them would log out everyone who signed in before
+the rollout. It opens no forgery — `/auth/refresh` also checks the presented token against the
+database, and access tokens never get there. **It is removed** once the last refresh token issued
+before the rollout expires, i.e. a month after the first deployment of the build carrying `kind`.
+The branch to delete is `kind == null && expect == TokenKind.Refresh` in `TokenService.verify`.
 
-Почему: смена хеша осмысленна только вместе с миграцией существующих записей, а для этого формат
-придётся сделать самоописывающим (сейчас он не несёт ни имени алгоритма, ни числа итераций). Тихо
-поменять его нельзя — существующие пользователи перестанут входить. См. риск 1.
+### 1.4 The password hash format reproduces the previous JVM implementation
 
-### D4. Конфигурация из ENV, а не из HOCON
+| Fact | Where verified |
+|---|---|
+| `sha256(hex(salt) + password)`, all in hex; salt from a CSPRNG | `server-common/.../feature/auth/data/hashing/HashingService.kt:33` |
+| The comparison runs in constant time | `HashingService.kt:42`, `server-common/.../security/Base64Url.kt:78` (`constantTimeEquals`) |
+| The format is checked against a record taken from the previous `commons-codec` implementation | `server-common/src/commonTest/.../security/HashingServiceTest.kt` |
 
-Решение: `ManiConfig.fromEnv()` в общей части, единственный `expect/actual` — `readEnv`.
+**Consequence.** The chief requirement on this class is not its design but a byte-for-byte match
+with what already sits in the deployed instance's database. Any deviation — a different
+concatenation order, a base64 salt, a different hex case — would mean that no existing user can
+sign in any more.
 
-Почему: HOCON-читалка Ktor — JVM-only. Альтернатива (свой парсер HOCON под native) стоила бы
-дороже, чем перенос десятка ключей, а имена уже совпадали с теми, что стояли в манифесте k8s.
+**This is inheritance, not a decision.** SHA-256 without iterations is not what human-chosen
+passwords should be hashed with. See risk 1.
 
-### D5. Без `JWT_SECRET` — случайный секрет, а не отказ стартовать
+### 1.5 The native build needs its own checks and its own pairing with the image
 
-Первая мысль (и самая честная): падать, если переменная не задана.
+| Fact | Where verified |
+|---|---|
+| CI runs `:server-common:linuxX64Test`, `:server-native:linuxX64Test` **and** `:server-native:linuxX64ReleaseTest` | `.github/workflows/main.yml`, job `test-native` |
+| The runner is pinned to `ubuntu-24.04` in both the tests and the deploy | `.github/workflows/main.yml`, `.github/workflows/deploy.yml` |
+| The image base is `ubuntu:24.04`, the runtime package `libmongoc-1.0-0t64` | `server-native/Dockerfile` |
+| The binary is linked outside and only copied into the image | `server-native/Dockerfile`, step `Build native server and frontend` in `deploy.yml` |
+| The native tests need a real `mongod`: what they look for raises no errors | `README.md`, section "Tests"; `server-native/src/linuxX64Test/.../TestMongo.kt` |
 
-Решение: сгенерировать случайный секрет на процесс и **сказать об этом** в stdout.
+**Consequence 1.** The release run is mandatory rather than desirable: Kotlin/Native omits
+type-cast checks in release builds, and code that fails with a catchable exception in debug reaches
+undefined behaviour in release. The comment in `main.yml` names the occasion when this already
+happened: `/auth/refresh` answered 500 on the deployed instance while CI was green.
 
-Почему:
+**Consequence 2.** The runner's distribution version and the image base are a **pair**. The soname
+`libmongoc-1.0.so.0` is shared across branches, so a substitution is caught neither by the build nor
+by startup: it shows up as a missing symbol on the first call into Mongo. Change one, change both.
 
-- прежнее умолчание было строкой `secret`, напечатанной в исходниках, а `docker-compose.yaml` из
-  README переменную не задавал — то есть каждый, кто поднял стенд по инструкции, подписывал токены
-  значением, которое мог прочитать кто угодно;
-- падение сломало бы `docker compose up` из README ради выгоды, которой у локального стенда нет;
-- случайный секрет оставляет стенд рабочим, а плату делает видимой: перезапуск разлогинивает всех,
-  и строка в логе говорит почему;
-- в бою переменная задаётся из секрета k8s (`.k8s-templates/deployment.yaml`).
+### 1.6 Database compatibility rests on two serializers
 
-### D6. Статику отдаёт тот же сервер, сжатие — на сборке образа
+| Fact | Where verified |
+|---|---|
+| `_id` is written as an `ObjectId`, amounts as `decimal128` | JVM: `server/.../feature/transaction/data/TransactionDb.kt`, `.../feature/user/data/UserDb.kt` (`@BsonId` + `java.math.BigDecimal`); native: `server-native/.../db/DbModel.kt:38` (`StringAsBsonObjectId`, `BigDecimalAsBsonDecimal128`) |
+| Checked by tests that look at the **raw document** rather than at the result of `find` | tests `user id lands in mongo as ObjectId`, `transaction amount lands in mongo as decimal128` (`server-native/src/linuxX64Test/.../MongknStorageTest.kt`) |
+| Categories live inside the user document, not next to the transaction | `server-common/.../feature/transaction/data/TransactionRepository.kt:9`, test `categories live inside the user document` |
 
-Решение: нативная сборка читает каталог один раз на старте и отдаёт заранее сжатые `.gz`.
+**Consequence.** A divergence here breaks nothing loudly: the query simply fails to find existing
+documents. That is why the oracle is the raw document — a test that goes through `find` would pass
+on a diverged format too, because it would write and read the same wrong way.
 
-Почему:
+### 1.7 Configuration comes from the environment, identically on both builds
 
-- `staticResources` под Kotlin/Native не существует, `ktor-server-compression` публикуется только
-  под JVM — сжимать на каждый запрос нечем;
-- сжатие переехало в `server-native/Dockerfile`, где делается один раз;
-- каталог сканируется на старте, а не на запрос: файлы вшиты в образ и за время жизни процесса не
-  меняются (`server-native/.../Main.kt:42`);
-- `Cache-Control: immutable` ставится **по имени файла**, а не по расширению. Правило «`.wasm` —
-  значит immutable» выглядит верным и неверно: рядом с `6e23e5428398b92da386.wasm` в бандле лежит
-  `skiko.wasm` с постоянным именем, и пометив его неизменяемым на год, мы получили бы браузеры, до
-  которых обновление Compose не доезжает вовсе (`server-native/.../web/WebRoutes.kt:34`).
+| Fact | Where verified |
+|---|---|
+| Everything is read from ENV; `readEnv` is configuration's only `expect/actual` | `server-common/.../config/ManiConfig.kt:118` |
+| The names are the ones that stood in `application.conf` as `${?...}` and in `.k8s-templates/deployment.yaml` | `ManiConfig.kt:8` (KDoc), `server/src/main/resources/application.conf` |
+| `JWT_SECRET` unset means a random per-process secret plus a line on stdout | `ManiConfig.kt:66` |
+| The Mongo user and password are escaped before being put into the connection string | `ManiConfig.kt:98` |
+| The JVM build's port comes to `EngineMain` from `application.conf`, everything else from ENV | `server/src/main/kotlin/io/github/youndie/mani/Application.kt:20` |
 
-### D7. `:shared` — только контракт
+**Consequence.** HOCON is read by JVM-only Ktor code, so it is unavailable to the native build. The
+move to ENV was not merely forced: the names coincided with the ones already in place, so the
+configuration of the two builds **converges** rather than diverging.
 
-Решение: в общем модуле лежат `@Resource`-классы, модель и сериализаторы, и больше ничего.
+### 1.8 One product version for everything
 
-Почему: адрес сервера убран оттуда в `composeApp/.../Constants.kt` — серверу адрес самого себя не
-нужен, а модуль, который называется контрактом, должен им быть. Владелец записи (`userId`) в
-контракт не входит по той же причине: это понятие сервера
+| Fact | Where verified |
+|---|---|
+| `mani.version` in `gradle.properties` is the single source | `gradle.properties` |
+| The `/health` response names the same number | `server-common/.../feature/health/HealthRouting.kt:62` (`MANI_VERSION`) |
+| The image tag is `<mani.version>.<CI run number>` | `.github/workflows/deploy.yml`, steps `Read the product version` and `Build and push image` |
+
+**Consequence.** There used to be four numbers, and the server's answer named one while the tag of
+the image it was started from named another. Now the `/health` answer locates the image. The run
+number is appended as a suffix rather than replacing the version.
+
+### 1.9 Client: the navigation start destination is read once
+
+| Fact | Where verified |
+|---|---|
+| The start destination is computed inside `remember` and is **not** subscribed to the token | `composeApp/.../navigation/ManiAppNavHost.kt:52` |
+| Session expiry arrives as an **event** (`TokenRepository.expired`), not as state | `composeApp/.../feature/auth/data/TokenRepository.kt:20`, `TokenRepositoryCommon.kt:22` |
+| The event has no replay (`replay = 0`) | `TokenRepositoryCommon.kt:22` |
+| The "signed in" and "signed out" transitions are made explicitly | `ManiAppNavHost.kt:82`, `ManiAppNavHost.kt:92`, `ManiAppNavHost.kt:106` |
+
+**Consequence.** Subscribing navigation to the token itself rebuilds the graph, and a new graph
+resets navigation to its own start destination — so every arrival of a token silently threw the
+screen somewhere else. While the start destination was computed from that same token this looked
+like working navigation; the moment it was fixed, signing in started returning to the welcome
+screen. The same goes for `replay`: a replayed event would reach every new subscriber and throw the
+person back to the welcome screen on the next recomposition.
+
+### 1.10 The client shows the last known list when there is no network
+
+| Fact | Where verified |
+|---|---|
+| The transaction cache lives in the same `Settings` as the tokens | `composeApp/.../feature/transaction/data/TransactionsCache.kt` |
+| Both the list and the **timestamp** of when it was taken are stored | `TransactionsCache.kt:33` |
+| A broken or absent cache is a reason to go to the network, not to crash | `TransactionsCache.kt:44` |
+| The screen state distinguishes "showing the cache" from "nothing to show" | `composeApp/.../feature/main/ui/MainUiState.kt:24`, `MainUiState.kt:26` |
+| The "server unreachable" screen prints a machine-readable cause: code, host, time | `composeApp/.../feature/main/ui/ServerUnreachable.kt:30` |
+
+**Consequence.** Rules are not an event feed: yesterday's list is still correct today. Showing it
+with a timestamp is more honest than showing nothing. And an error message without a code and a
+host does not distinguish "my wifi" from "everything is down over there".
+
+---
+
+## 2. Decisions
+
+### D1. The server is compiled twice from one source rather than rewritten
+
+First idea: since the native build exists for fast startup and small memory, write it separately.
+
+Decision: `:server-common` compiles to both targets, and the difference is confined to the storage
+module.
+
+Why:
+
+- only the places that have two implementations can diverge; confining them to one module confined
+  the risk to one module;
+- the JVM build remains the only one that compiles on macOS (`README.md`) — without it, development
+  on a Mac would need a Linux machine for every run;
+- the price: any library with no Kotlin/Native artefact is evicted from the common source set —
+  that is how `ktor-server-auth-jwt`, `ktor-server-compression`, `CallLogging`, HOCON and Koin's
+  slf4j logger left.
+
+### D2. Our own JWT parsing instead of `expect/actual` over two libraries
+
+First idea: `java-jwt` on the JVM, something native on linuxX64, a common interface on top.
+
+Decision: one implementation in `commonMain` over `cryptography-kotlin`.
+
+Why:
+
+- with two implementations the signature, the claim set and the verification rules diverge
+  **silently** — visible not at build time but on the day one build's token is refused by the other;
+- compatibility with the old format was required anyway (the database holds tokens from
+  `java-jwt`), and checking it against two implementations would have meant doing it twice;
+- `cryptography-kotlin` takes the `-prebuilt` OpenSSL provider, so `libssl-dev` is not needed on the
+  build machine;
+- the price: JWT parsing is written by hand, including `aud`/`iss` as string-or-array
+  (`TokenService.kt:163`). `java-jwt` stayed in `jvmTest` as the reference.
+
+### D3. Passwords stay on SHA-256; migration is a separate task
+
+Decision: leave the format alone and write the shortcoming down.
+
+Why: changing the hash only makes sense together with migrating the existing records, and for that
+the format has to be made self-describing (today it carries neither the algorithm name nor an
+iteration count). It cannot be changed quietly — existing users would stop being able to sign in.
+See risk 1.
+
+### D4. Configuration from ENV rather than from HOCON
+
+Decision: `ManiConfig.fromEnv()` in the common source set, with `readEnv` as the only
+`expect/actual`.
+
+Why: Ktor's HOCON reader is JVM-only. The alternative — a HOCON parser of our own for native —
+would have cost more than moving a dozen keys, and the names already matched the ones in the k8s
+manifest.
+
+### D5. Without `JWT_SECRET`, a random secret rather than a refusal to start
+
+First idea, and the most honest one: fail if the variable is not set.
+
+Decision: generate a random per-process secret and **say so** on stdout.
+
+Why:
+
+- the previous default was the string `secret`, printed in the source, and the `docker-compose.yaml`
+  from the README never set the variable — so everyone who brought the stack up by the instructions
+  signed tokens with a value anybody could read;
+- failing would have broken `docker compose up` from the README for a benefit a local instance does
+  not have;
+- a random secret keeps the instance working and makes the price visible: a restart logs everyone
+  out, and the line in the log says why;
+- in production the variable comes from a k8s secret (`.k8s-templates/deployment.yaml`).
+
+### D6. The same server serves the static files; compression happens at image build
+
+Decision: the native build reads the directory once at startup and serves pre-compressed `.gz`
+files.
+
+Why:
+
+- `staticResources` does not exist under Kotlin/Native, and `ktor-server-compression` is published
+  for the JVM only — there is nothing to compress with per request;
+- compression moved into `server-native/Dockerfile`, where it happens once;
+- the directory is scanned at startup rather than per request: the files are baked into the image
+  and do not change over the life of the process (`server-native/.../Main.kt:42`);
+- `Cache-Control: immutable` is set **by file name**, not by extension. The rule ".wasm means
+  immutable" looks right and is wrong: next to `6e23e5428398b92da386.wasm` the bundle holds
+  `skiko.wasm` under a constant name, and marking it immutable for a year would have produced
+  browsers that a Compose update never reaches at all
+  (`server-native/.../web/WebRoutes.kt:34`).
+
+### D7. `:shared` holds the contract and nothing else
+
+Decision: the common module holds the `@Resource` classes, the model and the serializers, and
+nothing more.
+
+Why: the server address moved out of it into `composeApp/.../Constants.kt` — a server has no use
+for its own address, and a module called the contract should be one. The record's owner (`userId`)
+is left out for the same reason: it is a server-side notion
 (`server-common/.../feature/transaction/data/TransactionRepository.kt:15`).
 
 ---
 
-## 3. Риски и открытые вопросы
+## 3. Risks and open questions
 
-**Риск 1. Пароли хешируются солёным SHA-256 без итераций.** Утечка базы делает перебор дешёвым:
-одна операция SHA-256 на кандидата, соль защищает только от общих радужных таблиц. Механика
-снятия: формат хранения сделать самоописывающим (алгоритм и параметры рядом с хешем), затем
-перехешировать при следующем удачном входе, оставив чтение старого формата. Пока не сделано,
-ограничение названо в `README.md` как свойство демо, а не спрятано.
+**Risk 1. Passwords are hashed with salted SHA-256 without iterations.** A database leak makes
+brute-forcing cheap: one SHA-256 operation per candidate, and the salt only defends against shared
+rainbow tables. The machinery for removing it: make the stored format self-describing (algorithm and
+parameters next to the hash), then re-hash on the next successful sign-in while still reading the
+old format. Until that is done, the limitation is named in `README.md` as a property of the demo
+rather than hidden.
 
-**Риск 2. Версия libmongoc в образе и на раннере расходится молча.** Soname у веток общий, поэтому
-подмену не ловит ни сборка, ни старт: она проявится отсутствующим символом при первом обращении к
-Mongo — то есть на стенде, а не в CI. Механика: обе версии прибиты явным `ubuntu-24.04` в
-`main.yml`, `deploy.yml` и `FROM ubuntu:24.04` в `server-native/Dockerfile`, и это записано
-комментарием в самом Dockerfile. **Чего сейчас нет:** проверки, которая сравнила бы три места
-между собой; она поймала бы правку одного из них.
+**Risk 2. The libmongoc version in the image and on the runner can diverge silently.** The soname is
+shared across branches, so a substitution is caught neither by the build nor by startup: it shows up
+as a missing symbol on the first call into Mongo — that is, on the deployed instance, not in CI.
+The machinery: both versions are pinned by an explicit `ubuntu-24.04` in `main.yml` and
+`deploy.yml` and by `FROM ubuntu:24.04` in `server-native/Dockerfile`, and this is recorded in a
+comment in the Dockerfile itself. **What is missing today:** a check that compares the three places
+with each other; it would catch an edit to one of them.
 
-**Риск 3. Нативные тестовые задачи умеют молча не запускаться.** При инкрементальном прогоне
-`linuxX64Test` и `linuxX64ReleaseTest` отмечаются `UP-TO-DATE` даже после отработавшей линковки:
-сборка зелёная, а в `build/test-results` лежат результаты прошлого прогона. Наблюдалось 08.09.2026
-на локальной linux-машине, дважды. В CI не проявляется — там чистая копия. Механика для локального
-прогона: сверять по времени файлов в `build/test-results`, а не по `BUILD SUCCESSFUL`, и гнать
-`--rerun` по одной задаче за вызов (флаг действует только на ту задачу, за которой стоит).
+**Risk 3. In the browser the tokens live in `localStorage`.** Any script on the page can read them.
+Named in `README.md`; a single-page app without cookie sessions has no alternative, and changing
+this means changing the session model, not the storage. Desktop, Android and iOS keep the tokens in
+the platform's own store.
 
-**Риск 4. В браузере токены лежат в `localStorage`.** Любой скрипт на странице их прочитает.
-Названо в `README.md`; альтернативы у SPA без cookie-сессий нет, и смена этого — смена модели
-сессии, а не правка хранилища. Десктоп, Android и iOS держат токены в хранилище платформы.
+**Open question 1. What to do about `Category.default` when a category has been deleted.** Building
+a `Transaction` substitutes the category by `categoryId`, and falls back to `Category.default` when
+it is not found (`TransactionRepository.kt:38`). This is a silent degradation: a deleted category
+looks like "Default" rather than like an error. Hypothesis: for this product that is the right
+behaviour — the record matters more than the label — but it has never been verified, and there is
+neither a test for the path nor a decision in writing.
 
-**Открытый вопрос 1. Что делать с `Category.default`, когда категория удалена.** Сборка
-`Transaction` подставляет категорию по `categoryId`, а не найдя — `Category.default`
-(`TransactionRepository.kt:38`). Это тихая деградация: удалённая категория выглядит как «Default»,
-а не как ошибка. Гипотеза: для продукта это правильное поведение (запись важнее ярлыка), но
-проверено оно не было — ни теста на этот путь, ни решения в тексте.
-
-**Открытый вопрос 2. Замеры сняты в одной точке.** 87 мс до первого ответа, 42 МиБ в покое, пик
-45 МиБ, образ 213 МБ, бинарь 13 МБ — сняты на собранном образе **без нагрузки и на одной реплике**
-(`README.md`, `.k8s-templates/deployment.yaml`). Под трафиком не мерили, и `limits.memory: 128Mi` в
-манифесте опирается на замер покоя. Где проверится: первый же прогон с нагрузкой на стенде.
+**Open question 2. The measurements were taken at a single point.** 87 ms to the first answer,
+42 MiB at rest, 45 MiB peak, a 213 MB image and a 13 MB binary — measured on the built image
+**without load and on one replica** (`README.md`, `.k8s-templates/deployment.yaml`). Nothing was
+measured under traffic, and `limits.memory: 128Mi` in the manifest rests on the at-rest figure.
+Where it will be settled: the first run with real load on the deployed instance.
 
 ---
 
-## 4. Что дальше
+## 4. What happens next
 
-Порядок работы этот репозиторий в документации не ведёт (рабочий бэклог намеренно вынесен наружу,
-коммит `b00fafe`). Ближайшее, что стоит закрыть по существу описанного выше: снятие временной
-поблажки с claim `kind` (§1.3) — у неё есть дата, и она единственная в коде вещь, которая должна
-исчезнуть сама.
+This repository does not keep an order of work in its documentation — the working backlog was
+deliberately moved out, commit `b00fafe`. The nearest thing worth closing out of the above: removing
+the temporary allowance on the `kind` claim (§1.3). It has a date, and it is the one thing in the
+code that is supposed to disappear on its own.

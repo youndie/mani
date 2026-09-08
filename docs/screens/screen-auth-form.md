@@ -1,106 +1,109 @@
 ---
 id: screen-auth-form
-title: Форма учётных данных (Login и Signup)
+title: Credentials form (Login and Signup)
 type: client_screen
 platform: [android, ios, desktop, web]
 status: active
 entry:
-  all: "маршруты ManiScreen.Login и ManiScreen.Signup"
+  all: "the ManiScreen.Login and ManiScreen.Signup routes"
 parent_feature: feature-auth
 calls_api:
   - endpoint-auth
+  - endpoint-demo
 source: composeApp/src/commonMain/kotlin/io/github/youndie/mani/feature/auth/ui/
 ---
 
-# Экран: форма учётных данных
+# Screen: credentials form
 
-Один документ на два маршрута. `Login` и `Signup` — **одна композиция и одна ViewModel**:
-различаются подставленным в граф Koin use case'ом, заголовком и надписью на кнопке. Разводить их
-на два документа значило бы описать один и тот же файл дважды.
+One document for two routes. `Login` and `Signup` are **one composition and one view model**: they
+differ in the use case bound into the Koin graph, the heading, and the button's caption. Splitting
+them into two documents would mean describing the same file twice.
 
-| Маршрут | Use case в графе | Заголовок | Кнопка |
+| Route | Use case in the graph | Heading | Button |
 |---|---|---|---|
 | `Login` | `LoginUseCase` | `Mani` | `Login` |
 | `Signup` | `SignupUseCase` | `Sign up` | `Create` |
 
-## 0a. Код
+## 0a. Code anchors
 
-| Что | Файл |
+| What | File |
 |---|---|
-| ViewModel | `composeApp/.../feature/auth/ui/AuthViewModel.kt` |
-| Состояние ViewModel | `composeApp/.../feature/auth/ui/model/AuthUiState.kt` |
-| Состояние формы | `composeApp/.../feature/auth/ui/model/AuthComponentUiState.kt` |
-| Общая композиция | `composeApp/.../feature/auth/ui/component/AuthComponentImpl.kt` |
-| Обёртки маршрутов | `.../component/LoginComponent.kt`, `.../component/SignupComponent.kt` |
-| Use case'ы | `composeApp/.../feature/auth/domain/LoginUseCase.kt`, `SignupUseCase.kt` |
+| View model | `composeApp/.../feature/auth/ui/AuthViewModel.kt` |
+| View model state | `composeApp/.../feature/auth/ui/model/AuthUiState.kt` |
+| Form state | `composeApp/.../feature/auth/ui/model/AuthComponentUiState.kt` |
+| The shared composition | `composeApp/.../feature/auth/ui/component/AuthComponentImpl.kt` |
+| The route wrappers | `.../component/LoginComponent.kt`, `.../component/SignupComponent.kt` |
+| Use cases | `composeApp/.../feature/auth/domain/LoginUseCase.kt`, `SignupUseCase.kt` |
 
-## 0. Точка входа и видимость
+## 0. Entry point and visibility
 
-* **Точка входа:** ссылки «Sign in» и «Sign up» с [витрины](screen-welcome.md); со Signup есть
-  ссылка на Login.
-* **Показывается:** неавторизованному.
-* Верхняя панель на Login **выключается** (`appBarState.disable()`), Signup въезжает снизу
-  анимацией.
+* **Entry point:** the "Sign in" and "Sign up" links on the [welcome screen](screen-welcome.md);
+  Signup carries a link to Login.
+* **Shown to:** unauthenticated visitors.
+* The top bar is **disabled** on Login (`appBarState.disable()`), and Signup slides in from below.
 
-## 1. Состояния
+## 1. Screen states
 
-Поля `AuthUiState`:
+The fields of `AuthUiState`:
 
-* **Пустая форма** — два поля, кнопка активна.
-* **`loading = true`** — запрос ушёл: кнопка в состоянии загрузки.
-* **`demoLoading = true`** — нажата «Try the demo» (есть и здесь, на Login).
-* **`errorMessage != null`** — текст под полями, под тестовым тегом `errorMessage`.
-* **`success = true`** — переход дальше.
+* **Empty form** — two fields, the button enabled.
+* **`loading = true`** — the request is away: the button is in its loading state.
+* **`demoLoading = true`** — "Try the demo" was pressed (it is here on Login too).
+* **`errorMessage != null`** — the text under the fields, behind the test tag `errorMessage`.
+* **`success = true`** — move on.
 
-Локальной проверки ввода на форме **нет**: она вся на сервере, и человек видит его текст.
+The form does **no** local validation: it all lives on the server, and the person sees the server's
+text.
 
-## 2. Обращения к API
+## 2. API integration
 
-| Вызов | Контракт | Документ |
+| Call | Contract | Endpoint document |
 |---|---|---|
 | `POST /auth` (Login) | `AuthResource` | [endpoint-auth](../api/endpoint-auth.md) |
 | `POST /users` (Signup) | `UserResource` | [endpoint-auth](../api/endpoint-auth.md) |
-| `POST /demo` (кнопка демо на Login) | `DemoResource` | [endpoint-auth](../api/endpoint-auth.md) |
+| `POST /demo` (the demo button on Login) | `DemoResource` | [endpoint-demo](../api/endpoint-demo.md) |
 
-## 3. Инициализация
+## 3. Initialisation
 
-Входных параметров нет, запросов на открытии нет.
+No input parameters, and no requests on open.
 
-## 4. Элементы
+## 4. UI elements
 
-### 4.1. Поля `username` и `password`
+### 4.1. The `username` and `password` fields
 
-Ввод очищает `errorMessage`: старый отказ не должен висеть над уже исправленным вводом.
+Typing clears `errorMessage`: an old refusal should not hang over input that has already been
+corrected.
 
-### 4.2. Кнопка действия
+### 4.2. The action button
 
 **Login:**
 
-| Случай | Обработка | Состояние |
+| Case | Handling | Screen state |
 |---|---|---|
-| `200` | токены в хранилище | `success = true` |
-| `404` | `User not found or invalid password` в `errorMessage` (`UserNotFoundException`) | `loading = false` |
-| прочее, включая отказ сети | `Network Error` — один текст на все остальные случаи | `loading = false` |
+| `200` | tokens into storage | `success = true` |
+| `404` | `User not found or invalid password` into `errorMessage` (`UserNotFoundException`) | `loading = false` |
+| anything else, network failure included | `Network Error` — one text for every remaining case | `loading = false` |
 
 **Signup:**
 
-| Случай | Обработка | Состояние |
+| Case | Handling | Screen state |
 |---|---|---|
-| `201` | — | `success = true` → переход на Login |
-| `400` | **текст сервера** в `errorMessage`, пустой — `Sign up refused` | `loading = false` |
+| `201` | — | `success = true` → move to Login |
+| `400` | **the server's text** into `errorMessage`; if it is blank, `Sign up refused` | `loading = false` |
 | `500` | `Server error` | `loading = false` |
 
-Текст `400` берётся у сервера, а не подставляется на клиенте: раньше на месте любого `400` стояло
-«User already exist», и приславший короткий пароль читал, что имя занято.
+The `400` text is taken from the server rather than substituted on the client: any `400` used to
+read "User already exist", so somebody who had sent a short password was told the name was taken.
 
-### 4.3. «Try the demo» (только Login)
+### 4.3. "Try the demo" (Login only)
 
-Та же дорожка, что на витрине, с подписью «your own sandbox — no account, no password».
+The same path as on the welcome screen, captioned "your own sandbox — no account, no password".
 
-## 5. Навигация
+## 5. Navigation
 
-* Login успешно ──▶ `screen-main` (стек чистится)
-* Signup успешно ──▶ Login **той же формы** — автоматического входа нет, данные вводятся заново
-* «Sign up» с Login ──▶ Signup
-* «Sign in» со Signup ──▶ Login
-* «Try the demo» ──▶ `screen-main`
+* Login succeeds ──▶ `screen-main` (the stack is cleared)
+* Signup succeeds ──▶ Login, **the same form** — there is no automatic sign-in, the data is typed
+  again
+* "Sign up" from Login ──▶ Signup
+* "Sign in" from Signup ──▶ Login
+* "Try the demo" ──▶ `screen-main`

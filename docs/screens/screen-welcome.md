@@ -1,95 +1,99 @@
 ---
 id: screen-welcome
-title: Витрина (Welcome)
+title: Welcome screen
 type: client_screen
 platform: [android, ios, desktop, web]
 status: active
 entry:
-  all: "маршрут ManiScreen.Welcome; точка входа графа, если refresh-токена нет"
+  all: "the ManiScreen.Welcome route; the graph's start destination when there is no refresh token"
 parent_feature: feature-auth
 calls_api:
   - endpoint-auth
+  - endpoint-demo
+  - endpoint-health
 source: composeApp/src/commonMain/kotlin/io/github/youndie/mani/feature/welcome/
 ---
 
-# Экран: витрина
+# Screen: welcome
 
-## 0a. Код
+## 0a. Code anchors
 
-| Что | Файл |
+| What | File |
 |---|---|
-| ViewModel и состояние | `composeApp/.../feature/welcome/WelcomeViewModel.kt` (`WelcomeUiState` там же) |
-| Композиция | `composeApp/.../feature/welcome/WelcomeComponent.kt` |
-| Вход в песочницу | `composeApp/.../feature/auth/domain/StartDemoUseCase.kt` |
-| Строка о сборке | `composeApp/.../feature/health/domain/GetHealthUseCase.kt` |
-| Голден | `composeApp/src/desktopTest/snapshots/screens_welcome_wide.png` |
+| View model and state | `composeApp/.../feature/welcome/WelcomeViewModel.kt` (`WelcomeUiState` is in the same file) |
+| Composition | `composeApp/.../feature/welcome/WelcomeComponent.kt` |
+| Entering the sandbox | `composeApp/.../feature/auth/domain/StartDemoUseCase.kt` |
+| The build string | `composeApp/.../feature/health/domain/GetHealthUseCase.kt` |
+| Golden | `composeApp/src/desktopTest/snapshots/screens_welcome_wide.png` |
 
-## 0. Точка входа и видимость
+## 0. Entry point and visibility
 
-* **Точка входа:** точка входа навигационного графа, когда в хранилище нет refresh-токена
-  (`ManiAppNavHost.kt:52`). Сюда же уводит выход и истечение сессии.
-* **Показывается:** только неавторизованному.
+* **Entry point:** the navigation graph's start destination when storage holds no refresh token
+  (`ManiAppNavHost.kt:52`). Signing out and session expiry also lead here.
+* **Shown to:** unauthenticated visitors only.
 
-## 1. Состояния
+## 1. Screen states
 
-Поля `WelcomeUiState`:
+The fields of `WelcomeUiState`:
 
-* **Обычное** — `loading = false`: заголовок, образец прогноза графиком, кнопка «Try the demo»,
-  ссылки на вход и регистрацию.
-* **`loading = true`** — песочница заводится: кнопка в состоянии загрузки.
-* **`errorMessage != null`** — песочницу завести не удалось; текст берётся у сервера как есть
-  (например `The demo is full right now, try again later`).
-* **`server`** — строка вида `ktor · kotlin/native · 1.4.2`; пусто, пока `/health` не ответил.
-* **`success = true`** — вход состоялся, экран уводит на главный.
+* **Ordinary** — `loading = false`: the heading, a sample forecast as a chart, the "Try the demo"
+  button, and links to sign in and sign up.
+* **`loading = true`** — the sandbox is being created: the button is in its loading state.
+* **`errorMessage != null`** — the sandbox could not be created; the text is taken from the server
+  as is (for example `The demo is full right now, try again later`).
+* **`server`** — a string like `ktor · kotlin/native · 1.4.2`; empty until `/health` answers.
+* **`success = true`** — the visitor is in, and the screen moves on to the main one.
 
-## 2. Обращения к API
+## 2. API integration
 
-| Вызов | Контракт | Документ |
+| Call | Contract | Endpoint document |
 |---|---|---|
-| `GET /health` | `HealthResource` | — (описан в [server-native](../services/server-native.md)) |
-| `POST /demo` | `DemoResource` | [endpoint-auth](../api/endpoint-auth.md) |
+| `GET /health` | `HealthResource` | [endpoint-health](../api/endpoint-health.md) |
+| `POST /demo` | `DemoResource` | [endpoint-demo](../api/endpoint-demo.md) |
 
-## 3. Инициализация
+## 3. Initialisation
 
-Входных параметров нет.
+No input parameters.
 
-| Вызов | Когда | Результат |
+| Call | When | Result |
 |---|---|---|
-| `GET /health` | при создании ViewModel | заполняется `server` |
+| `GET /health` | when the view model is created | fills in `server` |
 
-Отказ `/health` **молчаливый**: строка о сборке — украшение витрины, и её отсутствие не должно
-мешать войти в демо.
+A failing `/health` is **silent**: the build string is an ornament on the welcome screen, and its
+absence must not get in the way of entering the demo.
 
-## 4. Элементы
+## 4. UI elements
 
-### 4.1. Образец прогноза (график)
+### 4.1. The sample forecast (chart)
 
-Рисуется по демонстрационному набору `DemoSeed` — **до всякого входа**, симуляцией из
-[shared](../services/shared.md). День отсчёта прибит, а не берётся из часов: иначе диапазон графика
-уезжал бы каждые сутки вместе со снимком (`TransactionsOperations.kt:29`).
+Drawn from the `DemoSeed` demo data set — **before anyone has signed in** — by the simulation from
+[shared](../services/shared.md). The reference day is pinned rather than taken from the clock:
+otherwise the chart's range would drift every day, taking the golden screenshot with it
+(`TransactionsOperations.kt:29`).
 
-### 4.2. «Try the demo»
+### 4.2. "Try the demo"
 
-Главная дорожка витрины: посетителю нечего вводить.
+The main path of the welcome screen: the visitor has nothing to type.
 
-| Случай | Обработка | Состояние |
+| Case | Handling | Screen state |
 |---|---|---|
-| `201` | токены в хранилище | `success = true` → переход на главный |
-| `503` / `500` / сеть | текст сервера в `errorMessage` | `loading = false` |
+| `201` | tokens into storage | `success = true` → move to the main screen |
+| `503` / `500` / network | the server's text into `errorMessage` | `loading = false` |
 
-### 4.3. Строка о сборке
+### 4.3. The build string
 
-`ktor · <build> · <version>` — то же, что отдаёт `/health`, а не зашитая строка. Отсюда видно, что
-запрос обслужил нативный бинарь.
+`ktor · <build> · <version>` — whatever `/health` returns, not a hard-coded string. This is where a
+visitor can see that the native binary served the request.
 
-### 4.4. Вход и регистрация
+### 4.4. Sign in and sign up
 
-Текстовые ссылки на [screen-auth-form](screen-auth-form.md).
+Text links to [screen-auth-form](screen-auth-form.md).
 
-## 5. Навигация
+## 5. Navigation
 
-* «Try the demo» успешно ──▶ `screen-main` (витрина уходит из стека, точка входа графа переезжает)
-* «Sign in» ──▶ `screen-auth-form` (Login)
-* «Sign up» ──▶ `screen-auth-form` (Signup)
+* "Try the demo" succeeds ──▶ `screen-main` (the welcome screen leaves the stack and the graph's
+  start destination moves)
+* "Sign in" ──▶ `screen-auth-form` (Login)
+* "Sign up" ──▶ `screen-auth-form` (Signup)
 
-Стрелки «назад» здесь нет: `Welcome` — корневой экран (`ManiScreen.kt:20`).
+There is no back arrow here: `Welcome` is a root screen (`ManiScreen.kt:20`).

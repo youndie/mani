@@ -1,91 +1,95 @@
-# mani — как работать в этом репозитории
+# mani — how to work in this repository
 
-## С чего начинать сессию
+## How to start a session
 
-1. **[docs/research/research-architecture.md](docs/research/research-architecture.md)** — почему
-   система устроена именно так. Задача, не прочитанная против этого файла, выглядит как «сделать
-   очевидное», а очевидное здесь часто уже пробовали и отвергли: там записано, что именно и почему.
-2. **Документ того слоя, к которому относится задача** —
-   [docs/README.md](docs/README.md) содержит карту покрытия и честный список того, чего в ней пока
-   нет. Правите поведение — начните с `features/`; правите маршрут — с `api/`; правите экран — с
-   `screens/`; правите сборку или выкат — с `services/`.
-3. **Якоря в код** есть в каждом документе: путь до каталога фичи, обработчика, ViewModel. Один
-   переход — и вы в нужном файле.
+1. **[docs/research/research-architecture.md](docs/research/research-architecture.md)** — why the
+   system is built the way it is. A task not read against this file looks like "do the obvious
+   thing", and the obvious thing here has frequently been tried and rejected already: what and why
+   is written down there.
+2. **The document of the layer the task belongs to** — [docs/README.md](docs/README.md) holds the
+   coverage map and an honest list of what is not in it yet. Changing behaviour: start with
+   `features/`. Changing a route: `api/`. Changing a screen: `screens/`. Changing the build or the
+   deploy: `services/`.
+3. **Code anchors** are in every document: a path to the feature directory, the handler, the view
+   model. One hop and you are in the right file.
+4. **[docs/TESTING.md](docs/TESTING.md)** before writing a test — where it belongs, why fakes rather
+   than mocks, and which run-time traps turn a green build into an unverified one.
 
-Правя код, правьте и документ, который про него утверждает. Расхождение между документом и кодом
-— дефект того же веса, что сломанный тест: `docs/` описывает то, что **есть**, а не то, что
-задумано.
+When you change code, change the document that makes claims about it. A divergence between a
+document and the code is a defect of the same weight as a broken test: `docs/` describes what
+**is**, not what was intended.
 
-## Раскладка
+## Layout
 
-| Модуль | Что это | Таргеты |
+| Module | What it is | Targets |
 |---|---|---|
-| `:shared` | контракт обмена: ресурсы, модель, сериализаторы, симуляция баланса | android, ios, jvm, wasmJs, linuxX64 |
-| `:composeApp` | весь интерфейс, одним кодом | android, ios, desktop, wasmJs |
-| `:server-common` | весь сервер, **кроме** обращений к базе | jvm, linuxX64 |
-| `:server` | JVM-сборка; единственная, что собирается на macOS | jvm |
-| `:server-native` | нативный бинарь — образ, который работает на стенде | linuxX64 |
-| `:androidApp`, `:iosApp` | тонкие пусковые модули, логики нет | |
+| `:shared` | the wire contract: resources, model, serializers, balance simulation | android, ios, jvm, wasmJs, linuxX64 |
+| `:composeApp` | the whole interface, one body of code | android, ios, desktop, wasmJs |
+| `:server-common` | the whole server, **except** database calls | jvm, linuxX64 |
+| `:server` | the JVM build; the only one that compiles on macOS | jvm |
+| `:server-native` | the native binary — the image that runs deployed | linuxX64 |
+| `:androidApp`, `:iosApp` | thin launcher modules, no logic | |
 
-## Правила, из-за нарушения которых тут уже платили
+## Rules that have already been paid for here
 
-* **Всё, что не является обращением к базе, лежит в `commonMain` `:server-common`.** Лишняя пара
-  `expect/actual` — это две реализации, которые разъедутся молча. Сейчас их ровно две: `readEnv` и
-  `serverBuildKind`.
-* **`TokenService` и `Sha256HashingService` — общие, не платформенные.** Токен, выданный одной
-  сборкой, обязан приниматься другой; формат хеша обязан побайтово совпадать с тем, что уже лежит
-  в базе стенда.
-* **Проверки ввода стоят на сервере, а не только в форме.** Форма — удобство; за ней открытый HTTP.
-* **Идентификатор изменяемой записи берётся из пути, не из тела.** Обратное было настоящей дырой.
-* **«Не твоё» и «не существует» отвечают одинаково** (`403`): разные ответы говорили бы, какие
-  идентификаторы заняты.
-* **Логгера в общей части нет** ни у одной сборки. Диагностика — `println` в stdout.
-* Комментарии, KDoc, имена тестов и тексты исключений — **по-английски**. `docs/` и этот файл —
-  по-русски. Сообщения коммитов — английские, Conventional Commits.
+* **Everything that is not a database call lives in `commonMain` of `:server-common`.** A
+  superfluous `expect/actual` pair is two implementations that will diverge silently. There are
+  exactly two right now: `readEnv` and `serverBuildKind`.
+* **`TokenService` and `Sha256HashingService` are shared, not platform-specific.** A token issued by
+  one build must be accepted by the other, and the hash format must match byte for byte what is
+  already in the deployed instance's database.
+* **Validation sits on the server, not only in the form.** A form is a convenience; behind it is
+  open HTTP.
+* **The id of the record being changed comes from the path, not from the body.** The reverse was a
+  real hole.
+* **"Not yours" and "does not exist" answer the same** (`403`): different answers would say which
+  ids are taken.
+* **Neither build has a logger in the common source set.** Diagnostics are `println` to stdout.
+* Everything is written in **English** — comments, KDoc, test names, exception texts, `docs/`, this
+  file, and commit messages (Conventional Commits).
 
-## Команды
+## Commands
 
-Полный набор — в [README.md](README.md). Здесь то, что задают чаще всего.
+The full set is in [README.md](README.md). What gets asked for most often is here.
 
-Набор, который гоняется на каждом PR:
+The set that runs on every pull request:
 
 ```bash
 ./gradlew :shared:jvmTest :server-common:jvmTest :server:test :composeApp:desktopTest
 ```
 
-Нативный сервер — **только на Linux**, и нужен настоящий `mongod`:
+The native server runs **on Linux only**, and needs a real `mongod`:
 
 ```bash
 ./gradlew :server-native:linuxX64Test :server-native:linuxX64ReleaseTest
 ```
 
-Релизный прогон не опционален: Kotlin/Native в релизе не вставляет проверок приведения типов, и в
-образ едет релизный бинарь.
+The release run is not optional: Kotlin/Native omits type-cast checks in release builds, and the
+binary that ships in the image is the release one.
 
-Стиль:
+Style:
 
 ```bash
 ./gradlew ktlintCheck
 ```
 
-Скриншоты — записывать и сверять **на Linux**: на macOS тот же код рисует текст иначе, разница
-1–4 % пикселей.
+Screenshots must be recorded and verified **on Linux**: the same code on macOS renders text
+differently, by 1–4 % of the pixels.
 
-Проверки документации:
+Documentation checks:
 
 ```bash
 make check
 ```
 
-## Чего не делать
+## What not to do
 
-* **Не поднимать версию Ubuntu в одном месте.** Раннер CI, раннер выката и `FROM` в
-  `server-native/Dockerfile` — пара по `libmongoc`: soname у веток общий, подмена не ловится ни
-  сборкой, ни стартом, а проявляется отсутствующим символом при первом обращении к Mongo.
-* **Не заводить вторую версию продукта.** `mani.version` в `gradle.properties` — единственная; из
-  неё берутся и ответ `/health`, и тег образа.
-* **Не подписывать навигацию на токен.** Подписка пересобирает граф, а новый граф сбрасывает экран
-  на точку входа. Истечение сессии приходит событием `TokenRepository.expired`.
-* **Не верить `BUILD SUCCESSFUL` для нативных тестов при инкрементальном прогоне** — задачи умеют
-  отмечаться `UP-TO-DATE` после отработавшей линковки. Сверять по времени файлов в
-  `build/test-results`.
+* **Do not bump the Ubuntu version in one place only.** The CI runner, the deploy runner and the
+  `FROM` in `server-native/Dockerfile` are a pair through `libmongoc`: the soname is shared across
+  branches, a substitution is caught neither by the build nor by startup, and it surfaces as a
+  missing symbol on the first call into Mongo.
+* **Do not introduce a second product version.** `mani.version` in `gradle.properties` is the only
+  one; both the `/health` response and the image tag come from it.
+* **Do not subscribe navigation to the token.** A subscription rebuilds the graph, and a new graph
+  resets the screen to the start destination. Session expiry arrives as the
+  `TokenRepository.expired` event.

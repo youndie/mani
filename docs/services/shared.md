@@ -1,6 +1,6 @@
 ---
 id: shared
-title: ":shared — контракт обмена"
+title: ":shared — the wire contract"
 type: service
 repo_url: https://github.com/youndie/mani-kotlin-fullstack
 module: ":shared"
@@ -8,99 +8,104 @@ tech_stack: [Kotlin Multiplatform, ktor-resources, kotlinx.serialization, kotlin
 owner: unassigned
 depends_on: []
 publishes:
-  - klib/jar внутри сборки (наружу не публикуется)
+  - klib/jar consumed inside the build (nothing is published externally)
 ---
 
-# :shared — контракт обмена
+# :shared — the wire contract
 
-## 1. Ответственность
+## 1. Responsibility
 
-Единственное, что здесь лежит: **описание того, чем клиент и сервер обмениваются**. Классы
-`@Resource` (они же маршрутизируют запрос на сервере и собирают URL на клиенте), модель домена,
-сериализаторы и пара чистых функций над моделью.
+The only thing here is **a description of what the client and the server exchange**: the
+`@Resource` classes (which both route the request on the server and build the URL on the client),
+the domain model, the serializers, and a handful of pure functions over the model.
 
-Таргеты: `android`, `ios`, `jvm`, `wasmJs`, `linuxX64` — то есть все, какие есть у продукта.
+Targets: `android`, `ios`, `jvm`, `wasmJs`, `linuxX64` — that is, every target the product has.
 
-Чего здесь **нет намеренно**:
+What is **deliberately not** here:
 
-* **адреса сервера.** Он уехал в `composeApp/.../Constants.kt`: серверу адрес самого себя не нужен,
-  а модуль, который называется контрактом, должен им быть;
-* **`userId`.** Владелец записи — понятие сервера. Клиенту он не нужен и в контракт не входит; на
-  сервере для этого есть `TransactionRecord` (см. [server-common](server-common.md));
-* **бизнес-правил.** Проверки лежат на сервере (`Rules.kt`, `Credentials.kt`) — за формой клиента
-  стоит открытый HTTP.
+* **the server address.** It moved to `composeApp/.../Constants.kt`: a server has no use for its own
+  address, and a module called the contract should be one;
+* **`userId`.** The record's owner is a server-side notion. The client has no use for it and it is
+  not part of the contract; on the server there is `TransactionRecord` for this
+  (see [server-common](server-common.md));
+* **business rules.** Validation lives on the server (`Rules.kt`, `Credentials.kt`) — behind the
+  client's form stands open HTTP.
 
-## 2. Контракты
+## 2. API contracts
 
-Ресурсы, по одному на предметную область:
+One resource per subject area:
 
-| Ресурс | Путь |
+| Resource | Path |
 |---|---|
 | `AuthResource`, `AuthResource.Refresh` | `/auth`, `/auth/refresh` |
 | `UserResource` | `/users` |
 | `TransactionResource`, `TransactionResource.ById` | `/transactions`, `/transactions/{id}` |
-| `CategoryResource` | `/categories` |
-| `CurrencyResource` | `/currency` |
-| `DemoResource` | `/demo` |
+| `CategoryResource`, `CategoryResource.ById` | `/categories`, `/categories/{id}` |
+| `CurrencyResource` | `/currencies` |
+| `DemoResource`, `DemoResource.Seed` | `/demo`, `/demo/seed` |
 | `HealthResource`, `HealthResource.Ready` | `/health`, `/health/ready` |
 
-Полный разбор с кодами ответов — в слое api: [endpoint-auth](../api/endpoint-auth.md),
-[endpoint-transactions](../api/endpoint-transactions.md).
+The full breakdown with status codes lives in the api layer:
+[endpoint-transactions](../api/endpoint-transactions.md),
+[endpoint-categories](../api/endpoint-categories.md), [endpoint-auth](../api/endpoint-auth.md),
+[endpoint-demo](../api/endpoint-demo.md), [endpoint-health](../api/endpoint-health.md),
+[endpoint-currencies](../api/endpoint-currencies.md).
 
-## 2a. Код
+## 2a. Code anchors
 
-| Файл | Что там |
+| File | What is there |
 |---|---|
-| `shared/src/commonMain/kotlin/io/github/youndie/mani/feature/` | по каталогу на предметную область: ресурс + DTO |
-| `shared/src/commonMain/kotlin/io/github/youndie/mani/feature/transaction/Transaction.kt` | модель правила: сумма, знак, период, дата, категория |
-| `shared/src/commonMain/kotlin/io/github/youndie/mani/feature/transaction/WithId.kt` | «у записи есть выданный сервером id» — реализуют `Transaction` и `Category` |
-| `shared/src/commonMain/kotlin/io/github/youndie/mani/utilz/bigdecimal/` | `BigDecimalSerializable` и его сериализатор |
-| `shared/src/commonMain/kotlin/io/github/youndie/mani/feature/transaction/TransactionsOperations.kt` | развёртка правил в календарь и симуляция баланса |
+| `shared/src/commonMain/kotlin/io/github/youndie/mani/feature/` | one directory per subject area: resource + DTOs |
+| `shared/src/commonMain/kotlin/io/github/youndie/mani/feature/transaction/Transaction.kt` | the rule model: amount, sign, period, date, category |
+| `shared/src/commonMain/kotlin/io/github/youndie/mani/feature/transaction/WithId.kt` | "a record has a server-issued id" — implemented by `Transaction` and `Category` |
+| `shared/src/commonMain/kotlin/io/github/youndie/mani/utilz/bigdecimal/` | `BigDecimalSerializable` and its serializer |
+| `shared/src/commonMain/kotlin/io/github/youndie/mani/feature/transaction/TransactionsOperations.kt` | expanding rules into a calendar and simulating the balance |
 | `shared/src/commonTest/kotlin/` | `TransactionOperationsTest`, `DemoSeedTest` |
 
-## 3. Как это устроено
+## 3. How it is built
 
-**Один класс — два употребления.** `@Resource`-класс на сервере разбирает путь
-(`post<TransactionResource.ById> { path -> ... }`), а на клиенте тот же класс строит URL
-(`httpClient.post(AuthResource.Refresh())`). Отсюда свойство, ради которого модуль существует:
-переименовать путь и забыть поправить вторую сторону нельзя — сторона одна.
+**One class, two uses.** On the server a `@Resource` class parses the path
+(`post<TransactionResource.ById> { path -> ... }`); on the client the same class builds the URL
+(`httpClient.post(AuthResource.Refresh())`). Hence the property the module exists for: you cannot
+rename a path and forget to fix the other side, because there is only one side.
 
-**Симуляция живёт здесь, а не на сервере или клиенте.** `TransactionsOperations.kt` разворачивает
-правила в календарь и считает баланс по дням. Это нужно и клиенту (герой главного экрана, график,
-предпросмотр «на сколько сдвинется день обнуления» в форме), и витрине, которая рисует график по
-демонстрационному набору **до всякого входа**. Общий модуль — единственное место, где обе стороны
-получают один и тот же ответ.
+**The simulation lives here rather than on the server or the client.**
+`TransactionsOperations.kt` expands rules into a calendar and computes the day-by-day balance. Both
+the client needs it (the hero of the main screen, the chart, the "how far this moves the day you run
+out" preview in the form) and the welcome screen does, drawing a chart from the demo seed **before
+anyone has signed in**. A shared module is the only place where both sides get the same answer.
 
-## 4. Зависимости
+## 4. Dependencies
 
-| Вид | Что | Зачем |
+| Kind | Name | What for |
 |---|---|---|
-| Библиотека | `io.ktor:ktor-resources` | типизированные пути |
-| Библиотека | `kotlinx.serialization` | JSON обмена |
-| Библиотека | `kotlinx.datetime` | `LocalDate` в модели |
-| Библиотека | `com.ionspin.kotlin:bignum` | суммы, без потерь на double |
+| Library | `io.ktor:ktor-resources` | typed paths |
+| Library | `kotlinx.serialization` | the JSON on the wire |
+| Library | `kotlinx.datetime` | `LocalDate` in the model |
+| Library | `com.ionspin.kotlin:bignum` | amounts, without the losses of `double` |
 
-## 5. Инфраструктура и выкат
+## 5. Infrastructure and deploy
 
-Отдельно не публикуется и не разворачивается: собирается внутрь потребителей — сервера обеих
-сборок и всех клиентских таргетов.
+Neither published nor deployed on its own: it is compiled into its consumers — both server builds
+and every client target.
 
-## 6. Локальная сборка
+## 6. Local setup
 
 ```bash
 ./gradlew :shared:jvmTest
 ```
 
-## 7. Конфигурация
+## 7. Configuration
 
-Нет. Модуль ничего не читает из окружения.
+None. The module reads nothing from the environment.
 
-## 8. Особенности
+## 8. Quirks
 
-* **`Category.default` — часть контракта, а не заглушка клиента.** `Category("0", "Default")`
-  объявлена в `Transaction.kt` и подставляется сервером, когда `categoryId` записи не нашёлся среди
-  категорий владельца. Удалённая категория выглядит как «Default», а не как ошибка; см. открытый
-  вопрос 1 в [research-architecture](../research/research-architecture.md).
-* **Знак задаёт `income`, а не сумма.** `amountSigned` умножает на −1, поэтому отрицательная сумма
-  с `income = false` дала бы **плюс** в прогнозе. Сервер такое отвергает (`Rules.kt`), но модель
-  сама по себе это позволяет.
+* **`Category.default` is part of the contract, not a client-side placeholder.**
+  `Category("0", "Default")` is declared in `Transaction.kt` and substituted by the server whenever
+  a record's `categoryId` is not among the owner's categories. A deleted category therefore looks
+  like "Default" rather than like an error; see open question 1 in
+  [research-architecture](../research/research-architecture.md).
+* **The sign comes from `income`, not from the amount.** `amountSigned` multiplies by −1, so a
+  negative amount with `income = false` would add a **plus** to the forecast. The server refuses
+  that (`Rules.kt`), but the model on its own permits it.

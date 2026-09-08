@@ -1,67 +1,68 @@
 # docs — mani
 
-Планировщик бюджета, написанный на Kotlin целиком: клиент на Compose Multiplatform под четыре
-платформы, сервер на Ktor в двух сборках (JVM и Kotlin/Native) и один модуль контракта на всех.
-Документация слоёная, ссылки идут сверху вниз.
+A budget planner written end to end in Kotlin: a Compose Multiplatform client for four platforms, a
+Ktor server in two builds (JVM and Kotlin/Native), and one contract module shared by all of them.
+The documentation is layered; the links run top to bottom.
 
 ```
-[ Исследование — почему архитектура такая ]
+[ Research — why the architecture is what it is ]
                      │
-[ Фича (что даёт и почему) + BDD ] ──▶ [ Экран клиента ]
-                                              │
-                                              ▼
-                                    [ API: маршрут, ярус, коды ]
-                                              │
-                                              ▼
-                                    [ Модуль: чем владеет, как собирается ]
+[ Feature (what it gives and why) + BDD ] ──▶ [ Client screen ]
+                                                     │
+                                                     ▼
+                                     [ API: route, tier, status codes ]
+                                                     │
+                                                     ▼
+                                     [ Module: what it owns, how it is built ]
 ```
 
-| Слой | Каталог | На что отвечает | Источник правды |
+| Layer | Directory | Answers | Source of truth |
 |---|---|---|---|
-| Исследование | `research/` | *почему* так, что проверено, что гипотеза | артефакты, названные у каждого факта |
-| Фича | `features/` | *что* система делает и почему; BDD-сценарии | этот репозиторий |
-| Клиент | `screens/` | что видит человек: состояния, действия, навигация | `composeApp/` |
-| API | `api/` | метод, путь, ярус доступа, коды ответов | `shared/` + маршруты в `server-common/` |
-| Модуль | `services/` | чем владеет, зависимости, сборка, выкат | этот репозиторий |
+| Research | `research/` | *why* it is this way; what is verified, what is a hypothesis | the artefacts each fact names |
+| Feature | `features/` | *what* the system does and why; BDD scenarios | this repository |
+| Client | `screens/` | what a person sees: states, actions, navigation | `composeApp/` |
+| API | `api/` | method, path, auth tier, status codes | `shared/` plus the routes in `server-common/` |
+| Module | `services/` | what it owns, dependencies, build, deploy | this repository |
 
-Слой `services/` описывает **модули Gradle** этого репозитория, а не отдельные сервисы: продукт
-живёт в одном репозитории, и модуль здесь — та же единица владения, что сервис в распределённой
-системе.
+The `services/` layer describes the **Gradle modules** of this repository rather than separate
+services: the product lives in one repository, and a module here is the same unit of ownership a
+service is in a distributed system.
 
-**Бэклога в репозитории нет** — это решение, а не пропуск (коммит `b00fafe`): рабочий план одного
-отрезка работы репозиторий читателям не должен. Если он понадобится, формат описан в
-[SPEC.md](SPEC.md) §3.6, а генератор индекса `backlog_index.py` берётся из скилла `docs-bootstrap`
-и добавляется в `make check` рядом с остальными.
+**There is no backlog in the repository** — a decision, not an omission (commit `b00fafe`): the
+working plan for one stretch of work is not something the repository owes its readers. If one is
+ever wanted, the format is described in [SPEC.md](SPEC.md) §3.6, and the index generator
+`backlog_index.py` comes from the `docs-bootstrap` skill and goes into `make check` next to the
+others.
 
-## Сквозные документы
+## Cross-cutting documents
 
-Слои выше описывают продукт. Рядом лежит документ о том, как этот продукт проверяется:
+The layers above describe the product. Alongside them sits a document about how that product is
+checked:
 
-- [TESTING.md](TESTING.md) — где живёт тест, почему подделки вместо моков, зачем хранилище
-  проверяется настоящей базой и какие ловушки прогона превращают зелёную сборку в непроверенную.
+- [TESTING.md](TESTING.md) — where a test lives, why hand-written fakes rather than mocks, why
+  storage is checked against a real database, and which run-time traps turn a green build into an
+  unverified one.
 
-## Соглашения
+## Conventions
 
-- **`id`** во фронтматтере равен имени файла.
-- Межслойные ссылки — идентификаторы во фронтматтере **и** обычные markdown-ссылки в тексте.
-- Один документ — одна сущность. Фича, задевающая четыре модуля, — **один** файл с четырьмя
-  записями в `involved_services`.
-- BDD-сценарии пишутся из кода, а не по памяти: коды ответов и тексты отказов сверяются с
-  исходником до того, как попадут в сценарий.
-- **Главный читатель — агент.** В каждом документе есть якоря в код: путь до каталога фичи,
-  обработчика, ViewModel. Что живёт в коде (поля DTO, ключи конфигурации), не дублируется — даётся
-  путь. Копия протухает, путь нет.
-- **Язык: русский.** Идентификаторы, URL, имена заголовков HTTP и тексты отказов сервера — дословно
-  как в коде, то есть по-английски. Корневой `README.md` — тоже английский: это витрина проекта.
-  По той же причине английский и [TESTING.md](TESTING.md): его читает тот, кто пришёл писать код,
-  а не тот, кто разбирается в продукте.
+- **`id`** in the frontmatter equals the filename.
+- Cross-layer links are ids in the frontmatter **and** ordinary markdown links in the body.
+- One document, one entity. A feature touching four modules is **one** file with four entries in
+  `involved_services`.
+- BDD scenarios are written from the code, not from memory: status codes and refusal texts are
+  checked against the source before they reach a scenario.
+- **The primary reader is an agent.** Every document carries code anchors: a path to the feature
+  directory, the handler, the view model. What lives in code (DTO fields, config keys) is not
+  duplicated — a path is given instead. A copy rots, a path does not.
+- **Language: English**, throughout the repository — code, documentation, build files and commit
+  messages alike.
 
-## Шаблоны
+## Templates
 
-`templates/` — копия шаблонов документов, чтобы формат ехал вместе с репозиторием. Разделы,
-помеченные `<!-- optional -->`, можно удалять. Контракт формата — [SPEC.md](SPEC.md).
+`templates/` holds a copy of the document templates, so the format travels with the repository.
+Sections marked `<!-- optional -->` may be deleted. The format contract is [SPEC.md](SPEC.md).
 
-## Проверки
+## Checks
 
 ```bash
 pip install pyyaml
@@ -71,7 +72,7 @@ pip install pyyaml
 make check
 ```
 
-То же по одной:
+The same, one by one:
 
 ```bash
 python3 scripts/docs_check.py
@@ -80,69 +81,75 @@ python3 scripts/bdd_report.py --repos ..
 python3 scripts/code_anchors.py --repos ..
 ```
 
-Первые две — гейт; последние две — отчёты для человека, они ничего не блокируют.
+The first two are the gate; the last two are reports for a person and block nothing.
 
-## Карта покрытия
+## Coverage map
 
-Список ниже **проверяется** против файлов на диске: документ, которого здесь нет, или строка без
-файла за ней роняют `coverage_map.py`. Группировку и описания пишет человек — машина сторожит
-только состав. Заголовки разделов — маркеры для `coverage_map.py`, поэтому они по-английски и
-дословно; всё остальное в карте — обычный текст.
+The list below is **checked** against the files on disk: a document missing here, or a line with no
+file behind it, fails `coverage_map.py`. The grouping and the descriptions are written by a person —
+the machine only guards the membership. The section headings are markers for `coverage_map.py`, so
+they are fixed strings; everything else in the map is ordinary text.
 
 ### Research (1)
 
-Исследование:
-
-- [x] [research-architecture](research/research-architecture.md) — проверенные факты, решения, риски
+- [x] [research-architecture](research/research-architecture.md) — verified facts, decisions, risks
 
 ### Services (5)
 
-Модули репозитория:
+The server:
+- [x] [server-common](services/server-common.md) — the whole server except database calls; jvm + linuxX64
+- [x] [server](services/server.md) — the JVM build: the official Mongo driver, the development build
+- [x] [server-native](services/server-native.md) — the native binary and the image that runs deployed
 
-Сервер:
-- [x] [server-common](services/server-common.md) — весь сервер, кроме обращений к базе; jvm + linuxX64
-- [x] [server](services/server.md) — JVM-сборка: официальный драйвер Mongo, сборка для разработки
-- [x] [server-native](services/server-native.md) — нативный бинарь и образ, который работает на стенде
+Shared and client:
+- [x] [shared](services/shared.md) — the wire contract: resources, model, balance simulation
+- [x] [composeApp](services/composeApp.md) — the whole interface, one body of code for four platforms
 
-Общее и клиент:
-- [x] [shared](services/shared.md) — контракт обмена: ресурсы, модель, симуляция баланса
-- [x] [composeApp](services/composeApp.md) — весь интерфейс, одним кодом на четыре платформы
+### Features (5)
 
-### Features (2)
+Core:
+- [x] [feature-transactions](features/feature-transactions.md) — budget rules, the forecast and the chart: what the product exists for
+- [x] [feature-categories](features/feature-categories.md) — the label on a rule and the ledger filter
 
-Фичи:
+Getting in:
+- [x] [feature-auth](features/feature-auth.md) — registration, sign-in, the session and its renewal
+- [x] [feature-demo-sandbox](features/feature-demo-sandbox.md) — a throwaway account with ready data, one click away
 
-- [x] [feature-auth](features/feature-auth.md) — вход, регистрация, сессия и демо-песочница
-- [x] [feature-transactions](features/feature-transactions.md) — правила бюджета и прогноз: ядро продукта
+Operations:
+- [x] [feature-health](features/feature-health.md) — liveness, readiness and the "which build answered" line
 
 ### Screens / Flows (5)
 
-Экраны:
+Getting in:
+- [x] [screen-welcome](screens/screen-welcome.md) — the welcome screen: a sample forecast and a one-click way into the sandbox
+- [x] [screen-auth-form](screens/screen-auth-form.md) — the credentials form, shared by Login and Signup
 
-Вход:
-- [x] [screen-welcome](screens/screen-welcome.md) — витрина: образец прогноза и вход в песочницу одним кликом
-- [x] [screen-auth-form](screens/screen-auth-form.md) — форма учётных данных, общая для Login и Signup
+Core:
+- [x] [screen-main](screens/screen-main.md) — the forecast, the chart and the ledger of rules
+- [x] [screen-history](screens/screen-history.md) — the same ledger with the current month's total
+- [x] [screen-transaction-form](screens/screen-transaction-form.md) — creating and editing a rule, with the shift preview
 
-Ядро:
-- [x] [screen-main](screens/screen-main.md) — прогноз, график и лента правил
-- [x] [screen-history](screens/screen-history.md) — та же лента с итогом за текущий месяц
-- [x] [screen-transaction-form](screens/screen-transaction-form.md) — создание и правка правила, с предпросмотром сдвига
+### API (6)
 
-### API (2)
+- [x] [endpoint-transactions](api/endpoint-transactions.md) — the four budget-rule routes
+- [x] [endpoint-categories](api/endpoint-categories.md) — the five category routes
+- [x] [endpoint-auth](api/endpoint-auth.md) — registration, sign-in, session refresh
+- [x] [endpoint-demo](api/endpoint-demo.md) — the sandbox, and seeding your own account
+- [x] [endpoint-health](api/endpoint-health.md) — both probes, and how they differ
+- [x] [endpoint-currencies](api/endpoint-currencies.md) — one route that nobody calls
 
-Маршруты:
+## What is not here yet
 
-- [x] [endpoint-auth](api/endpoint-auth.md) — регистрация, вход, обновление сессии, песочница
-- [x] [endpoint-transactions](api/endpoint-transactions.md) — четыре маршрута правил бюджета
+Naming the gaps is more honest than leaving an impression of full coverage.
 
-## Чего здесь пока нет
+Every subject area of the server is now covered: each route `maniApiRouting()` registers is broken
+down in the `api/` layer. What is not covered:
 
-Честнее назвать пробелы, чем оставить впечатление полного покрытия. Не описаны, но в коде есть:
-
-* **категории** — `server-common/.../feature/category/`, `composeApp/.../feature/categories/`;
-* **валюта** — `server-common/.../feature/currency/` (сервер отдаёт зашитый список из двух);
-* **жизненный цикл демо-песочницы** — что засевается и когда убирается:
-  `server-common/.../feature/demo/`;
-* **health и готовность** как отдельная фича — описаны внутри
-  [server-native](services/server-native.md);
-* **график** как отдельный экран — рисуется внутри главного и витрины.
+* **the product has no currency picker**, so there is no document for one either: why, in
+  [endpoint-currencies](api/endpoint-currencies.md);
+* **`:baselineprofile`** — Android baseline profile generation; it has no document of its own and is
+  mentioned in [composeApp](services/composeApp.md);
+* **theme and typography** (`composeApp/.../theme/`) — the styling decisions are written down
+  nowhere;
+* **the vendored `compose-charts`** is described only in terms of why it is vendored
+  ([composeApp](services/composeApp.md)); what exactly was changed in it is not itemised.

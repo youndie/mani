@@ -1,150 +1,164 @@
 ---
 id: screen-main
-title: Главный экран — прогноз и лента
+title: Main screen — the forecast and the ledger
 type: client_screen
 platform: [android, ios, desktop, web]
 status: active
 entry:
-  all: "маршрут ManiScreen.Main; точка входа графа, если refresh-токен есть"
+  all: "the ManiScreen.Main route; the graph's start destination when a refresh token exists"
 parent_feature: feature-transactions
 calls_api:
   - endpoint-transactions
+  - endpoint-categories
+  - endpoint-demo
 source: composeApp/src/commonMain/kotlin/io/github/youndie/mani/feature/main/
 ---
 
-# Экран: главный
+# Screen: main
 
-Ради него всё и написано: сверху ответ на вопрос «когда деньги кончатся», под ним график, дальше
-лента правил с балансом на конец каждого дня.
+This is what everything else was written for: at the top, the answer to "when will the money run
+out"; below it the chart; then the ledger of rules with the balance at the end of each day.
 
-## 0a. Код
+## 0a. Code anchors
 
-| Что | Файл |
+| What | File |
 |---|---|
-| ViewModel | `composeApp/.../feature/main/MainViewModel.kt` |
-| Состояние экрана | `composeApp/.../feature/main/ui/MainUiState.kt` |
-| Состояние героя | `composeApp/.../feature/main/ui/ForecastUiState.kt` |
-| Композиция и фильтры | `composeApp/.../feature/main/ui/MainComponent.kt` (`FiltersState` там же, строка 225) |
-| Герой | `composeApp/.../feature/main/ui/ForecastHero.kt` |
-| «Сервер недоступен» | `composeApp/.../feature/main/ui/ServerUnreachable.kt` |
-| Расписание автоповтора | `composeApp/.../feature/main/ui/RetrySchedule.kt` |
-| Симуляция | `shared/.../feature/transaction/TransactionsOperations.kt` |
+| View model | `composeApp/.../feature/main/MainViewModel.kt` |
+| Screen state | `composeApp/.../feature/main/ui/MainUiState.kt` |
+| Hero state | `composeApp/.../feature/main/ui/ForecastUiState.kt` |
+| Composition and filters | `composeApp/.../feature/main/ui/MainComponent.kt` (`FiltersState` is in the same file, line 225) |
+| The hero | `composeApp/.../feature/main/ui/ForecastHero.kt` |
+| "Server unreachable" | `composeApp/.../feature/main/ui/ServerUnreachable.kt` |
+| The retry schedule | `composeApp/.../feature/main/ui/RetrySchedule.kt` |
+| The simulation | `shared/.../feature/transaction/TransactionsOperations.kt` |
 
-## 0. Точка входа и видимость
+## 0. Entry point and visibility
 
-* **Точка входа:** точка входа графа, когда refresh-токен есть; сюда же ведут успешный вход,
-  регистрация→вход и демо.
-* **Показывается:** только авторизованному.
-* Стрелки «назад» нет: `Main` — корневой экран. Раньше стрелка там была и врала — за ней оставалась
-  витрина, куда вернуться уже нельзя.
+* **Entry point:** the graph's start destination when a refresh token exists; a successful sign-in,
+  registration→sign-in and the demo all lead here too.
+* **Shown to:** authenticated users only.
+* There is no back arrow: `Main` is a root screen. There used to be one and it lied — behind it was
+  the welcome screen, which can no longer be returned to.
 
-## 1. Состояния
+## 1. Screen states
 
-Поля `MainUiState`; герой — отдельная иерархия `ForecastUiState`, а не набор необязательных полей:
+The fields of `MainUiState`; the hero is a hierarchy of its own, `ForecastUiState`, rather than a
+set of optional fields:
 
-**Герой (`forecast`):**
+**The hero (`forecast`):**
 
-| Состояние | Что показывает |
+| State | What it shows |
 |---|---|
-| `Loading` | данные ещё не пришли |
-| `Empty` | правил нет — прогнозировать нечего |
-| `RunsOut` | «деньги кончатся такого-то», сколько дней осталось, баланс сегодня, низшая точка |
-| `Steady` | внутри горизонта в минус не уходим — показывается сам баланс |
+| `Loading` | the data has not arrived yet |
+| `Empty` | there are no rules — nothing to forecast |
+| `RunsOut` | "the money runs out on ...", how many days are left, today's balance, the lowest point |
+| `Steady` | the balance does not go negative inside the horizon — the balance itself is shown |
 
-`Steady` — отдельное состояние, а не `runsOutOn = null`: показывать нужно другое.
+`Steady` is a separate state rather than `runsOutOn = null`: what needs showing is different.
 
-**Экран целиком:**
+**The screen as a whole:**
 
-* `loading` — идёт загрузка (лента под шиммером);
-* `transactions` — лента, сгруппированная по дням; `dayBalances` — баланс на конец каждого дня,
-  считается **по всей симуляции**, а не по отфильтрованной ленте;
-* `selectedTransactions` + `showDeleteDialog` — режим выбора и подтверждение удаления;
-* `showProfile` — всплывающее меню профиля (в нём выход);
-* `filtersState` — фильтры (см. §4.3);
-* `showingCacheFrom != null` — сети нет, показано последнее известное, снятое в это время;
-* `unreachable != null` — сервер не ответил и показать нечего;
-* `errorMessage` — прочие отказы, снекбаром.
+* `loading` — loading is in progress (the ledger under a shimmer);
+* `transactions` — the ledger, grouped by day; `dayBalances` — the balance at the end of each day,
+  computed **over the whole simulation** rather than over the filtered ledger;
+* `selectedTransactions` + `showDeleteDialog` — selection mode and the delete confirmation;
+* `showProfile` — the profile popup (sign-out lives in it);
+* `filtersState` — the filters (see §4.3);
+* `showingCacheFrom != null` — there is no network and what is shown is the last known list, taken
+  at that time;
+* `unreachable != null` — the server did not answer and there is nothing to show;
+* `errorMessage` — other failures, as a snackbar.
 
-Последние два — **разные** экраны, а не разные значения одного поля.
+The last two are **different** screens, not different values of one field.
 
-## 2. Обращения к API
+## 2. API integration
 
-| Вызов | Контракт | Документ |
+| Call | Contract | Endpoint document |
 |---|---|---|
 | `GET /transactions` | `TransactionResource` | [endpoint-transactions](../api/endpoint-transactions.md) |
 | `DELETE /transactions/{id}` | `TransactionResource.ById` | [endpoint-transactions](../api/endpoint-transactions.md) |
-| `GET /categories` | `CategoryResource` | — (фильтр по категориям) |
-| `GET /currency` | `CurrencyResource` | — (формат сумм) |
-| `POST /demo/seed` | `DemoResource.Seed` | [endpoint-auth](../api/endpoint-auth.md) (кнопка на пустом экране) |
+| `GET /categories` | `CategoryResource` | [endpoint-categories](../api/endpoint-categories.md) (the category filter) |
+| `POST /demo/seed` | `DemoResource.Seed` | [endpoint-demo](../api/endpoint-demo.md) (the button on the empty screen) |
 
-## 3. Инициализация
+## 3. Initialisation
 
-Входных параметров нет.
+No input parameters.
 
-| Вызов | Когда | Результат |
+| Call | When | Result |
 |---|---|---|
-| `GET /transactions` | при открытии и на возврате в `ON_START` | лента, график, герой |
-| `GET /categories` | при открытии | наполняет фильтр |
+| `GET /transactions` | once, when the view model is created | the ledger, the chart, the hero |
+| `GET /categories` | on open | populates the filter |
 
-| Случай | Обработка | Состояние |
+There is no reload on return to the screen: `ON_START` only adds the profile action to the app bar
+(`MainComponent.kt:109`). After the first load the screen follows the repository's `StateFlow`, and
+a re-request happens only through `RetrySchedule` — the countdown or the "Try again" button.
+
+The currency **does not go to the network**: `GetCurrentCurrencyUseCase` reads it out of local
+`Settings`, where the default always wins — see
+[endpoint-currencies](../api/endpoint-currencies.md).
+
+| Case | Handling | Screen state |
 |---|---|---|
-| `200`, есть записи | симуляция, группировка по дням | лента + `RunsOut`/`Steady` |
-| `200`, пусто | — | пустая лента + `Empty` |
-| отказ, кэш есть | показывается кэш | `showingCacheFrom` заполнен |
-| отказ, кэша нет | — | `unreachable` заполнен, с причиной и автоповтором |
-| `401`, продлить не удалось | событие `expired` | граф уводит на витрину |
+| `200`, records present | simulation, grouping by day | ledger + `RunsOut`/`Steady` |
+| `200`, empty | — | empty ledger + `Empty` |
+| failure, cache present | the cache is shown | `showingCacheFrom` filled in |
+| failure, no cache | — | `unreachable` filled in, with a cause and a retry |
+| `401`, could not be renewed | the `expired` event | the graph moves to the welcome screen |
 
-## 4. Элементы
+## 4. UI elements
 
-### 4.1. Герой-прогноз
+### 4.1. The forecast hero
 
-Заголовок экрана — **дата, когда деньги кончатся**. До редизайна это были пять строк
-моноширинного текста одним `AnnotatedString`, и главное стояло последним, выглядя как строка
-отладочного вывода.
+The screen's headline is **the date the money runs out**. Before the redesign this was five lines of
+monospaced text in a single `AnnotatedString`, with the important part last, looking like a line of
+debug output.
 
-`runsOutOn` — день без года: год очевиден из «через столько-то дней», а место в заголовке дорого.
+`runsOutOn` is a day without a year: the year is obvious from "in so many days", and space in a
+headline is expensive.
 
-### 4.2. График
+### 4.2. The chart
 
-Тот же вендоренный `compose-charts`, что на витрине. Маркер дня перехода через ноль рисуется
-**внутри канваса** библиотеки, где известна геометрия графика, — отсюда местные правки в
-вендоренном коде.
+The same vendored `compose-charts` as on the welcome screen. The marker for the day the balance
+crosses zero is drawn **inside the library's canvas**, where the plot geometry is known — hence the
+local changes in the vendored code.
 
-### 4.3. Фильтры
+### 4.3. The filters
 
-`FiltersState`: `upcoming` (чипы `Upcoming` / `Past`), `category`, плюс `loading` для шиммера.
+`FiltersState`: `upcoming` (the `Upcoming` / `Past` chips), `category`, plus `loading` for the
+shimmer.
 
-Важно: фильтр меняет **ленту**, но не `dayBalances` — баланс считается по всей симуляции. Иначе
-скрытие части правил меняло бы баланс, которого оно не меняет.
+Note: the filter changes the **ledger** but not `dayBalances` — the balance is computed over the
+whole simulation. Otherwise hiding some rules would change a balance that it does not change.
 
-### 4.4. Лента
+### 4.4. The ledger
 
-Сгруппирована по дням, у каждого дня — баланс на его конец. Долгое нажатие включает выбор;
-выбранные удаляются через подтверждение (`showDeleteDialog`).
+Grouped by day, each day carrying the balance at its end. A long press turns on selection; the
+selected entries are deleted through a confirmation (`showDeleteDialog`).
 
-### 4.5. Пустой экран
+### 4.5. The empty screen
 
-Правил ещё нет — герой в состоянии `Empty`, и предлагается заполнить аккаунт демонстрационным
-набором (`MainViewModel.onFillWithDemoDataClicked` → `POST /demo/seed`). Заводить второй аккаунт
-ради того, чтобы посмотреть на заполненное приложение, не нужно. Отказ показывается в
+There are no rules yet — the hero is in the `Empty` state, and populating the account with the demo
+data set is offered (`MainViewModel.onFillWithDemoDataClicked` → `POST /demo/seed`). There is no
+need to create a second account just to see what a populated app looks like. A failure shows up in
 `errorMessage`.
 
-### 4.6. Меню профиля
+### 4.6. The profile menu
 
-`showProfile`; в нём выход. Выход уводит на витрину **явным переходом** (`MainViewModel.loggedOut`),
-а не сбросом графа при пропаже токена, как было раньше.
+`showProfile`; sign-out lives in it. Signing out moves to the welcome screen by an **explicit
+transition** (`MainViewModel.loggedOut`) rather than by the graph resetting when the token
+disappears, as it used to.
 
-### 4.7. «Сервер недоступен»
+### 4.7. "Server unreachable"
 
-Показывается вместо содержимого, когда нет ни свежего, ни сохранённого. Несёт машинную причину
-(`HTTP 503 · api.mani.kotlin.website · 11:42:07`), кнопку «Try again» и обратный отсчёт до
-автоповтора. Отдельной строкой сказано «Your rules are safe» — без этого «не удалось загрузить»
-читается как «данные потеряны», хотя пропала только связь.
+Shown in place of the content when there is neither anything fresh nor anything stored. It carries a
+machine-readable cause (`HTTP 503 · api.mani.kotlin.website · 11:42:07`), a "Try again" button and
+a countdown to the automatic retry. A separate line says "Your rules are safe" — without it "could
+not load" reads as "the data is gone", when all that went is the connection.
 
-## 5. Навигация
+## 5. Navigation
 
-* правило в ленте ──▶ `screen-transaction-form` (правка, `TransactionRoute(id)`)
-* «+» ──▶ `screen-transaction-form` (создание)
-* «History» ──▶ `screen-history`
-* выход ──▶ `screen-welcome` (стек чистится)
-* сессия истекла ──▶ `screen-welcome`
+* a rule in the ledger ──▶ `screen-transaction-form` (edit, `TransactionRoute(id)`)
+* "+" ──▶ `screen-transaction-form` (create)
+* "History" ──▶ `screen-history`
+* sign out ──▶ `screen-welcome` (the stack is cleared)
+* the session expired ──▶ `screen-welcome`
