@@ -68,7 +68,7 @@
     `server-common/.../feature/auth/data/AuthService.kt`,
     `server-common/src/commonTest/.../security/TokenServiceTest.kt`
 
-- [ ] **M0-04 · P1 · XS** — `currentUserId()` после 401 возвращает пустую строку и код идёт дальше
+- [x] **M0-04 · P1 · XS** — `currentUserId()` после 401 возвращает пустую строку и код идёт дальше
   - Сейчас: внутри `authenticate` ветка мёртвая, но следующий маршрут вне блока получит `""` как
     владельца и второй `respond` поверх первого.
   - Решение: `call.principalOrThrow()`, возвращающий `ManiPrincipal`; отсутствие principal внутри
