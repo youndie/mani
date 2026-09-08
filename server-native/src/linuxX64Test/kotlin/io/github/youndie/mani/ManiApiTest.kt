@@ -10,6 +10,7 @@ import io.ktor.client.call.body
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.get
 import io.ktor.client.request.header
+import io.ktor.client.request.patch
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.HttpResponse
@@ -75,6 +76,42 @@ class ManiApiTest {
             contentType(ContentType.Application.Json)
             setBody(LoginParams(name, password))
         }
+
+        /** Заводит пользователя и возвращает готовый заголовок — тестам про двоих нужен именно он. */
+        suspend fun signIn(name: String, password: String): String {
+            register(name, password)
+            val issued: Tokens = login(name, password).body()
+            return "Bearer ${issued.accessToken}"
+        }
+
+        suspend fun createTransaction(auth: String, comment: String): Transaction = http
+            .post("/transactions") {
+                header(HttpHeaders.Authorization, auth)
+                contentType(ContentType.Application.Json)
+                setBody(
+                    Transaction(
+                        id = "",
+                        amount = "10".toBigDecimal(),
+                        income = false,
+                        date = LocalDate.parse("2026-09-08"),
+                        until = null,
+                        period = Transaction.Period.OneTime,
+                        comment = comment,
+                        category = Category.default,
+                    ),
+                )
+            }.body()
+
+        suspend fun patchTransaction(auth: String, path: String, body: Transaction): HttpResponse = http
+            .patch("/transactions/$path") {
+                header(HttpHeaders.Authorization, auth)
+                contentType(ContentType.Application.Json)
+                setBody(body)
+            }
+
+        suspend fun transactions(auth: String): List<Transaction> = http
+            .get("/transactions") { header(HttpHeaders.Authorization, auth) }
+            .body()
     }
 
     // Запятой в имени быть не может: Kotlin/Native отвергает её на компиляции теста.
@@ -188,6 +225,40 @@ class ManiApiTest {
                     setBody(RefreshParams(tokens.refreshToken))
                 }
             assertEquals(HttpStatusCode.Unauthorized, reused.status)
+        }
+    }
+
+    /**
+     * Идентификатор правится по пути, а не по телу.
+     *
+     * Проверка владельца смотрела на `path.id`, а документ на запись выбирался по `id` из тела:
+     * достаточно было отправить `PATCH` на СВОЮ запись, приложив в теле чужую, — и чужая
+     * переписывалась, заодно меняя владельца на вызывающего. Ответ при этом был 200, то есть
+     * снаружи всё выглядело исправным.
+     */
+    @Test
+    fun `a stranger cannot patch a foreign transaction through the id in the body`() = runBlocking {
+        withMani {
+            val owner = signIn("owner", "hunter2")
+            val stranger = signIn("stranger", "hunter2")
+
+            val theirs = createTransaction(owner, "theirs")
+            val mine = createTransaction(stranger, "mine")
+
+            // В лоб: чужой идентификатор в пути. Это было закрыто и раньше.
+            val direct = patchTransaction(stranger, path = theirs.id, body = theirs.copy(comment = "stolen"))
+            assertEquals(HttpStatusCode.Forbidden, direct.status)
+
+            // Обходом: свой идентификатор в пути, чужой — в теле.
+            val smuggled = patchTransaction(stranger, path = mine.id, body = theirs.copy(comment = "stolen"))
+            assertEquals(HttpStatusCode.OK, smuggled.status)
+
+            val ownersNow = transactions(owner)
+            assertEquals(1, ownersNow.size, "чужая запись сменила владельца")
+            assertEquals("theirs", ownersNow.single().comment, "чужая запись переписана")
+
+            // А своя запись правится: путь и решает, что именно пишется.
+            assertEquals(listOf("stolen"), transactions(stranger).map { it.comment })
         }
     }
 }

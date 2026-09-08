@@ -5,6 +5,7 @@ import io.github.youndie.mani.db.TransactionDb
 import io.github.youndie.mani.feature.transaction.Transaction
 import io.github.youndie.mongkn.MongoDatabase
 import io.github.youndie.mongkn.bson.BsonObjectId
+import io.github.youndie.mongkn.ext.and
 import io.github.youndie.mongkn.ext.filter
 import io.github.youndie.mongkn.ext.find
 import kotlinx.coroutines.flow.firstOrNull
@@ -27,9 +28,23 @@ class MongknTransactionRepository(mongoDatabase: MongoDatabase) : TransactionRep
         .toList()
         .map { it.toRecord() }
 
+    /**
+     * Владелец — часть фильтра, а не только проверка в маршруте.
+     *
+     * Маршрут и так отказывает на чужой записи, но условие здесь стоит вторым рубежом: следующий
+     * вызов `update` из другого места окажется безопасным по умолчанию, а не потому, что о
+     * проверке вспомнили. Чужой документ при таком фильтре просто не совпадает — ничего не
+     * переписывается.
+     *
+     * `and(...)` вместо двух пар в одном документе: у двух условий на одно поле совпали бы
+     * ключи, и второе вытеснило бы первое молча.
+     */
     override suspend fun update(transaction: Transaction, userId: String) {
         db.replaceOne(
-            filter = filter<TransactionDb> { "_id" eq transaction.id },
+            filter =
+            filter<TransactionDb> {
+                and("_id" eq transaction.id, TransactionDb::userId eq userId)
+            },
             replacement = mapToDb(transaction, transaction.id, userId),
         )
     }

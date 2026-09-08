@@ -52,14 +52,21 @@ fun Routing.transactionRouting() {
         }
 
         patch<TransactionResource.ById> { path ->
-            val new = call.receive<Transaction>()
+            // Идентификатор берётся ТОЛЬКО из пути. Тело приходит от клиента вместе со своим
+            // `id`, и раньше именно он выбирал документ на запись, тогда как владельца проверял
+            // `path.id`. Достаточно было прислать `PATCH /transactions/<своя>` с чужим `id`
+            // в теле — и чужая запись переписывалась, забирая себе `userId` вызывающего.
+            val new = call.receive<Transaction>().copy(id = path.id)
+            val userId = call.currentUserId()
             val old = transactionRepository.getById(path.id)
 
-            if (old?.userId != call.currentUserId()) {
+            // 403 и на «не твоё», и на «не существует»: разные ответы рассказали бы, какие
+            // идентификаторы заняты.
+            if (old?.userId != userId) {
                 call.respond(HttpStatusCode.Forbidden)
                 return@patch
             }
-            transactionRepository.update(new, old.userId)
+            transactionRepository.update(new, userId)
             call.respond(HttpStatusCode.OK, new)
         }
 
