@@ -139,11 +139,11 @@ Screen layouts are checked separately, against screenshots recorded by
 [viddik](https://github.com/youndie/viddik):
 
 ```bash
-./gradlew :composeApp:screenshotTest
+./gradlew :composeApp:viddikVerify
 ```
 
 ```bash
-VIDDIK_RECORD_MODE=true ./gradlew :composeApp:screenshotTest --rerun-tasks
+./gradlew :composeApp:viddikRecord
 ```
 
 Style is checked by [ktlint](https://github.com/pinterest/ktlint) against `.editorconfig`, which

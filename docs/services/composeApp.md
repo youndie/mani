@@ -141,11 +141,11 @@ iOS — открыть `iosApp/iosApp.xcodeproj` в Xcode.
 ```
 
 ```bash
-./gradlew :composeApp:screenshotTest
+./gradlew :composeApp:viddikVerify
 ```
 
 ```bash
-VIDDIK_RECORD_MODE=true ./gradlew :composeApp:screenshotTest --rerun-tasks
+./gradlew :composeApp:viddikRecord
 ```
 
 ## 7. Конфигурация
