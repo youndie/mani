@@ -32,7 +32,6 @@ import kotlinx.coroutines.test.*
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.plus
-import org.junit.Test
 import org.koin.core.context.startKoin
 import org.koin.core.context.stopKoin
 import org.koin.core.module.dsl.singleOf
@@ -43,6 +42,15 @@ import org.koin.test.KoinTest
 import org.koin.test.get
 import kotlin.test.*
 
+/**
+ * Главный экран: лента, прогноз, фильтры и выход.
+ *
+ * Самый крупный клиентский набор, и он сторожит то, что ломается тише всего: состояние экрана
+ * собирается из четырёх потоков сразу — правила, категории, два фильтра, — и ошибка в их
+ * соединении не падает, а показывает не тот список. Отсюда проверки не только «данные пришли»,
+ * но и «баланс считается по всей симуляции, а не по отфильтрованной ленте», и «выход не
+ * затирается следующим приходом подписки».
+ */
 class MainViewModelTest : KoinTest {
     private var shouldReturnError = false
     private val targetCategory = Category("100", "Target")

@@ -93,7 +93,7 @@ internal val maniJson = Json { ignoreUnknownKeys = true }
 internal suspend fun HttpClient.signIn(name: String, password: String): String {
     val credentials = maniJson.encodeToString(LoginParams.serializer(), LoginParams(name, password))
 
-    post("/users") {
+    val signup = post("/users") {
         contentType(ContentType.Application.Json)
         setBody(credentials)
     }
@@ -102,7 +102,13 @@ internal suspend fun HttpClient.signIn(name: String, password: String): String {
         contentType(ContentType.Application.Json)
         setBody(credentials)
     }
-    assertEquals(HttpStatusCode.OK, response.status)
+    // Отказ регистрации виден только здесь: без него вход отвечает 404, и тест читается как
+    // «маршрута нет», хотя дело в пароле или занятом имени.
+    assertEquals(
+        HttpStatusCode.OK,
+        response.status,
+        "вход отвергнут; регистрация ответила ${signup.status}: ${signup.bodyAsText()}",
+    )
 
     return maniJson.decodeFromString(Tokens.serializer(), response.bodyAsText()).accessToken
 }

@@ -116,6 +116,7 @@ The readiness probe has no `initialDelaySeconds`: the native binary answers 87 m
   hard-coded one.
 * **And:** a failing `/health` is **silent** — the line does not appear, and that does not stop
   anyone entering the demo.
+* **Automated:** `WelcomeViewModelTest`, `GetHealthUseCaseTest`
 
 ## 6. Out of scope
 

@@ -15,6 +15,13 @@ import org.koin.test.KoinTest
 import org.koin.test.get
 import kotlin.test.*
 
+/**
+ * Форма входа: что видит человек после нажатия.
+ *
+ * Модель общая у входа и регистрации, поэтому проверяются оба исхода каждого пути — успех
+ * снимает форму, отказ оставляет её с текстом ошибки и снятой загрузкой. Последнее не
+ * мелочь: форма с вечным спиннером выглядит как зависшее приложение, а не как отказ.
+ */
 @OptIn(ExperimentalCoroutinesApi::class)
 class AuthViewModelTest : KoinTest {
 
@@ -24,11 +31,14 @@ class AuthViewModelTest : KoinTest {
 
     @BeforeTest
     fun setUp() {
+        // Диспетчер подменяется ДО построения модели: её `init` уже уходит в `viewModelScope`,
+        // то есть на Main, и построенная раньше подмены модель стартует на настоящем.
+        Dispatchers.setMain(StandardTestDispatcher())
+
         startKoin {
             modules(testModule { useCaseSuccess })
         }
         viewModel = get()
-        Dispatchers.setMain(StandardTestDispatcher())
     }
 
     @Test

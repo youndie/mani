@@ -162,6 +162,8 @@ needs an id, and the id appears at creation time.
 * **Given:** a signed-in user with not a single rule.
 * **When:** the button on the empty screen is pressed (`POST /demo/seed`).
 * **Then:** `201`, and the same set appears in their account.
+* **Automated:** `DemoRoutingTest`, `SeedDemoDataUseCaseTest`
+
 
 ## 6. Out of scope
 
