@@ -309,8 +309,14 @@ class AuthComponentTest {
 }
 ```
 
-Nodes are found by `testTag`, not by visible text: text changes with every copy edit, tags do not.
-The tag goes where the element is drawn.
+Nodes are found by `testTag`, not by visible text: copy changes often, tags do not. The tag goes
+where the element is drawn.
+
+The exception is text that **is** the property under test. The ledger labels today's row with the
+word TODAY rather than a date, and a filter chip's caption is how the toggle reports its state —
+there is nothing else about either to assert. `SimpleMainTest` and `FiltersTest` read those by text
+deliberately. The rule is about locating a node while checking something else; it is not a ban on
+asserting what a screen says.
 
 ## Screenshots
 
