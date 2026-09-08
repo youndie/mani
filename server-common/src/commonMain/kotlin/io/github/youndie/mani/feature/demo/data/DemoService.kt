@@ -1,5 +1,6 @@
 package io.github.youndie.mani.feature.demo.data
 
+import dev.whyoleg.cryptography.random.CryptographyRandom
 import io.github.youndie.mani.feature.auth.LoginParams
 import io.github.youndie.mani.feature.auth.Tokens
 import io.github.youndie.mani.feature.auth.data.AuthService
@@ -8,8 +9,8 @@ import io.github.youndie.mani.feature.demo.DemoSeed
 import io.github.youndie.mani.feature.transaction.Category
 import io.github.youndie.mani.feature.transaction.data.TransactionRepository
 import io.github.youndie.mani.feature.user.data.UserRepository
+import io.github.youndie.mani.security.toHex
 import io.github.youndie.mani.utilz.suspendRunCatching
-import kotlin.random.Random
 
 /**
  * Разворачивает песочницу: одноразовый пользователь с данными из [DemoSeed] и токены к нему.
@@ -98,18 +99,19 @@ class DemoService(
         }
         .firstOrNull { userRepository.findByUsername(it.name) == null }
 
-    private fun randomHex(bytes: Int): String = (1..bytes).joinToString("") {
-        Random
-            .nextInt(BYTE_VALUES)
-            .toString(HEX)
-            .padStart(2, '0')
-    }
+    /**
+     * Тем же источником, что соль пароля и `jti` токена, — `kotlin.random.Random` здесь стоял
+     * по недосмотру.
+     *
+     * Он предсказуем по нескольким выданным значениям, а это пароль: угадавший его входит
+     * в чужую песочницу. Данных там всего лишь сид, но криптостойкий источник в этом проекте
+     * уже есть, и выбирать между ним и обычным ГПСЧ незачем.
+     */
+    private fun randomHex(bytes: Int): String = CryptographyRandom.nextBytes(bytes).toHex()
 
     private companion object {
         const val CREDENTIALS_ATTEMPTS = 5
         const val NAME_BYTES = 4
         const val PASSWORD_BYTES = 16
-        const val BYTE_VALUES = 256
-        const val HEX = 16
     }
 }
