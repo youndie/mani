@@ -1,5 +1,5 @@
 import com.ionspin.kotlin.bignum.decimal.BigDecimal
-import io.github.youndie.mani.demo.DemoSeed
+import io.github.youndie.mani.feature.demo.DemoSeed
 import io.github.youndie.mani.feature.transaction.Transaction
 import io.github.youndie.mani.feature.transaction.amountSigned
 import io.github.youndie.mani.feature.transaction.defaultPeriodAppend

@@ -7,8 +7,8 @@ import de.flapdoodle.reverse.TransitionWalker
 import io.github.youndie.mani.config.JWTConfig
 import io.github.youndie.mani.config.ManiConfig
 import io.github.youndie.mani.config.MongoConfig
-import io.github.youndie.mani.demo.DemoSeed
 import io.github.youndie.mani.feature.auth.Tokens
+import io.github.youndie.mani.feature.demo.DemoSeed
 import io.github.youndie.mani.feature.transaction.Category
 import io.github.youndie.mani.feature.transaction.Transaction
 import io.github.youndie.mani.security.TokenService

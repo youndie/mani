@@ -5,18 +5,15 @@ import io.github.youndie.mani.feature.categories.data.CategoriesRepository
 import io.github.youndie.mani.feature.transaction.Category
 import io.github.youndie.mani.useCase.EmptyParams
 import io.github.youndie.mani.useCase.NonParameterizedUseCase
+import io.github.youndie.mani.utilz.suspendRunCatching
 import kotlinx.coroutines.flow.Flow
 
 class GetCategoriesUseCase(private val repository: CategoriesRepository) :
     NonParameterizedUseCase<Flow<List<Category>>>() {
 
-    override suspend fun invoke(params: EmptyParams): Result<Flow<List<Category>>> {
-        try {
-            repository.load()
-        } catch (e: Exception) {
-            return Result.Error(ServerException("Network Error", e))
-        }
+    override suspend fun invoke(params: EmptyParams): Result<Flow<List<Category>>> = suspendRunCatching {
+        repository.load()
 
-        return Result.Success(repository.dataStateFlow)
-    }
+        Result.success(repository.dataStateFlow)
+    }.getOrElse { Result.failure(ServerException("Network Error", it)) }
 }

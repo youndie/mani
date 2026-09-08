@@ -16,7 +16,6 @@ import io.github.youndie.mani.feature.transaction.ui.model.TransactionUiState
 import io.github.youndie.mani.feature.transaction.ui.model.buildColoredAmount
 import io.github.youndie.mani.orToday
 import io.github.youndie.mani.today
-import io.github.youndie.mani.useCase.UseCase
 import io.github.youndie.mani.utilz.bigdecimal.sumOf
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.collections.immutable.toImmutableSet
@@ -140,19 +139,18 @@ abstract class BaseTransactionViewModel(
 
             val result = withContext(dispatcher) { addCategoryUseCase(new) }
 
-            when (result) {
-                is UseCase.Result.Error -> {
+            result.fold(
+                onSuccess = { category ->
                     state.update {
-                        it.copy(category = Category.default, errorMessage = result.throwable.message)
+                        it.copy(category = category)
                     }
-                }
-
-                is UseCase.Result.Success -> {
+                },
+                onFailure = { throwable ->
                     state.update {
-                        it.copy(category = result.data)
+                        it.copy(category = Category.default, errorMessage = throwable.message)
                     }
-                }
-            }
+                },
+            )
         }
     }
 
@@ -162,7 +160,7 @@ abstract class BaseTransactionViewModel(
         }
         category?.let {
             viewModelScope.launch {
-                if (deleteCategoryUseCase(category) !is UseCase.Result.Success) {
+                if (deleteCategoryUseCase(category).isFailure) {
                     onCategoryChanged(category)
                 }
             }

@@ -27,13 +27,8 @@ fun <P, T> UseCase<P, T>.toDataState(p: P, dispatcher: CoroutineDispatcher = Dis
             invoke(p)
         }
 
-        when (result) {
-            is UseCase.Result.Error -> {
-                emit(DataState.Error(result.throwable))
-            }
-
-            is UseCase.Result.Success -> {
-                emit(DataState.Success(result.data))
-            }
-        }
+        result.fold(
+            onSuccess = { emit(DataState.Success(it)) },
+            onFailure = { emit(DataState.Error(it)) },
+        )
     }

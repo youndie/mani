@@ -6,8 +6,6 @@ import io.github.youndie.mani.feature.auth.LoginParams
 import io.github.youndie.mani.feature.auth.domain.AuthUseCase
 import io.github.youndie.mani.feature.auth.domain.DemoUseCase
 import io.github.youndie.mani.feature.auth.ui.model.AuthUiState
-import io.github.youndie.mani.useCase.UseCase
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
@@ -36,19 +34,18 @@ class AuthViewModel(private val authUseCase: AuthUseCase, private val startDemoU
                 it.copy(demoLoading = true, errorMessage = null)
             }
 
-            when (val result = startDemoUseCase()) {
-                is UseCase.Result.Success -> {
+            startDemoUseCase().fold(
+                onSuccess = {
                     state.update {
                         it.copy(success = true)
                     }
-                }
-
-                is UseCase.Result.Error -> {
+                },
+                onFailure = { throwable ->
                     state.update {
-                        it.copy(demoLoading = false, errorMessage = result.throwable.message.orEmpty())
+                        it.copy(demoLoading = false, errorMessage = throwable.message.orEmpty())
                     }
-                }
-            }
+                },
+            )
         }
     }
 
@@ -58,23 +55,20 @@ class AuthViewModel(private val authUseCase: AuthUseCase, private val startDemoU
                 it.copy(loading = true, errorMessage = null)
             }
 
-            val result = with(Dispatchers.Default) {
-                authUseCase.invoke(LoginParams(state.value.username, state.value.password))
-            }
+            val result = authUseCase(LoginParams(state.value.username, state.value.password))
 
-            when (result) {
-                is UseCase.Result.Success -> {
+            result.fold(
+                onSuccess = {
                     state.update {
                         it.copy(success = true)
                     }
-                }
-
-                is UseCase.Result.Error -> {
+                },
+                onFailure = { throwable ->
                     state.update {
-                        it.copy(loading = false, errorMessage = result.throwable.message.orEmpty())
+                        it.copy(loading = false, errorMessage = throwable.message.orEmpty())
                     }
-                }
-            }
+                },
+            )
         }
     }
 }

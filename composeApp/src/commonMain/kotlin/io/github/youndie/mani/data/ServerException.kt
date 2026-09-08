@@ -6,6 +6,6 @@ package io.github.youndie.mani.data
  */
 open class ServerException(
     override val message: String = "Server error",
-    override val cause: Exception? = null,
+    override val cause: Throwable? = null,
     val status: Int? = null,
 ) : Exception(message, cause)

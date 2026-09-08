@@ -10,7 +10,6 @@ import io.github.youndie.mani.feature.transaction.domain.GetTransactionUseCase
 import io.github.youndie.mani.feature.transaction.domain.ObserveTransactionsUseCase
 import io.github.youndie.mani.feature.transaction.domain.UpdateTransactionUseCase
 import io.github.youndie.mani.feature.transaction.ui.model.TransactionUiState
-import io.github.youndie.mani.useCase.UseCase
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
@@ -40,18 +39,25 @@ class EditTransactionViewModel(
 
     init {
         viewModelScope.launch(dispatcher) {
-            val transaction = getTransactionUseCase.get(transactionId)
+            // Правило может не найтись — ссылку открыли по устаревшему идентификатору. Это
+            // сообщение на форме, а не падение: `get()` бросил бы отказ прямо в корутину.
+            getTransactionUseCase(transactionId).fold(
+                onSuccess = { transaction ->
+                    state.value = TransactionUiState(
+                        transaction,
+                        currency = getCurrentCurrencyUseCase.get(),
+                    ).copy(
+                        edit = true,
+                        periods = Transaction.Period.entries.toImmutableList(),
+                    )
 
-            state.value = TransactionUiState(
-                transaction,
-                currency = getCurrentCurrencyUseCase.get(),
-            ).copy(
-                edit = true,
-                periods = Transaction.Period.entries.toImmutableList(),
+                    observeCategories()
+                    observeTransactions()
+                },
+                onFailure = { throwable ->
+                    state.update { it.copy(loading = false, errorMessage = throwable.message) }
+                },
             )
-
-            observeCategories()
-            observeTransactions()
         }
     }
 
@@ -61,17 +67,16 @@ class EditTransactionViewModel(
 
             val result = updateTransactionUseCase(state.value.tempTransaction)
 
-            when (result) {
-                is UseCase.Result.Success -> {
+            result.fold(
+                onSuccess = {
                     state.update { TransactionUiState(success = true) }
-                }
-
-                is UseCase.Result.Error -> {
+                },
+                onFailure = { throwable ->
                     state.update {
-                        it.copy(errorMessage = result.throwable.message, loading = false)
+                        it.copy(errorMessage = throwable.message, loading = false)
                     }
-                }
-            }
+                },
+            )
         }
     }
 }

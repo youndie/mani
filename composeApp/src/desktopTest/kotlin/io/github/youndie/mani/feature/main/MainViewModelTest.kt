@@ -410,5 +410,5 @@ class MainViewModelTest : KoinTest {
 }
 
 private class FakeSeedUseCase : SeedUseCase() {
-    override suspend fun invoke(params: EmptyParams): Result<Boolean> = Result.Success(true)
+    override suspend fun invoke(params: EmptyParams): Result<Boolean> = Result.success(true)
 }

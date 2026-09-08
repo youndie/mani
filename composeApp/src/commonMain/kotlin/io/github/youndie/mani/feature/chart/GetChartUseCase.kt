@@ -12,5 +12,5 @@ class GetChartUseCase(private val transactionRepository: TransactionRepository) 
     NonParameterizedUseCase<Flow<ChartResponse>>() {
 
     override suspend operator fun invoke(params: EmptyParams) =
-        Result.Success(transactionRepository.dataStateFlow.map(List<Transaction>::toChartInternal))
+        Result.success(transactionRepository.dataStateFlow.map(List<Transaction>::toChartInternal))
 }

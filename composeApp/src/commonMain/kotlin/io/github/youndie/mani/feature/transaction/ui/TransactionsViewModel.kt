@@ -17,7 +17,6 @@ import io.github.youndie.mani.feature.transaction.ui.model.TransactionUiItem
 import io.github.youndie.mani.feature.transaction.ui.model.buildColoredAmount
 import io.github.youndie.mani.feature.transaction.ui.model.formatMoney
 import io.github.youndie.mani.today
-import io.github.youndie.mani.useCase.UseCase
 import io.github.youndie.mani.utilz.bigdecimal.sumOf
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.collections.immutable.toImmutableMap
@@ -48,15 +47,11 @@ class TransactionsViewModel(
             state.value = TransactionListUiState(loading = true, data = loadingItems)
 
             val currency = getCurrentCurrencyUseCase.get()
-            when (val result = getTransactionsUseCase()) {
-                is UseCase.Result.Error -> {
-                    state.value = TransactionListUiState(errorMessage = result.throwable.message.orEmpty())
-                }
-
-                is UseCase.Result.Success -> {
+            getTransactionsUseCase().fold(
+                onSuccess = { transactionsFlow ->
                     state.update { state -> state.copy(loading = false, data = emptyImmutableMap()) }
 
-                    result.data.mapLatest { transactions ->
+                    transactionsFlow.mapLatest { transactions ->
                         val simulated = transactions.simulate()
 
                         simulated
@@ -100,8 +95,11 @@ class TransactionsViewModel(
                                 ),
                             )
                     }
-                }
-            }
+                },
+                onFailure = { throwable ->
+                    state.value = TransactionListUiState(errorMessage = throwable.message.orEmpty())
+                },
+            )
         }
     }
 

@@ -4,7 +4,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.youndie.mani.feature.auth.domain.DemoUseCase
 import io.github.youndie.mani.feature.health.domain.HealthUseCase
-import io.github.youndie.mani.useCase.UseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
@@ -26,9 +25,7 @@ class WelcomeViewModel(private val demoUseCase: DemoUseCase, private val healthU
         viewModelScope.launch {
             // Отказ здесь молчаливый: строка о сборке — украшение витрины, и её отсутствие не
             // должно мешать войти в демо.
-            val result = healthUseCase()
-            if (result is UseCase.Result.Success) {
-                val health = result.data
+            healthUseCase().onSuccess { health ->
                 state.update { it.copy(server = "ktor · ${health.build} · ${health.version}") }
             }
         }
@@ -38,14 +35,14 @@ class WelcomeViewModel(private val demoUseCase: DemoUseCase, private val healthU
         viewModelScope.launch {
             state.update { it.copy(loading = true, errorMessage = null) }
 
-            when (val result = demoUseCase()) {
-                is UseCase.Result.Success -> state.update { it.copy(success = true) }
-
-                is UseCase.Result.Error ->
+            demoUseCase().fold(
+                onSuccess = { state.update { it.copy(success = true) } },
+                onFailure = { throwable ->
                     state.update {
-                        it.copy(loading = false, errorMessage = result.throwable.message.orEmpty())
+                        it.copy(loading = false, errorMessage = throwable.message.orEmpty())
                     }
-            }
+                },
+            )
         }
     }
 }

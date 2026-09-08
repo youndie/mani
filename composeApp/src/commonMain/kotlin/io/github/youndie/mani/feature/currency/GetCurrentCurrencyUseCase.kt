@@ -7,5 +7,5 @@ import io.github.youndie.mani.useCase.NonParameterizedUseCase
 class GetCurrentCurrencyUseCase(private val currencyRepository: CurrentCurrencyRepository) :
     NonParameterizedUseCase<Currency>() {
 
-    override suspend fun invoke(params: EmptyParams): Result<Currency> = Result.Success(currencyRepository.currency)
+    override suspend fun invoke(params: EmptyParams): Result<Currency> = Result.success(currencyRepository.currency)
 }

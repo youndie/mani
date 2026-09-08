@@ -8,7 +8,6 @@ import io.github.youndie.mani.feature.currency.GetCurrentCurrencyUseCase
 import io.github.youndie.mani.feature.transaction.domain.AddTransactionUseCase
 import io.github.youndie.mani.feature.transaction.domain.ObserveTransactionsUseCase
 import io.github.youndie.mani.feature.transaction.ui.model.TransactionUiState
-import io.github.youndie.mani.useCase.UseCase
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.update
@@ -51,17 +50,16 @@ class AddTransactionViewModel(
             }
 
             val result = withContext(dispatcher) { addTransactionUseCase(state.value.tempTransaction) }
-            when (result) {
-                is UseCase.Result.Error -> {
-                    state.update {
-                        it.copy(loading = false, errorMessage = result.throwable.message)
-                    }
-                }
-
-                is UseCase.Result.Success -> {
+            result.fold(
+                onSuccess = {
                     state.update { TransactionUiState(success = true) }
-                }
-            }
+                },
+                onFailure = { throwable ->
+                    state.update {
+                        it.copy(loading = false, errorMessage = throwable.message)
+                    }
+                },
+            )
         }
     }
 }

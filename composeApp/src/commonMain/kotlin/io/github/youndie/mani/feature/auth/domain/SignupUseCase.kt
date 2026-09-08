@@ -4,6 +4,7 @@ import io.github.youndie.mani.data.ServerException
 import io.github.youndie.mani.feature.auth.LoginParams
 import io.github.youndie.mani.feature.auth.Tokens
 import io.github.youndie.mani.feature.user.UserResource
+import io.github.youndie.mani.utilz.suspendRunCatching
 import io.ktor.client.*
 import io.ktor.client.plugins.resources.*
 import io.ktor.client.request.*
@@ -15,22 +16,20 @@ interface UserService {
 }
 
 class SignupUseCase(private val httpClient: HttpClient) : AuthUseCase() {
-    override suspend fun invoke(params: LoginParams) = try {
+    override suspend fun invoke(params: LoginParams): Result<Boolean> = suspendRunCatching {
         val response = httpClient.post(UserResource()) {
             setBody(params)
         }
         when (response.status) {
             HttpStatusCode.BadRequest -> {
-                Result.Error(AlreadyRegisteredException())
+                Result.failure(AlreadyRegisteredException())
             }
 
             HttpStatusCode.InternalServerError -> {
-                Result.Error(ServerException())
+                Result.failure(ServerException())
             }
 
-            else -> Result.Success(true)
+            else -> Result.success(true)
         }
-    } catch (e: Exception) {
-        Result.Error(e)
-    }
+    }.getOrElse { Result.failure(it) }
 }

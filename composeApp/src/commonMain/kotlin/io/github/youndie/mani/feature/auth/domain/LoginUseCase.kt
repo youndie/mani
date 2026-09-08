@@ -5,6 +5,7 @@ import io.github.youndie.mani.feature.auth.AuthResource
 import io.github.youndie.mani.feature.auth.LoginParams
 import io.github.youndie.mani.feature.auth.Tokens
 import io.github.youndie.mani.feature.auth.data.TokenRepository
+import io.github.youndie.mani.utilz.suspendRunCatching
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.plugins.resources.*
@@ -15,28 +16,24 @@ import kotlinx.coroutines.withContext
 
 class LoginUseCase(private val httpClient: HttpClient, private val tokenRepository: TokenRepository) : AuthUseCase() {
 
-    override suspend operator fun invoke(params: LoginParams): Result<Boolean> {
-        try {
-            return withContext(Dispatchers.Default) {
-                val response = httpClient.post(AuthResource()) {
-                    setBody(params)
-                }
-
-                if (response.status == HttpStatusCode.NotFound) {
-                    Result.Error(UserNotFoundException())
-                } else {
-                    val result = response.body<Tokens>()
-                    tokenRepository.set(
-                        accessToken = result.accessToken,
-                        refreshToken = result.refreshToken,
-                    )
-                    Result.Success(true)
-                }
+    override suspend operator fun invoke(params: LoginParams): Result<Boolean> = suspendRunCatching {
+        withContext(Dispatchers.Default) {
+            val response = httpClient.post(AuthResource()) {
+                setBody(params)
             }
-        } catch (e: Exception) {
-            return Result.Error(ServerException(message = "Network Error", cause = e))
+
+            if (response.status == HttpStatusCode.NotFound) {
+                Result.failure(UserNotFoundException())
+            } else {
+                val result = response.body<Tokens>()
+                tokenRepository.set(
+                    accessToken = result.accessToken,
+                    refreshToken = result.refreshToken,
+                )
+                Result.success(true)
+            }
         }
-    }
+    }.getOrElse { Result.failure(ServerException(message = "Network Error", cause = it)) }
 }
 
 class UserNotFoundException : ServerException("User not found or invalid password")

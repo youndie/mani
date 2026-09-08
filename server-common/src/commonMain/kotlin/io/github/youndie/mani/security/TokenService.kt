@@ -5,6 +5,7 @@ import dev.whyoleg.cryptography.algorithms.HMAC
 import dev.whyoleg.cryptography.algorithms.SHA256
 import dev.whyoleg.cryptography.random.CryptographyRandom
 import io.github.youndie.mani.config.JWTConfig
+import io.github.youndie.mani.utilz.suspendRunCatching
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
@@ -89,7 +90,8 @@ class TokenService(private val config: JWTConfig) {
     /**
      * @return claims, если подпись сошлась и токен не просрочен; иначе `null`. Никаких
      *   исключений наружу: для вызывающего «подпись не сошлась» и «токен испорчен» — один
-     *   и тот же ответ, 401.
+     *   и тот же ответ, 401. Исключение — отмена: отменённый запрос не должен превращаться
+     *   в 401, поэтому проверка идёт через `suspendRunCatching`.
      */
     @Suppress(
         "ktlint:kapkan:wall-clock",
@@ -99,7 +101,7 @@ class TokenService(private val config: JWTConfig) {
         val parts = token.split('.')
         if (parts.size != 3) return null
 
-        return runCatching {
+        return suspendRunCatching {
             val header = Json.parseToJsonElement(parts[0].decodeBase64Url().decodeToString()) as JsonObject
             if ((header["alg"] as? JsonPrimitive)?.contentOrNull != ALGORITHM) return null
 
