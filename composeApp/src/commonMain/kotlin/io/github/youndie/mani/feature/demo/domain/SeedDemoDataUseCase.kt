@@ -4,6 +4,7 @@ import io.github.youndie.mani.data.ServerException
 import io.github.youndie.mani.feature.demo.DemoResource
 import io.github.youndie.mani.feature.transaction.domain.TransactionRepository
 import io.github.youndie.mani.useCase.EmptyParams
+import io.github.youndie.mani.utilz.suspendRunCatching
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.resources.post
 import io.ktor.http.HttpStatusCode
@@ -20,18 +21,16 @@ class SeedDemoDataUseCase(
     private val httpClient: HttpClient,
     private val transactionRepository: TransactionRepository,
 ) : SeedUseCase() {
-    override suspend operator fun invoke(params: EmptyParams): Result<Boolean> = try {
+    override suspend operator fun invoke(params: EmptyParams): Result<Boolean> = suspendRunCatching {
         withContext(Dispatchers.Default) {
             val response = httpClient.post(DemoResource.Seed())
 
             if (response.status != HttpStatusCode.Created) {
-                Result.Error(ServerException("Couldn't fill the demo data"))
+                Result.failure(ServerException("Couldn't fill the demo data"))
             } else {
                 transactionRepository.load()
-                Result.Success(true)
+                Result.success(true)
             }
         }
-    } catch (e: Exception) {
-        Result.Error(ServerException(message = "Couldn't fill the demo data", cause = e))
-    }
+    }.getOrElse { Result.failure(ServerException(message = "Couldn't fill the demo data", cause = it)) }
 }

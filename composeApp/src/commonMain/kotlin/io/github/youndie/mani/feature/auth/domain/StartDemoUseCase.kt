@@ -5,6 +5,7 @@ import io.github.youndie.mani.feature.auth.Tokens
 import io.github.youndie.mani.feature.auth.data.TokenRepository
 import io.github.youndie.mani.feature.demo.DemoResource
 import io.github.youndie.mani.useCase.EmptyParams
+import io.github.youndie.mani.utilz.suspendRunCatching
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.plugins.resources.post
@@ -20,7 +21,7 @@ import kotlinx.coroutines.withContext
  */
 class StartDemoUseCase(private val httpClient: HttpClient, private val tokenRepository: TokenRepository) :
     DemoUseCase() {
-    override suspend operator fun invoke(params: EmptyParams): Result<Boolean> = try {
+    override suspend operator fun invoke(params: EmptyParams): Result<Boolean> = suspendRunCatching {
         withContext(Dispatchers.Default) {
             val tokens = httpClient.post(DemoResource()).body<Tokens>()
 
@@ -28,9 +29,7 @@ class StartDemoUseCase(private val httpClient: HttpClient, private val tokenRepo
                 accessToken = tokens.accessToken,
                 refreshToken = tokens.refreshToken,
             )
-            Result.Success(true)
+            Result.success(true)
         }
-    } catch (e: Exception) {
-        Result.Error(ServerException(message = "Couldn't start the demo", cause = e))
-    }
+    }.getOrElse { Result.failure(ServerException(message = "Couldn't start the demo", cause = it)) }
 }

@@ -12,6 +12,6 @@ class LogoutUseCase(
     override suspend fun invoke(params: EmptyParams): Result<Boolean> {
         tokenRepository.set("", "")
         transactionRepository.reset()
-        return Result.Success(true)
+        return Result.success(true)
     }
 }

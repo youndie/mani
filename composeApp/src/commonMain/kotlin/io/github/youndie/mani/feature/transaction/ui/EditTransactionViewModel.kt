@@ -10,7 +10,6 @@ import io.github.youndie.mani.feature.transaction.domain.GetTransactionUseCase
 import io.github.youndie.mani.feature.transaction.domain.ObserveTransactionsUseCase
 import io.github.youndie.mani.feature.transaction.domain.UpdateTransactionUseCase
 import io.github.youndie.mani.feature.transaction.ui.model.TransactionUiState
-import io.github.youndie.mani.useCase.UseCase
 import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
@@ -61,17 +60,16 @@ class EditTransactionViewModel(
 
             val result = updateTransactionUseCase(state.value.tempTransaction)
 
-            when (result) {
-                is UseCase.Result.Success -> {
+            result.fold(
+                onSuccess = {
                     state.update { TransactionUiState(success = true) }
-                }
-
-                is UseCase.Result.Error -> {
+                },
+                onFailure = { throwable ->
                     state.update {
-                        it.copy(errorMessage = result.throwable.message, loading = false)
+                        it.copy(errorMessage = throwable.message, loading = false)
                     }
-                }
-            }
+                },
+            )
         }
     }
 }

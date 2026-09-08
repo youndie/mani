@@ -27,7 +27,6 @@ import io.github.youndie.mani.feature.transaction.ui.model.TransactionUiItem
 import io.github.youndie.mani.feature.transaction.ui.model.formatMoney
 import io.github.youndie.mani.feature.transaction.ui.model.formatMoneyAbsolute
 import io.github.youndie.mani.today
-import io.github.youndie.mani.useCase.UseCase
 import io.github.youndie.mani.utilz.bigdecimal.sumOf
 import kotlinx.collections.immutable.ImmutableMap
 import kotlinx.collections.immutable.toImmutableList
@@ -85,22 +84,13 @@ class MainViewModel(
     private suspend fun load() {
         state.value = MainUiState(loading = true, transactions = loadingItems)
 
-        val result = withContext(dispatcher) { transactionsUseCase() }
-
-        when (result) {
-            is UseCase.Result.Error -> {
-                // Показать нечего — ни свежего, ни сохранённого. Это не сообщение в углу, а
-                // состояние всего экрана, и у него должна быть причина и путь наружу.
-                state.value = MainUiState(unreachable = ServerUnreachableUiState(cause = describe(result.throwable)))
-                scheduleRetry()
-            }
-
-            is UseCase.Result.Success -> {
+        withContext(dispatcher) { transactionsUseCase() }.fold(
+            onSuccess = { transactionsFlow ->
                 retryAttempt = 0
                 state.value = state.value.copy(loading = true, transactions = emptyImmutableMap())
 
                 combine(
-                    result.data,
+                    transactionsFlow,
                     getCategoriesUseCase.get(),
                     filterUpcoming,
                     filterCategory,
@@ -151,8 +141,14 @@ class MainViewModel(
                 }.flowOn(dispatcher).collectLatest { result: MainUiState ->
                     state.update { result }
                 }
-            }
-        }
+            },
+            onFailure = { throwable ->
+                // Показать нечего — ни свежего, ни сохранённого. Это не сообщение в углу, а
+                // состояние всего экрана, и у него должна быть причина и путь наружу.
+                state.value = MainUiState(unreachable = ServerUnreachableUiState(cause = describe(throwable)))
+                scheduleRetry()
+            },
+        )
     }
 
     /** Повтор вручную: отсчёт сбрасывается, чтобы автоповтор не выстрелил поверх. */
@@ -240,9 +236,8 @@ class MainViewModel(
     /** Заполнить пустой аккаунт данными сида — предложение с первого экрана. */
     fun onFillWithDemoDataClicked() {
         viewModelScope.launch {
-            val result = seedUseCase()
-            if (result is UseCase.Result.Error) {
-                state.update { it.copy(errorMessage = result.throwable.message) }
+            seedUseCase().onFailure { throwable ->
+                state.update { it.copy(errorMessage = throwable.message) }
             }
         }
     }

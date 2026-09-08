@@ -106,17 +106,17 @@ private val errorMessage = "fake error"
 
 class FakeAuthUseCase(private val success: () -> Boolean) : AuthUseCase() {
     override suspend fun invoke(params: LoginParams) = if (success()) {
-        Result.Success(true)
+        Result.success(true)
     } else {
-        Result.Error(ServerException(errorMessage, null))
+        Result.failure(ServerException(errorMessage, null))
     }
 }
 
 class FakeDemoUseCase(private val success: () -> Boolean) : DemoUseCase() {
     override suspend fun invoke(params: io.github.youndie.mani.useCase.EmptyParams) = if (success()) {
-        Result.Success(true)
+        Result.success(true)
     } else {
-        Result.Error(ServerException(errorMessage, null))
+        Result.failure(ServerException(errorMessage, null))
     }
 }
 

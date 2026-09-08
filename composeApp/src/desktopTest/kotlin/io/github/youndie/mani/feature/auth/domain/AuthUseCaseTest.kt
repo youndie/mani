@@ -5,7 +5,6 @@ import io.github.youndie.mani.feature.auth.LoginParams
 import io.github.youndie.mani.feature.auth.data.TokenRepository
 import io.github.youndie.mani.feature.auth.data.TokenRepositoryCommon
 import io.github.youndie.mani.feature.auth.data.TokenStorageImpl
-import io.github.youndie.mani.useCase.UseCase
 import io.ktor.client.*
 import io.ktor.client.engine.mock.*
 import io.ktor.client.plugins.*
@@ -20,6 +19,7 @@ import kotlinx.serialization.json.Json
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.test.assertTrue
 
 class AuthUseCaseTest {
 
@@ -61,8 +61,7 @@ class AuthUseCaseTest {
 
         val result = authUseCase(LoginParams("username", "password"))
 
-        result as UseCase.Result.Error
-        assertIs<UserNotFoundException>(result.throwable)
+        assertIs<UserNotFoundException>(result.exceptionOrNull())
     }
 
     @Test
@@ -80,8 +79,7 @@ class AuthUseCaseTest {
 
         val result = authUseCase(LoginParams("username", "password"))
 
-        result as UseCase.Result.Error
-        assertIs<ServerException>(result.throwable)
+        assertIs<ServerException>(result.exceptionOrNull())
     }
 
     @Test
@@ -107,7 +105,7 @@ class AuthUseCaseTest {
 
         val result = authUseCase(LoginParams("username", "password"))
 
-        assertIs<UseCase.Result.Success<Boolean>>(result)
+        assertTrue(result.isSuccess)
         assertEquals(
             "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJBdXRoZW50aWNhdGlvbiIsImF1ZCI6Imp3dC1hdWRpZW5jZSIsImlzcyI6Imp3dC1pc3N1ZXIiLCJpZCI6IjY3NDU4NGMxZTgzNDAyMmMxYzA3M2ZjZCIsInVzZXJuYW1lIjoidGVzdGVyIiwiZXhwIjoxNzMzMTk4MDc2fQ.q6_f2N_rKWrcOtopisHpS-CImU-aS6I_AAAGHGzN-j4",
             tokenRepository.getToken().accessToken,
@@ -132,8 +130,7 @@ class AuthUseCaseTest {
 
         val result = authUseCase(LoginParams("username", "password"))
 
-        result as UseCase.Result.Error
-        assertIs<AlreadyRegisteredException>(result.throwable)
+        assertIs<AlreadyRegisteredException>(result.exceptionOrNull())
     }
 
     @Test
@@ -149,8 +146,7 @@ class AuthUseCaseTest {
 
         val result = authUseCase(LoginParams("username", "password"))
 
-        result as UseCase.Result.Error
-        assertIs<ServerException>(result.throwable)
+        assertIs<ServerException>(result.exceptionOrNull())
     }
 
     @Test
@@ -169,6 +165,6 @@ class AuthUseCaseTest {
 
         val result = authUseCase(LoginParams("username", "password"))
 
-        assertIs<UseCase.Result.Success<Boolean>>(result)
+        assertTrue(result.isSuccess)
     }
 }

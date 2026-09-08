@@ -1,6 +1,5 @@
 package io.github.youndie.mani.feature.transaction.domain
 
-import io.github.youndie.mani.feature.transaction.domain.TransactionRepository
 import io.github.youndie.mani.useCase.UseCase
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -23,6 +22,6 @@ class DeleteTransactionsUseCase(
             }
         }.awaitAll()
 
-        return Result.Success(true)
+        return Result.success(true)
     }
 }

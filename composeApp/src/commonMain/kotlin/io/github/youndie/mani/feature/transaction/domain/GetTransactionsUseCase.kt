@@ -4,6 +4,7 @@ import io.github.youndie.mani.data.ServerException
 import io.github.youndie.mani.feature.transaction.Transaction
 import io.github.youndie.mani.useCase.EmptyParams
 import io.github.youndie.mani.useCase.NonParameterizedUseCase
+import io.github.youndie.mani.utilz.suspendRunCatching
 import io.ktor.client.plugins.ResponseException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
@@ -17,13 +18,11 @@ class GetTransactionsUseCase(private val transactionRepository: TransactionRepos
     @OptIn(ExperimentalTime::class)
     val showingCacheFrom: StateFlow<Instant?> get() = transactionRepository.showingCacheFrom
 
-    override suspend fun invoke(params: EmptyParams): Result<Flow<List<Transaction>>> {
-        try {
-            transactionRepository.load()
-        } catch (e: Exception) {
-            return Result.Error(ServerException("Network Error", e, (e as? ResponseException)?.response?.status?.value))
-        }
+    override suspend fun invoke(params: EmptyParams): Result<Flow<List<Transaction>>> = suspendRunCatching {
+        transactionRepository.load()
 
-        return Result.Success(transactionRepository.dataStateFlow)
+        Result.success(transactionRepository.dataStateFlow)
+    }.getOrElse {
+        Result.failure(ServerException("Network Error", it, (it as? ResponseException)?.response?.status?.value))
     }
 }
