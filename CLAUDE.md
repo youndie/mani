@@ -12,6 +12,8 @@
    deploy: `services/`.
 3. **Code anchors** are in every document: a path to the feature directory, the handler, the view
    model. One hop and you are in the right file.
+4. **[docs/TESTING.md](docs/TESTING.md)** before writing a test — where it belongs, why fakes rather
+   than mocks, and which run-time traps turn a green build into an unverified one.
 
 When you change code, change the document that makes claims about it. A divergence between a
 document and the code is a defect of the same weight as a broken test: `docs/` describes what
