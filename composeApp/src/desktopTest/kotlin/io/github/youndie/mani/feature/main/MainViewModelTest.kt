@@ -7,6 +7,7 @@ import io.github.youndie.mani.feature.auth.data.TokenRepository
 import io.github.youndie.mani.feature.auth.data.TokenRepositoryCommon
 import io.github.youndie.mani.feature.auth.data.TokenStorage
 import io.github.youndie.mani.feature.auth.data.TokenStorageImpl
+import io.github.youndie.mani.feature.auth.data.temporarySessionFile
 import io.github.youndie.mani.feature.auth.domain.LogoutUseCase
 import io.github.youndie.mani.feature.categories.CATEGORIES_SOURCE
 import io.github.youndie.mani.feature.categories.data.CategoriesRepository
@@ -401,7 +402,7 @@ class MainViewModelTest : KoinTest {
         factory<MainViewModel> { MainViewModel(get(), get(), get(), get(), get(), get(), Dispatchers.Unconfined) }
 
         singleOf(::TokenRepositoryCommon).bind<TokenRepository>()
-        singleOf(::TokenStorageImpl).bind<TokenStorage>()
+        single<TokenStorage> { TokenStorageImpl(temporarySessionFile()) }
         singleOf(::LogoutUseCase)
         singleOf(::FakeCategoriesDataSource)
         // Тот же объект — и под именем, которое спрашивает репозиторий категорий.

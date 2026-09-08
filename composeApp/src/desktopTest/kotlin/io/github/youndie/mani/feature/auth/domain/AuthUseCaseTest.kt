@@ -5,6 +5,7 @@ import io.github.youndie.mani.feature.auth.LoginParams
 import io.github.youndie.mani.feature.auth.data.TokenRepository
 import io.github.youndie.mani.feature.auth.data.TokenRepositoryCommon
 import io.github.youndie.mani.feature.auth.data.TokenStorageImpl
+import io.github.youndie.mani.feature.auth.data.temporarySessionFile
 import io.ktor.client.*
 import io.ktor.client.engine.mock.*
 import io.ktor.client.plugins.*
@@ -47,7 +48,7 @@ class AuthUseCaseTest {
 
     @Test
     fun loginUserNotFoundErrorTest() = runTest {
-        val tokenRepository: TokenRepository = TokenRepositoryCommon(TokenStorageImpl())
+        val tokenRepository: TokenRepository = TokenRepositoryCommon(TokenStorageImpl(temporarySessionFile()))
         val authUseCase: AuthUseCase = LoginUseCase(
             defaultHttpRequest {
                 respond(
@@ -66,7 +67,7 @@ class AuthUseCaseTest {
 
     @Test
     fun loginServerErrorTest() = runTest {
-        val tokenRepository: TokenRepository = TokenRepositoryCommon(TokenStorageImpl())
+        val tokenRepository: TokenRepository = TokenRepositoryCommon(TokenStorageImpl(temporarySessionFile()))
         val authUseCase = LoginUseCase(
             defaultHttpRequest {
                 respond(
@@ -84,7 +85,7 @@ class AuthUseCaseTest {
 
     @Test
     fun loginSuccessTest() = runTest {
-        val tokenRepository: TokenRepository = TokenRepositoryCommon(TokenStorageImpl())
+        val tokenRepository: TokenRepository = TokenRepositoryCommon(TokenStorageImpl(temporarySessionFile()))
         val authUseCase = LoginUseCase(
             defaultHttpRequest { data ->
                 respond(
