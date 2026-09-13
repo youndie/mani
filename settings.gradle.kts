@@ -35,7 +35,7 @@ plugins {
     // Откуда берутся зависимости: google() и mavenCentral() со своими групповыми фильтрами и
     // reposilite `/snapshots` — те же три, что этот файл объявлял сам, только фильтр на последнем
     // теперь есть. Ниже остаётся то, что принадлежит этому репозиторию.
-    id("io.github.youndie.sborka.settings") version "0.3.0.41"
+    id("io.github.youndie.sborka.settings") version "0.4.0.63"
 }
 
 dependencyResolutionManagement {
