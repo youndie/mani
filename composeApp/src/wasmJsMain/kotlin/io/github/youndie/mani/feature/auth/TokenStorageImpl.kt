@@ -1,7 +1,7 @@
 package io.github.youndie.mani.feature.auth
 
 import io.github.youndie.mani.feature.auth.data.TokenStorage
-import io.ktor.client.plugins.auth.providers.*
+import io.ktor.client.plugins.auth.providers.BearerTokens
 import kotlinx.browser.window
 import org.w3c.dom.get
 import org.w3c.dom.set

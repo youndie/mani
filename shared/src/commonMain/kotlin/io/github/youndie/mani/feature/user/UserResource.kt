@@ -1,6 +1,6 @@
 package io.github.youndie.mani.feature.user
 
-import io.ktor.resources.*
+import io.ktor.resources.Resource
 
 @Resource("/users")
 class UserResource {

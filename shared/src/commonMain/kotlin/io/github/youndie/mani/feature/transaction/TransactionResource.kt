@@ -1,6 +1,6 @@
 package io.github.youndie.mani.feature.transaction
 
-import io.ktor.resources.*
+import io.ktor.resources.Resource
 
 @Resource("/transactions")
 class TransactionResource {

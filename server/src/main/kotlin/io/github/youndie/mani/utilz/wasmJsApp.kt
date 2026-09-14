@@ -1,8 +1,14 @@
 package io.github.youndie.mani.utilz
 
-import io.ktor.http.*
-import io.ktor.server.http.content.*
-import io.ktor.server.routing.*
+import io.ktor.http.CacheControl
+import io.ktor.http.ContentType
+import io.ktor.http.cacheControl
+import io.ktor.http.contentType
+import io.ktor.server.http.content.default
+import io.ktor.server.http.content.file
+import io.ktor.server.http.content.staticResources
+import io.ktor.server.routing.Routing
+import io.ktor.server.routing.contentType
 
 fun Routing.wasmJsApp() {
     staticResources("/", "static", index = "index.html") {

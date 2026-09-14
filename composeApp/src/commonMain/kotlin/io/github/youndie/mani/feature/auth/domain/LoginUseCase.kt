@@ -6,11 +6,12 @@ import io.github.youndie.mani.feature.auth.LoginParams
 import io.github.youndie.mani.feature.auth.Tokens
 import io.github.youndie.mani.feature.auth.data.TokenRepository
 import io.github.youndie.mani.utilz.suspendRunCatching
-import io.ktor.client.*
-import io.ktor.client.call.*
-import io.ktor.client.plugins.resources.*
-import io.ktor.client.request.*
-import io.ktor.http.*
+import io.ktor.client.HttpClient
+import io.ktor.client.call.body
+import io.ktor.client.plugins.resources.post
+import io.ktor.client.request.post
+import io.ktor.client.request.setBody
+import io.ktor.http.HttpStatusCode
 
 class LoginUseCase(private val httpClient: HttpClient, private val tokenRepository: TokenRepository) : AuthUseCase() {
 

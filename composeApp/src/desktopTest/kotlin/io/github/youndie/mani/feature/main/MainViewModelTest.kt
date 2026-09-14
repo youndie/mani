@@ -19,16 +19,25 @@ import io.github.youndie.mani.feature.currency.data.CurrentCurrencyRepository
 import io.github.youndie.mani.feature.demo.domain.SeedUseCase
 import io.github.youndie.mani.feature.main.ui.ForecastUiState
 import io.github.youndie.mani.feature.main.ui.RETRY_SECONDS
-import io.github.youndie.mani.feature.transaction.*
+import io.github.youndie.mani.feature.transaction.Category
+import io.github.youndie.mani.feature.transaction.DataSource
+import io.github.youndie.mani.feature.transaction.Transaction
 import io.github.youndie.mani.feature.transaction.data.FakeTransactionsRepository
+import io.github.youndie.mani.feature.transaction.defaultPeriodAppend
 import io.github.youndie.mani.feature.transaction.domain.DeleteTransactionsUseCase
 import io.github.youndie.mani.feature.transaction.domain.GetTransactionsUseCase
 import io.github.youndie.mani.feature.transaction.domain.TransactionRepository
+import io.github.youndie.mani.feature.transaction.simulate
+import io.github.youndie.mani.feature.transaction.testCurrencyRepository
 import io.github.youndie.mani.today
 import io.github.youndie.mani.useCase.EmptyParams
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.test.*
+import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runCurrent
+import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.test.setMain
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.plus
@@ -40,7 +49,14 @@ import org.koin.dsl.bind
 import org.koin.dsl.module
 import org.koin.test.KoinTest
 import org.koin.test.get
-import kotlin.test.*
+import kotlin.test.AfterTest
+import kotlin.test.BeforeTest
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 /**
  * Главный экран: лента, прогноз, фильтры и выход.

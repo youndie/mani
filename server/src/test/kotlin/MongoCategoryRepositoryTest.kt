@@ -17,7 +17,13 @@ import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.runBlocking
 import org.bson.types.ObjectId
 import org.koin.core.context.GlobalContext.stopKoin
-import kotlin.test.*
+import kotlin.test.AfterTest
+import kotlin.test.BeforeTest
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 /**
  * Категории в JVM-сборке: они лежат массивом внутри документа пользователя, а не своей коллекцией.

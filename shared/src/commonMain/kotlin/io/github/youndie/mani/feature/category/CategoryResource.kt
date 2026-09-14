@@ -1,6 +1,6 @@
 package io.github.youndie.mani.feature.category
 
-import io.ktor.resources.*
+import io.ktor.resources.Resource
 
 @Resource("/categories")
 class CategoryResource {
