@@ -39,6 +39,7 @@ jib = "3.5.4"
 javaJwt = "4.6.0"
 logback = "1.6.3"
 mongkn = "0.1.5"
+kore = "0.1.4"
 kotlinx-coroutines = "1.11.0"
 koinBom = "4.2.2"
 mongodbDriverKotlinCoroutine = "5.9.0"
@@ -79,6 +80,7 @@ androidx-lifecycle-viewmodel = { group = "org.jetbrains.androidx.lifecycle", nam
 androidx-lifecycle-runtime-compose = { group = "org.jetbrains.androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "androidx-lifecycle" }
 
 kotlinx-collections-immutable = { module = "org.jetbrains.kotlinx:kotlinx-collections-immutable", version.ref = "kotlinxCollectionsImmutable" }
+kotlinx-coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "kotlinx-coroutines" }
 kotlinx-coroutines-swing = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-swing", version.ref = "kotlinx-coroutines" }
 kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version.ref = "kotlinx-coroutines" }
 
@@ -116,6 +118,14 @@ auth0-java-jwt = { module = "com.auth0:java-jwt", version.ref = "javaJwt" }
 # поэтому живёт в `:server-native`, а не в общей части.
 mongkn-core = { module = "io.github.youndie.mongkn:mongkn-core", version.ref = "mongkn" }
 mongkn-extensions = { module = "io.github.youndie.mongkn:mongkn-extensions", version.ref = "mongkn" }
+
+# Жизненный цикл процесса: остановка по порядку. Публикуется под linuxX64 и jvm, но нужен здесь
+# только нативной сборке — она и есть образ стенда, и она единственная получает SIGTERM от
+# оркестратора. `kore-ktor` тянет `kore-core` через `api`, обе перечислены всё равно: полагаться
+# на чужой `api` значит потерять зависимость молча в тот день, когда она перестанет быть
+# транзитивной.
+kore-core = { module = "io.github.youndie:kore-core", version.ref = "kore" }
+kore-ktor = { module = "io.github.youndie:kore-ktor", version.ref = "kore" }
 
 ktor-client-auth = { module = "io.ktor:ktor-client-auth", version.ref = "ktor" }
 ktor-client-cio = { module = "io.ktor:ktor-client-cio", version.ref = "ktor" }

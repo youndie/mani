@@ -94,12 +94,60 @@ through `println` to stdout, which in a container is the log.
   depends on the database turns its outage into a restart of every pod
 * **Readiness:** `GET /health/ready` — does ask the database: a pod that cannot see it should not
   receive traffic. No `initialDelaySeconds` is needed, the binary answers 87 ms after startup
-* **Resources:** requests `50m`/`64Mi`, limits `1`/`128Mi`
+* **Resources:** requests `50m`/`64Mi`, limits `1`/`256Mi`
+* **Grace period:** `terminationGracePeriodSeconds: 30`, declared rather than left to the default —
+  `Main.kt` hands the same number to kore, which refuses to start if its stages do not fit inside it
 * **Deploy:** `.github/workflows/deploy.yml`, on the completion of a green `Test` run on `main`,
   plus a manual `workflow_dispatch`
 
-Measured on the built image: 87 ms from start to the first answered request, 42 MiB at rest, 45 MiB
-peak, a 213 MB image and a 13 MB binary. **Without load and on one replica.**
+Measured on the built image: 87 ms from start to the first answered request, a 213 MB image and a
+13 MB binary.
+
+### Memory
+
+The resident set follows the **thread count**, not the live heap: the Kotlin/Native allocator keeps
+a 256 KiB page per block-size class *per thread*, a thread holds it for as long as it lives, and
+`Dispatchers.IO` grows threads under concurrency. No GC setting bounds that — these are pages, not
+objects. `server-native/build.gradle.kts` therefore sets `binaryOption("fixedBlockPageSize", "16")`.
+
+Release binary, 50 concurrent clients on `/health/ready` (every request is a ping into Mongo), two
+runs per variant:
+
+| | at rest | peak |
+|---|---|---|
+| default | 33 MB | 491–495 MB |
+| `fixedBlockPageSize=16` | 19 MB | 109–141 MB |
+
+The limit used to be `128Mi` and was raised to `256Mi` on the strength of that table: the old number
+came from a measurement **at rest**, which is by definition the one measurement that cannot see the
+thing a limit exists for. At `128Mi` the pod would be killed either way — many times over on the
+default, and on the peak even with the option.
+
+What the table does not say: `/health/ready` is the cheapest route there is, real requests do more
+work, and fifty concurrent clients against a single replica is a burst rather than a Tuesday. The
+limit is set from the highest peak observed, not the average.
+
+### Shutdown
+
+`SIGTERM` is handled by [kore](https://github.com/youndie/kore), not by the engine alone:
+
+```
+announce  readiness goes false (5 s) — the orchestrator drops the pod from endpoints
+drain     the engine stops accepting; in-flight requests finish; new ones get 503 + Connection: close
+pools     the Mongo client closes — after the drain, never before
+exit      inside the grace period
+```
+
+**Why this is not the engine's own `stop()`:** `EmbeddedServer.stop` runs its steps in the *opposite*
+order on Kotlin/Native and on the JVM. Identical source, opposite order, and nothing says so — while
+this is the build that gets deployed and the JVM is where most of the shared code is tested.
+
+Before this, **nothing closed the Mongo pool at all** — not `ApplicationStopping`, not an `onClose`
+on the Koin definition. The process simply died on `SIGTERM` with calls still inside the C driver.
+The platform's reversed order did not bite only because there was nothing to order.
+
+The order is pinned by `ShutdownOrderTest`; the transcript is printed to stdout on every stop, so a
+stop can be read after the fact rather than inferred.
 
 ## 6. Local setup
 
