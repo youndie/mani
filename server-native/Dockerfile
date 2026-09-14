@@ -15,7 +15,7 @@
 # считает ошибкой сборки многоплатформенных образов.
 ARG PLATFORM=linux/amd64
 
-FROM --platform=${PLATFORM} ubuntu:24.04 AS web
+FROM --platform=${PLATFORM} ubuntu:26.04 AS web
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends gzip \
@@ -28,7 +28,7 @@ COPY composeApp/build/dist/wasmJs/productionExecutable/ /web/
 RUN find /web -type f \( -name '*.js' -o -name '*.mjs' -o -name '*.wasm' -o -name '*.html' \
       -o -name '*.css' -o -name '*.json' -o -name '*.svg' \) -exec gzip -k9 {} +
 
-FROM --platform=${PLATFORM} ubuntu:24.04
+FROM --platform=${PLATFORM} ubuntu:26.04
 
 # `libmongoc-1.0-0t64` тянет за собой bson, sasl2, snappy, utf8proc, zstd и ssl — весь хвост,
 # который показывает `ldd` по бинарю. Перечислять их поштучно не нужно и вредно: список
