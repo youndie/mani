@@ -43,6 +43,12 @@ see that their request was served by the native binary rather than by a sentence
 * A driver failure means "not ready" (`503`), not `500`: a probe needs a status code, not an
   analysis of the cause.
 * A cancelled request does not mean "not ready": the check goes through `suspendRunCatching`.
+* **A shutting-down process is not ready, and that is answered before the database is asked.** It is
+  the first step of the ordered shutdown: readiness goes false, the orchestrator drops the pod from
+  endpoints, and only then does the drain begin. Asking the database first would hide it — during a
+  drain the database still answers, so the pod would go on being advertised as ready exactly while
+  it has stopped accepting work. Only the native build ever answers `true` here; the JVM build is
+  not deployed and has nothing to answer with (`ShuttingDown.NEVER`).
 * The readiness probe deliberately has **no timeout of its own** — a wrapper around a blocking call
   does not give you one, and the kubelet bounds the probe with its own `timeoutSeconds`, which is
   the party that decides how long to wait.

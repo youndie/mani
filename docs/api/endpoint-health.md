@@ -57,8 +57,13 @@ It touches no dependencies: it has no other code. `build` is `jvm` or `kotlin/na
 
 | Condition | Status | Body |
 |---|---|---|
+| the process is shutting down | `503` | `shutting down` |
 | storage answered | `200` | `ready` |
 | storage did not answer, or the driver failed | `503` | `storage unreachable` |
+
+The rows are in **evaluation order, and the order carries meaning**: during a drain the database is
+still perfectly healthy, so asking it first would mask the shutdown and the pod would keep being
+advertised as ready while it has already stopped taking new work.
 
 The body is plain text: a probe needs a status code, not an analysis of the cause. A cancelled
 request does not turn into a `503`.

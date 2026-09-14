@@ -34,6 +34,7 @@ private val startedAt = Clock.System.now()
 @OptIn(ExperimentalTime::class)
 fun Routing.healthRouting() {
     val storageHealth by inject<StorageHealth>()
+    val shuttingDown by inject<ShuttingDown>()
 
     /*
      * Готовность: один запрос в базу на каждую пробу.
@@ -45,6 +46,19 @@ fun Routing.healthRouting() {
      * ограничивает пробу kubelet своим `timeoutSeconds` — тем, кто и решает, сколько ждать.
      */
     get<HealthResource.Ready> {
+        /*
+         * Остановка отвечает раньше базы, и именно в таком порядке.
+         *
+         * Пока идёт слив, база отвечает как обычно — то есть проба, которая спрашивает только
+         * её, продолжала бы говорить «готов» ровно тогда, когда под уже перестал брать новую
+         * работу. Трафик шёл бы на него до конца grace period, и клиент получал бы 503 вместо
+         * соседнего пода.
+         */
+        if (shuttingDown.isShuttingDown()) {
+            call.respond(HttpStatusCode.ServiceUnavailable, "shutting down")
+            return@get
+        }
+
         val reachable = suspendRunCatching { storageHealth.isReachable() }.getOrElse { false }
 
         if (reachable) {

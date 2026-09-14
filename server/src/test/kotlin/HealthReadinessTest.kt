@@ -1,9 +1,11 @@
 package io.github.youndie.mani
 
+import io.github.youndie.mani.feature.health.ShuttingDown
 import io.github.youndie.mani.feature.health.StorageHealth
 import io.ktor.client.request.get
 import io.ktor.http.HttpStatusCode
 import org.koin.dsl.module
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -39,6 +41,50 @@ class HealthReadinessTest {
         maniTest(overrides = listOf(brokenStorage)) {
             assertEquals(HttpStatusCode.ServiceUnavailable, createClient { }.get("/health/ready").status)
         }
+    }
+
+    /**
+     * Идёт остановка — под не готов, хотя база отвечает.
+     *
+     * Это и есть первый шаг упорядоченной остановки: готовность гаснет ДО слива, чтобы
+     * оркестратор успел убрать под из endpoints. Без этого ответа шаг был бы не наблюдаем —
+     * `announce` переключал бы флаг, которого никто не спрашивает.
+     */
+    @Test
+    fun `readiness answers 503 while the process is shutting down`() {
+        val shuttingDown = module { single<ShuttingDown> { ShuttingDown { true } } }
+
+        maniTest(overrides = listOf(shuttingDown)) {
+            assertEquals(HttpStatusCode.ServiceUnavailable, createClient { }.get("/health/ready").status)
+        }
+    }
+
+    /**
+     * И хранилище при этом не спрашивается.
+     *
+     * Порядок двух проверок внутри маршрута — не вкусовщина: во время слива база жива и отвечает
+     * «готов», так что вопрос к ней перекрыл бы ответ про остановку. Проверяется счётчиком, а не
+     * ответом: оба порядка дают один и тот же 503, и тест, смотрящий на код, прошёл бы при
+     * перестановке строк.
+     */
+    @Test
+    fun `readiness does not ask the storage while shutting down`() {
+        val asked = AtomicInteger()
+        val overrides = module {
+            single<ShuttingDown> { ShuttingDown { true } }
+            single<StorageHealth> {
+                StorageHealth {
+                    asked.incrementAndGet()
+                    true
+                }
+            }
+        }
+
+        maniTest(overrides = listOf(overrides)) {
+            createClient { }.get("/health/ready")
+        }
+
+        assertEquals(0, asked.get(), "проба готовности сходила в базу, хотя процесс уже останавливается")
     }
 
     /** Живость не зависит от базы: иначе её падение перезапускало бы поды вместо снятия трафика. */

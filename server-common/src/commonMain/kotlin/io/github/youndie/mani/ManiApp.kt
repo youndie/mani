@@ -12,6 +12,7 @@ import io.github.youndie.mani.feature.currency.currencyRouting
 import io.github.youndie.mani.feature.demo.data.DemoSandboxCleaner
 import io.github.youndie.mani.feature.demo.data.DemoService
 import io.github.youndie.mani.feature.demo.demoRouting
+import io.github.youndie.mani.feature.health.ShuttingDown
 import io.github.youndie.mani.feature.health.healthRouting
 import io.github.youndie.mani.feature.transaction.transactionRouting
 import io.github.youndie.mani.feature.user.userRouting
@@ -45,8 +46,20 @@ import kotlin.coroutines.cancellation.CancellationException
  * Хранилище сюда не входит — его модуль каждая сборка приносит свой. Всё остальное обязано быть
  * одним: разъехавшийся `TokenService` означал бы, что токен одной сборки не принимает другая.
  */
-fun coreModule(config: ManiConfig): Module = module {
+fun coreModule(
+    config: ManiConfig,
+    /*
+     * Параметром, а не через переопределение модуля.
+     *
+     * Ответ на этот вопрос знает только та сборка, которая умеет останавливаться по порядку, —
+     * нативная. Объявить умолчание здесь и перекрыть его вторым `single` в модуле хранилища
+     * значило бы полагаться на то, чьё определение Koin возьмёт последним: это порядок модулей,
+     * а не решение, и молчаливо меняется он перестановкой строки.
+     */
+    shuttingDown: ShuttingDown = ShuttingDown.NEVER,
+): Module = module {
     single<ManiConfig> { config }
+    single<ShuttingDown> { shuttingDown }
     single<JWTConfig> { config.jwt }
     single<MongoConfig> { config.mongo }
     single<TokenService> { TokenService(config.jwt) }
