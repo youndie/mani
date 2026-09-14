@@ -1,4 +1,4 @@
-import io.ktor.plugin.features.*
+import io.ktor.plugin.features.DockerImageRegistry
 
 plugins {
     alias(libs.plugins.jib)

@@ -1,7 +1,7 @@
 package io.github.youndie.mani.feature.auth.data
 
 import android.content.SharedPreferences
-import io.ktor.client.plugins.auth.providers.*
+import io.ktor.client.plugins.auth.providers.BearerTokens
 
 class TokenStorageImpl(private val prefs: SharedPreferences) : TokenStorage {
     override fun load(): BearerTokens? = BearerTokens(
