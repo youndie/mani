@@ -120,6 +120,10 @@ class MainViewModel(
                 ) { transactions, categories, upcoming, category, cacheFrom ->
                     val simulationResult = transactions.simulate()
 
+                    // Один день на весь проход: `today()` в лямбде фильтра — поиск часового пояса
+                    // на каждый ключ (#176) и день, способный смениться посреди прохода.
+                    val today = today()
+
                     MainUiState(
                         loading = false,
                         filtersState = FiltersState(
@@ -131,9 +135,9 @@ class MainViewModel(
                         transactions = simulationResult
                             .filterKeys {
                                 if (upcoming) {
-                                    today() <= it
+                                    today <= it
                                 } else {
-                                    today() > it
+                                    today > it
                                 }
                             }
                             .mapValues {
