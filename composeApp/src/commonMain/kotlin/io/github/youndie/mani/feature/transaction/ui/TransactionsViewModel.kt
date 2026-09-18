@@ -83,10 +83,15 @@ class TransactionsViewModel(
                     }.mapLatest { (transactions, cacheFrom) ->
                         val simulated = transactions.simulate()
 
+                        // Один день на весь проход. `today()` внутри лямбды — это и поиск
+                        // часового пояса на каждый ключ (#176), и день, способный смениться
+                        // посреди фильтра: проход через полночь развалил бы карту по двум датам.
+                        val today = today()
+
                         val byDays = simulated
                             .filterValues { transactions -> transactions.isNotEmpty() }
                             .filterKeys {
-                                today() > it
+                                today > it
                             }
                             .mapValues { entry ->
                                 entry.value.map { transaction ->
@@ -101,6 +106,8 @@ class TransactionsViewModel(
 
                         Triple(byDays, simulated, cacheFrom)
                     }.flowOn(Dispatchers.Default).collectLatest { (byDays, simulated, cacheFrom) ->
+                        val today = today()
+
                         state.value =
                             TransactionListUiState(
                                 data = byDays,
@@ -108,11 +115,11 @@ class TransactionsViewModel(
                                 // сказать об этом — значит выдать вчерашние данные за сегодняшние.
                                 showingCacheFrom = cacheFrom?.let(::formatTakenAt),
                                 dayBalances = MainViewModel.buildDayBalances(simulated, currency),
-                                monthTitle = today().format(monthFormat) + " so far",
+                                monthTitle = today.format(monthFormat) + " so far",
                                 monthChange =
                                 buildColoredAmount(
                                     simulated
-                                        .filterKeys { it.year == today().year && it.month == today().month }
+                                        .filterKeys { it.year == today.year && it.month == today.month }
                                         .values
                                         .flatten()
                                         .sumOf { it.amountSigned },
@@ -121,7 +128,7 @@ class TransactionsViewModel(
                                 balanceToday =
                                 formatMoney(
                                     simulated
-                                        .filterKeys { it <= today() }
+                                        .filterKeys { it <= today }
                                         .values
                                         .flatten()
                                         .sumOf { it.amountSigned },
