@@ -66,7 +66,7 @@ jobs:
   # Раннер прибит к ubuntu-24.04, как и в deploy.yml: версия libmongoc обязана совпадать
   # с базой образа.
   test-native:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     services:
       mongo:
         image: mongo:8
