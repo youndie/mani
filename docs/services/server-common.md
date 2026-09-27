@@ -60,6 +60,7 @@ Guarded by the tests `protected routes require a valid token` and
 | `server-common/src/commonMain/kotlin/io/github/youndie/mani/feature/` | one directory per subject area: `<X>Routing.kt` + `data/` with the ports |
 | `server-common/src/commonMain/kotlin/io/github/youndie/mani/feature/transaction/Rules.kt` | what makes a rule and a category acceptable |
 | `server-common/src/commonMain/kotlin/io/github/youndie/mani/feature/user/Credentials.kt` | the registration rules |
+| `server-common/src/commonMain/kotlin/io/github/youndie/mani/web/WebCaching.kt` | `Cache-Control` for the web bundle, by file name; both builds serve static files with it |
 | `server-common/src/jvmMain/`, `server-common/src/linuxX64Main/` | exactly two `actual`s: `readEnv` and `serverBuildKind` |
 
 ## 3. How it is built
