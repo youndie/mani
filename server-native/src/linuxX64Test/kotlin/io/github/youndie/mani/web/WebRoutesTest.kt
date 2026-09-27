@@ -91,7 +91,7 @@ class WebRoutesTest {
     }
 
     @Test
-    fun `a font is revalidated, the hashed bundle is kept`() = web {
+    fun `a font is revalidated while the hashed bundle is kept`() = web {
         assertEquals(CACHE_REVALIDATE, client.get("/$FONT").headers[HttpHeaders.CacheControl])
         assertEquals(CACHE_IMMUTABLE, client.get("/bfa5198fb2fe683c613a.wasm").headers[HttpHeaders.CacheControl])
     }
