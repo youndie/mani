@@ -62,6 +62,10 @@ dependencies {
     implementation(libs.ktor.server.resources)
     implementation(libs.ktor.server.content.negotiation)
     implementation(libs.ktor.serialization.kotlinx.json)
+    // Только для статики (`wasmJsApp.kt`): нативная сборка отдаёт заранее сжатые файлы
+    // и ETag, здесь то же делается на лету.
+    implementation(libs.ktor.server.compression)
+    implementation(libs.ktor.server.conditional.headers)
 
     implementation(libs.mongodb.driver.kotlin.coroutine)
 

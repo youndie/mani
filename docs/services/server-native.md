@@ -40,7 +40,8 @@ registered **last** — it catches everything left over and therefore does not i
 | `server-native/src/linuxX64Main/kotlin/io/github/youndie/mani/db/DbModel.kt` | the document shape: `StringAsBsonObjectId`, `BigDecimalAsBsonDecimal128` |
 | `server-native/src/linuxX64Main/kotlin/io/github/youndie/mani/feature/*/data/` | the port implementations |
 | `server-native/src/linuxX64Main/kotlin/io/github/youndie/mani/web/WebAssets.kt` | scanning the static directory at startup |
-| `server-native/src/linuxX64Main/kotlin/io/github/youndie/mani/web/WebRoutes.kt` | serving files, ETag, `Cache-Control`, the pre-built `.gz` |
+| `server-native/src/linuxX64Main/kotlin/io/github/youndie/mani/web/WebRoutes.kt` | serving files: choosing `.br`/`.gz`/as is, ETag, `Vary` |
+| `server-common/src/commonMain/kotlin/io/github/youndie/mani/web/WebCaching.kt` | the `Cache-Control` rule, shared with [server](server.md) |
 | `server-native/Dockerfile` | the image: static build stage + runtime |
 | `server-native/src/linuxX64Test/kotlin/io/github/youndie/mani/TestMongo.kt` | the harness for tests that work in databases of their own |
 
@@ -63,14 +64,41 @@ the image and do not change over the life of the process. An empty `MANI_WEB_ROO
 with no frontend, which is convenient for bringing it up in tests.
 
 **On-the-fly compression is impossible here:** `ktor-server-compression` is published for the JVM
-only. Instead, the image holds a ready `.gz` next to each file, compressed once at build time
-(`Dockerfile`, stage `web`), and that is what is served when the client accepts gzip.
+only. Instead, the image holds a ready `.br` (brotli, quality 11) and `.gz` (gzip -9) next to each
+file, compressed once at build time (`Dockerfile`, stage `web`). The route sends brotli if the
+client accepts it, then gzip, then the file as is; an encoding refused with `q=0` is not sent, and
+every response carries `Vary: Accept-Encoding`. Each representation has its own ETag.
+
+**Every file is compressed, not a list of extensions.** The list that was here (js, mjs, wasm,
+html, css, json, svg) missed the Compose fonts: four `.ttf` files, 984 KB together, all fetched
+before the first paint, went out uncompressed up to and including 1.4.3. A compressed copy is kept
+only when it is at least 10% smaller than the original, so formats that are compressed already
+(png, woff2) drop out by themselves. Measured on the bundle built from `main` on 2026-09-27, in
+`ubuntu:24.04`:
+
+| File | as is | gzip -9 | brotli -q 11 |
+|---|---|---|---|
+| `JetBrainsMono-Regular.ttf` | 273 900 | 128 663 | 105 432 |
+| four fonts together | 984 244 | 476 797 | 380 085 |
+| `bfa5198fb2fe683c613a.wasm` | 8 640 316 | 3 328 940 | 2 618 182 |
+| `c7e0bbc920b8739dd350.wasm` | 5 927 757 | 1 815 285 | 1 348 810 |
+| `mani.js` | 542 431 | 101 883 | 82 944 |
 
 **`Cache-Control: immutable` is set by file name, not by extension.** The rule ".wasm means
 immutable" is wrong: next to `6e23e5428398b92da386.wasm` the bundle holds `skiko.wasm` under a
 constant name. What is checked is that the name is at least 16 hexadecimal digits — that is what
 webpack gives precisely to the files that are rebuilt under a new name on any edit
-(`WebRoutes.kt:34`, test `WebCachingTest`).
+(`server-common/.../web/WebCaching.kt:26`, test `WebCachingTest`). Everything else is `no-cache`
+with an ETag: the browser keeps the file and revalidates it, and an unchanged file costs a `304`
+of about 300 bytes.
+
+**Compose resources are revalidated, not given a freshness lifetime.** Their paths
+(`composeResources/<package>/font/...`) do not change with their content, so `immutable` is out.
+A `max-age` is out too, and not only for fonts: next to them lies
+`composeResources/<package>/values/strings.commonMain.cvr`, which the generated accessors read **by
+byte offset and length** (`ResourceItem(..., 91, 30)`). A fresh `mani.js` over a cached `.cvr` would
+read the wrong bytes. What revalidation costs was measured on the deployed instance on 2026-09-27:
+on a repeat load all five resources come back `304`, in parallel, in one round trip.
 
 **There is no logger.** `koin-logger-slf4j` is JVM-only, and so is `CallLogging`. Diagnostics go
 through `println` to stdout, which in a container is the log.
@@ -190,5 +218,5 @@ The same variables as [server-common](server-common.md). The image sets `MANI_WE
   its own because it is not a library but a set of root certificates, and `ubuntu:24.04` has none at
   all. mani makes no outbound https calls today, but the first one would otherwise look like a
   silent failure rather than a missing package.
-* **Escaping the static root is cut off by a check for `..`** (`WebRoutes.kt:57`), while an unknown
+* **Escaping the static root is cut off by a check for `..`** (`WebRoutes.kt:48`), while an unknown
   path returns `index.html` — this is an SPA, and the app routes from there.

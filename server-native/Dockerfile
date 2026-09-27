@@ -18,15 +18,28 @@ ARG PLATFORM=linux/amd64
 FROM --platform=${PLATFORM} ubuntu:24.04 AS web
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends gzip \
+    && apt-get install -y --no-install-recommends gzip brotli \
     && rm -rf /var/lib/apt/lists/*
 
 COPY composeApp/build/dist/wasmJs/productionExecutable/ /web/
 
 # Сжимаем один раз здесь, а не на каждый запрос: `ktor-server-compression` публикуется только
-# под JVM, поэтому нативный сервер отдаёт готовый `.gz`, лежащий рядом с файлом.
-RUN find /web -type f \( -name '*.js' -o -name '*.mjs' -o -name '*.wasm' -o -name '*.html' \
-      -o -name '*.css' -o -name '*.json' -o -name '*.svg' \) -exec gzip -k9 {} +
+# под JVM, поэтому нативный сервер отдаёт готовый `.br` или `.gz`, лежащий рядом с файлом.
+#
+# СЖИМАЕТСЯ ВСЁ, А НЕ СПИСОК РАСШИРЕНИЙ. Список здесь уже был (js, mjs, wasm, html, css, json,
+# svg), и шрифты Compose (`.ttf`, ~1 МБ на четыре файла, все до первой отрисовки) ушли мимо
+# него несжатыми: gzip берёт у них половину, brotli — почти две трети. Новый тип ресурса снова
+# прошёл бы мимо списка молча. Вместо этого сжатая копия остаётся, только если она хотя бы на
+# 10 % меньше оригинала, — так уже сжатые форматы (png, woff2) отсеиваются сами.
+#
+# Исключение `.gz`/`.br` в `find` не формальность: сжатие идёт параллельно обходу, и без него
+# `find` мог бы подобрать только что записанную копию.
+RUN find /web -type f ! -name '*.gz' ! -name '*.br' -print0 | xargs -0 -P "$(nproc)" -n 1 sh -c '\
+      size=$(stat -c %s "$1"); \
+      gzip -k9 "$1" && brotli -k -q 11 "$1"; \
+      for packed in "$1.gz" "$1.br"; do \
+        [ $(( $(stat -c %s "$packed") * 10 )) -lt $(( size * 9 )) ] || rm "$packed"; \
+      done' sh
 
 FROM --platform=${PLATFORM} ubuntu:24.04
 

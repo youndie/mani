@@ -40,7 +40,7 @@ own beyond serving static files.
 | `server/src/main/kotlin/io/github/youndie/mani/MongoStorageModule.kt` | storage wiring: client, database, repositories, `StorageHealth` |
 | `server/src/main/kotlin/io/github/youndie/mani/feature/*/data/` | the ports implemented on the official driver |
 | `server/src/main/kotlin/io/github/youndie/mani/feature/*/data/*Db.kt` | the document shape: `@BsonId val id: ObjectId`, `amount: java.math.BigDecimal` |
-| `server/src/main/kotlin/io/github/youndie/mani/utilz/wasmJsApp.kt` | static files out of the jar's resources |
+| `server/src/main/kotlin/io/github/youndie/mani/utilz/wasmJsApp.kt` | static files out of the jar's resources: the shared `Cache-Control` rule, ETag, gzip |
 | `server/src/main/resources/application.conf` | read only by `EngineMain`, and only for the port |
 | `server/src/test/kotlin/ManiTestServer.kt` | the shared harness for this build's tests |
 
@@ -56,6 +56,14 @@ Here it is set by the official driver's codecs: `@BsonId val id: ObjectId` gives
 same thing is done by our own serializers (`StringAsBsonObjectId`, `BigDecimalAsBsonDecimal128`). A
 divergence here breaks nothing loudly — the query simply fails to find existing documents — which is
 why it is guarded by tests that look at the **raw document** rather than at the result of `find`.
+
+**Static files follow the native build's policy, arrived at differently.** The rule for
+`Cache-Control` is shared (`server-common/.../web/WebCaching.kt`): `immutable` only for
+content-hashed names, `no-cache` for the rest. The validator is Ktor's SHA-256 ETag with
+`ConditionalHeaders`, and gzip is done on the fly by `Compression` — the native build serves files
+compressed at image build instead. There is no brotli here: `ktor-server-compression` has no codec
+for it. Both plugins are installed on the static route only, so API responses are the same as on the
+native build (`wasmJsApp.kt`, test `WasmJsAppTest`).
 
 ## 4. Dependencies
 

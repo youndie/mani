@@ -276,14 +276,21 @@ Why:
 
 - `staticResources` does not exist under Kotlin/Native, and `ktor-server-compression` is published
   for the JVM only — there is nothing to compress with per request;
-- compression moved into `server-native/Dockerfile`, where it happens once;
+- compression moved into `server-native/Dockerfile`, where it happens once — brotli and gzip, for
+  **every** file, keeping a copy only if it is at least 10% smaller. It used to be a list of
+  extensions, and the Compose fonts (984 KB before the first paint) were not on it;
 - the directory is scanned at startup rather than per request: the files are baked into the image
   and do not change over the life of the process (`server-native/.../Main.kt:42`);
 - `Cache-Control: immutable` is set **by file name**, not by extension. The rule ".wasm means
   immutable" looks right and is wrong: next to `6e23e5428398b92da386.wasm` the bundle holds
   `skiko.wasm` under a constant name, and marking it immutable for a year would have produced
   browsers that a Compose update never reaches at all
-  (`server-native/.../web/WebRoutes.kt:34`).
+  (`server-common/.../web/WebCaching.kt:26`). Both server builds apply the same rule;
+- everything without a hashed name is `no-cache` with an ETag, Compose resources included. A
+  `max-age` on them was considered and rejected:
+  `composeResources/<package>/values/strings.commonMain.cvr` is read by byte offset from the
+  generated code, so a fresh `mani.js` over a cached `.cvr` reads the wrong bytes. Revalidation
+  costs a `304` of ~300 bytes per file, in parallel.
 
 ### D7. `:shared` holds the contract and nothing else
 
