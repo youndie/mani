@@ -7,11 +7,12 @@ import kotlinx.io.files.SystemFileSystem
 /** Один файл фронтенда, каким его отдаёт сервер. */
 class WebAsset(
     val path: Path,
-    /** Логическое имя без `.gz` — по нему выбирается MIME и политика кэширования. */
+    /** Логическое имя без `.gz`/`.br` — по нему выбирается MIME и политика кэширования. */
     val name: String,
     val size: Long,
     val etag: String,
-    val gzipped: Boolean,
+    /** Значение `Content-Encoding`; `null` — файл как есть. */
+    val encoding: String?,
 )
 
 /**
@@ -28,25 +29,37 @@ class WebAsset(
 class WebAssets(private val byName: Map<String, WebAsset>) {
     val size: Int get() = byName.size
 
-    fun find(name: String, acceptsGzip: Boolean): WebAsset? {
-        if (acceptsGzip) byName["$name.gz"]?.let { return it }
+    /**
+     * Лучшее из того, что есть на диске и что клиент принимает: brotli, затем gzip, затем сам файл.
+     * Сжатой копии может не быть и у сжимаемого файла — сборка образа оставляет её, только
+     * если она заметно меньше оригинала.
+     */
+    fun find(name: String, accepted: Set<String>): WebAsset? {
+        for ((suffix, encoding) in ENCODINGS) {
+            if (encoding in accepted) byName["$name.$suffix"]?.let { return it }
+        }
         return byName[name]
     }
 
     companion object {
         private const val CHUNK = 64 * 1024
 
+        /** Суффикс файла на диске → `Content-Encoding`, в порядке предпочтения. */
+        private val ENCODINGS = listOf("br" to "br", "gz" to "gzip")
+
         fun scan(root: String): WebAssets {
             val found = mutableMapOf<String, WebAsset>()
             walk(Path(root), prefix = "") { relative, path, size ->
-                val gzipped = relative.endsWith(".gz")
+                val encoded = ENCODINGS.firstOrNull { (suffix, _) -> relative.endsWith(".$suffix") }
                 found[relative] =
                     WebAsset(
                         path = path,
-                        name = if (gzipped) relative.removeSuffix(".gz") else relative,
+                        name = encoded?.let { (suffix, _) -> relative.removeSuffix(".$suffix") } ?: relative,
                         size = size,
+                        // Хеш своего файла, а не оригинала: у каждого представления свой ETag,
+                        // иначе кэш мог бы подставить gzip-тело клиенту, спросившему brotli.
                         etag = "\"${contentHash(path)}\"",
-                        gzipped = gzipped,
+                        encoding = encoded?.second,
                     )
             }
             return WebAssets(found)

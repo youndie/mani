@@ -4,7 +4,8 @@ import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.defaultForFilePath
-import io.ktor.server.request.acceptEncoding
+import io.ktor.server.request.ApplicationRequest
+import io.ktor.server.request.acceptEncodingItems
 import io.ktor.server.response.header
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondBytesWriter
@@ -15,33 +16,24 @@ import kotlinx.io.buffered
 import kotlinx.io.files.SystemFileSystem
 
 private const val CHUNK = 64 * 1024
-private const val IMMUTABLE = "public, max-age=31536000, immutable"
-
-/** Столько шестнадцатеричных цифр webpack даёт своим именам; короче — не хеш, а обычное имя. */
-private const val HASH_LENGTH = 16
 
 /**
- * Навсегда кэшируется только то, чьё **имя** зависит от содержимого.
- *
- * Правило «расширение `.wasm` — значит immutable» выглядит верным и неверно: в бандле лежит
- * `skiko.wasm` с постоянным именем рядом с `6e23e5428398b92da386.wasm`. Пометив первый
- * неизменяемым на год, мы получили бы браузеры, до которых обновление Compose не доезжает
- * вовсе, — и починить это выкатом было бы нельзя, только сменой имени файла.
- *
- * Поэтому проверяется имя, а не расширение: имя из одних шестнадцатеричных цифр webpack даёт
- * ровно тем файлам, которые пересобираются под новым именем при любой правке.
+ * Кодировки, которые клиент принимает. `gzip;q=0` — это отказ, а не согласие: простая проверка
+ * «строка содержит gzip» отдала бы сжатое как раз тому, кто его запретил.
  */
-internal fun String.isContentHashed(): Boolean {
-    val name = substringBeforeLast('.', "")
-    return name.length >= HASH_LENGTH && name.all { it in '0'..'9' || it in 'a'..'f' }
-}
+internal fun ApplicationRequest.acceptedEncodings(): Set<String> =
+    acceptEncodingItems()
+        .filter { it.quality > 0.0 }
+        .map { it.value.lowercase() }
+        .toSet()
 
 /**
  * Отдача wasm-приложения тем же сервером — как и на JVM, только вручную.
  *
  * Сжатия здесь нет и быть не может: `ktor-server-compression` публикуется только под JVM. Вместо
- * него отдаются **заранее сжатые** файлы: если рядом лежит `<файл>.gz` и клиент принимает gzip,
- * уходит он. Сжатие переехало в сборку образа, где делается один раз, а не на каждый запрос.
+ * него отдаются **заранее сжатые** файлы: если рядом лежит `<файл>.br` или `<файл>.gz` и клиент
+ * принимает эту кодировку, уходит он. Сжатие переехало в сборку образа, где делается один раз,
+ * а не на каждый запрос, — и потому на максимальном уровне.
  *
  * Маршрут регистрируется последним и ловит всё оставшееся, поэтому API он не перехватывает.
  */
@@ -58,21 +50,21 @@ fun Route.webRoutes(assets: WebAssets) {
             return@get call.respond(HttpStatusCode.NotFound)
         }
 
-        val acceptsGzip = call.request.acceptEncoding()?.contains("gzip") == true
+        val accepted = call.request.acceptedEncodings()
         val wanted = requested.ifEmpty { "index.html" }
 
         // SPA: неизвестный путь отдаёт оболочку, дальше маршрутизирует само приложение.
         val asset =
-            assets.find(wanted, acceptsGzip)
-                ?: assets.find("index.html", acceptsGzip)
+            assets.find(wanted, accepted)
+                ?: assets.find("index.html", accepted)
                 ?: return@get call.respond(HttpStatusCode.NotFound)
 
         call.response.header(HttpHeaders.ETag, asset.etag)
-        call.response.header(
-            HttpHeaders.CacheControl,
-            if (asset.name.isContentHashed()) IMMUTABLE else "no-cache",
-        )
-        if (asset.gzipped) call.response.header(HttpHeaders.ContentEncoding, "gzip")
+        call.response.header(HttpHeaders.CacheControl, cacheControlFor(asset.name))
+        // Тело по одному и тому же пути зависит от `Accept-Encoding` — промежуточный кэш должен
+        // это знать, иначе отдаст brotli тому, кто просил файл как есть.
+        call.response.header(HttpHeaders.Vary, HttpHeaders.AcceptEncoding)
+        asset.encoding?.let { call.response.header(HttpHeaders.ContentEncoding, it) }
 
         if (call.request.headers[HttpHeaders.IfNoneMatch]
                 ?.split(",")
