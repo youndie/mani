@@ -21,11 +21,10 @@ private const val CHUNK = 64 * 1024
  * Кодировки, которые клиент принимает. `gzip;q=0` — это отказ, а не согласие: простая проверка
  * «строка содержит gzip» отдала бы сжатое как раз тому, кто его запретил.
  */
-internal fun ApplicationRequest.acceptedEncodings(): Set<String> =
-    acceptEncodingItems()
-        .filter { it.quality > 0.0 }
-        .map { it.value.lowercase() }
-        .toSet()
+internal fun ApplicationRequest.acceptedEncodings(): Set<String> = acceptEncodingItems()
+    .filter { it.quality > 0.0 }
+    .map { it.value.lowercase() }
+    .toSet()
 
 /**
  * Отдача wasm-приложения тем же сервером — как и на JVM, только вручную.

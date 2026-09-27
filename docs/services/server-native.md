@@ -94,11 +94,11 @@ of about 300 bytes.
 
 **Compose resources are revalidated, not given a freshness lifetime.** Their paths
 (`composeResources/<package>/font/...`) do not change with their content, so `immutable` is out.
-A `max-age` is out too, and not only for fonts: next to them lies `values/strings.commonMain.cvr`,
-which the generated accessors read **by byte offset and length** (`ResourceItem(..., 91, 30)`). A
-fresh `mani.js` over a cached `.cvr` would read the wrong bytes. What revalidation costs was
-measured on the deployed instance on 2026-09-27: on a repeat load all five resources come back
-`304`, in parallel, in one round trip.
+A `max-age` is out too, and not only for fonts: next to them lies
+`composeResources/<package>/values/strings.commonMain.cvr`, which the generated accessors read **by
+byte offset and length** (`ResourceItem(..., 91, 30)`). A fresh `mani.js` over a cached `.cvr` would
+read the wrong bytes. What revalidation costs was measured on the deployed instance on 2026-09-27:
+on a repeat load all five resources come back `304`, in parallel, in one round trip.
 
 **There is no logger.** `koin-logger-slf4j` is JVM-only, and so is `CallLogging`. Diagnostics go
 through `println` to stdout, which in a container is the log.
@@ -218,5 +218,5 @@ The same variables as [server-common](server-common.md). The image sets `MANI_WE
   its own because it is not a library but a set of root certificates, and `ubuntu:24.04` has none at
   all. mani makes no outbound https calls today, but the first one would otherwise look like a
   silent failure rather than a missing package.
-* **Escaping the static root is cut off by a check for `..`** (`WebRoutes.kt:49`), while an unknown
+* **Escaping the static root is cut off by a check for `..`** (`WebRoutes.kt:48`), while an unknown
   path returns `index.html` — this is an SPA, and the app routes from there.

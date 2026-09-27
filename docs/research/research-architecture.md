@@ -287,9 +287,10 @@ Why:
   browsers that a Compose update never reaches at all
   (`server-common/.../web/WebCaching.kt:26`). Both server builds apply the same rule;
 - everything without a hashed name is `no-cache` with an ETag, Compose resources included. A
-  `max-age` on them was considered and rejected: `values/strings.commonMain.cvr` is read by byte
-  offset from the generated code, so a fresh `mani.js` over a cached `.cvr` reads the wrong bytes.
-  Revalidation costs a `304` of ~300 bytes per file, in parallel.
+  `max-age` on them was considered and rejected:
+  `composeResources/<package>/values/strings.commonMain.cvr` is read by byte offset from the
+  generated code, so a fresh `mani.js` over a cached `.cvr` reads the wrong bytes. Revalidation
+  costs a `304` of ~300 bytes per file, in parallel.
 
 ### D7. `:shared` holds the contract and nothing else
 
