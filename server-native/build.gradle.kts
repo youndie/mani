@@ -89,6 +89,9 @@ kotlin {
                 // общий код проверяется.
                 implementation(libs.kore.core)
                 implementation(libs.kore.ktor)
+                // Koin without koin-ktor's per-call scope: on Linux/Native each scope leaves a mutex
+                // in malloc that nothing frees, ~100 bytes per request for good.
+                implementation(libs.kore.koin)
 
                 // `runBlocking` в точке входа: главный поток обязан дойти до ожидания сигнала,
                 // а не остаться внутри `start(wait = true)`. Объявлено явно, хотя приезжает и

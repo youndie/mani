@@ -155,6 +155,17 @@ What the table does not say: `/health/ready` is the cheapest route there is, rea
 work, and fifty concurrent clients against a single replica is a burst rather than a Tuesday. The
 limit is set from the highest peak observed, not the average.
 
+### Koin without a scope per call
+
+Koin is wired with kore's `installKoreKoin { … }` (`kore-koin`), **not** `install(Koin)`. koin-ktor's
+plugin opens a Koin scope for every call; on Kotlin/Native each scope owns a stately `Lock`, which on
+Linux is a `pthread_mutex_t` in a cinterop `Arena` that nothing ever frees. Every request — a probe,
+a 404 — left 16 + 48 bytes of malloc behind for good: on another service of the same shape that was
+154 MB of a 176 MB resident set after four days (kore B-65). The JVM and Apple targets do not leak.
+
+`get`/`inject` in routes are unchanged; what is gone is `call.scope`, which nothing here uses. The JVM
+`server` module still installs the plugin, where it costs nothing.
+
 ### Shutdown
 
 `SIGTERM` is handled by [kore](https://github.com/youndie/kore), not by the engine alone:
