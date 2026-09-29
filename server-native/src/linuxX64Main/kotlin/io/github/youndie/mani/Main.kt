@@ -1,6 +1,7 @@
 package io.github.youndie.mani
 
 import io.github.youndie.kore.health.ReadinessGate
+import io.github.youndie.kore.koin.installKoreKoin
 import io.github.youndie.kore.ktor.EngineDrain
 import io.github.youndie.kore.ktor.installShutdownRefusal
 import io.github.youndie.kore.lifecycle.AnnounceNotReady
@@ -21,7 +22,6 @@ import io.ktor.server.engine.embeddedServer
 import io.ktor.server.routing.routing
 import kotlinx.coroutines.runBlocking
 import org.koin.ktor.ext.get
-import org.koin.ktor.plugin.Koin
 import kotlin.time.Duration.Companion.seconds
 
 /**
@@ -154,7 +154,9 @@ fun Application.maniModule(
 ) {
     configureManiPlugins(config)
 
-    install(Koin) {
+    // Not `install(Koin)`: that plugin opens a Koin scope per call, and on Linux/Native each one
+    // leaves a pthread mutex in malloc that nothing frees — ~100 bytes per request for good.
+    installKoreKoin {
         // Логгер Koin здесь по умолчанию: `koin-logger-slf4j` — JVM-only.
         modules(coreModule(config, shuttingDown), mongknStorageModule(config.mongo))
     }
