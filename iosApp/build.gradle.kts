@@ -1,7 +1,7 @@
 plugins {
-    alias(libs.plugins.kotlinMultiplatform)
-    alias(libs.plugins.composeMultiplatform)
-    alias(libs.plugins.composeCompiler)
+    alias(wip.plugins.kotlinMultiplatform)
+    alias(wip.plugins.composeMultiplatform)
+    alias(wip.plugins.composeCompiler)
     id("io.github.youndie.sborka.base")
     id("io.github.youndie.sborka.lint")
 }

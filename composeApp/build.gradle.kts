@@ -7,12 +7,12 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.targets.js.webpack.KotlinWebpackConfig
 
 plugins {
-    alias(libs.plugins.kotlinMultiplatform)
-    alias(libs.plugins.androidKotlinMultiplatformLibrary)
-    alias(libs.plugins.composeMultiplatform)
-    alias(libs.plugins.composeCompiler)
-    alias(libs.plugins.pluginSerialization)
-    alias(libs.plugins.ksp)
+    alias(wip.plugins.kotlinMultiplatform)
+    alias(wip.plugins.androidKotlinMultiplatformLibrary)
+    alias(wip.plugins.composeMultiplatform)
+    alias(wip.plugins.composeCompiler)
+    alias(wip.plugins.kotlinSerialization)
+    alias(wip.plugins.ksp)
     alias(libs.plugins.viddik)
     id("io.github.youndie.sborka.base")
     id("io.github.youndie.sborka.lint")
@@ -86,7 +86,7 @@ kotlin {
                 implementation(compose.desktop.uiTestJUnit4)
                 implementation(compose.uiTest)
                 implementation(libs.ktor.client.mock)
-                implementation(libs.kotlin.test)
+                implementation(wip.kotlin.test)
                 implementation(libs.koin.test)
                 // MapSettings — хранилище в памяти для тестов кэша.
                 implementation(libs.multiplatform.settings.test)
@@ -151,7 +151,7 @@ kotlin {
         }
 
         commonTest.dependencies {
-            implementation(libs.kotlin.test)
+            implementation(wip.kotlin.test)
             implementation(compose.uiTest)
         }
 

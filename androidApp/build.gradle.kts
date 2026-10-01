@@ -1,9 +1,9 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
-    alias(libs.plugins.androidApplication)
-    alias(libs.plugins.composeMultiplatform)
-    alias(libs.plugins.composeCompiler)
+    alias(wip.plugins.androidApplication)
+    alias(wip.plugins.composeMultiplatform)
+    alias(wip.plugins.composeCompiler)
     alias(libs.plugins.baselineprofile)
     id("io.github.youndie.sborka.base")
     id("io.github.youndie.sborka.lint")

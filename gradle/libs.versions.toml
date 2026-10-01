@@ -1,8 +1,10 @@
 [versions]
 # Общие соглашения сборки: координата, тулчейн, версия форматтера и репозитории. Меняет то, как
 # собираются все модули, поэтому пин обычный — как у любой другой зависимости.
-sborka = "0.4.0.63"
-agp = "9.4.0"
+sborka = "0.4.0.111"
+# Компилятора, KSP, AGP и Compose Multiplatform здесь нет: они берутся из каталога `wip`, который
+# подключает settings-плагин той же sborka. Их пара проверена там один раз на весь портфель, а свой
+# ключ рядом — второе число, которое разъезжается с общим молча.
 android-compileSdk = "37"
 android-minSdk = "24"
 android-targetSdk = "36"
@@ -16,22 +18,19 @@ androidx-material = "1.12.0"
 androidx-test-junit = "1.3.0"
 appframeDesktop = "0.1.26"
 bignum = "0.3.10"
-compose-multiplatform = "1.12.0"
 cryptography = "0.6.0"
 composeShimmer = "1.5.0"
 coreSplashscreen = "1.2.0"
 deFlapdoodleEmbedMongo = "4.33.0"
 desugar_jdk_libs = "2.1.5"
 junit = "4.13.2"
-ksp = "2.3.12"
 ktlintPlugin = "14.2.0"
 ktlintTool = "1.8.0"
 # Одна версия и на Gradle-плагин, и на артефакты: плагин подставляет им свою собственную,
 # чем и держит KSP-процессор и движок съёмки в одной паре.
 viddik = "0.5.0.30"
-kotlin = "2.4.20"
-kotlinxCollectionsImmutable = "0.5.1"
-kotlinxDatetime = "0.7.1"
+kotlinxCollectionsImmutable = "0.5.2"
+kotlinxDatetime = "0.8.0"
 kotlinxIo = "0.9.1"
 kotlinxSerializationJson = "1.11.0"
 ktor = "3.6.0"
@@ -71,8 +70,6 @@ compose-shimmer = { module = "com.valentinilk.shimmer:compose-shimmer", version.
 de-flapdoodle-embed-mongo = { module = "de.flapdoodle.embed:de.flapdoodle.embed.mongo", version.ref = "deFlapdoodleEmbedMongo" }
 desugar_jdk_libs = { module = "com.android.tools:desugar_jdk_libs", version.ref = "desugar_jdk_libs" }
 koin-test-junit4 = { module = "io.insert-koin:koin-test-junit4", version.ref = "koinBom" }
-kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
-kotlin-test-junit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "androidx-activityCompose" }
@@ -169,18 +166,8 @@ androidx-compose-ui-tooling = { group = "androidx.compose.ui", name = "ui-toolin
 androidx-compose-ui-tooling-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview", version.ref = "androidxCompose" }
 
 [plugins]
-ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 viddik = { id = "io.github.youndie.viddik", version.ref = "viddik" }
-androidApplication = { id = "com.android.application", version.ref = "agp" }
-androidLibrary = { id = "com.android.library", version.ref = "agp" }
-androidKotlinMultiplatformLibrary = { id = "com.android.kotlin.multiplatform.library", version.ref = "agp" }
-composeMultiplatform = { id = "org.jetbrains.compose", version.ref = "compose-multiplatform" }
-composeCompiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
-kotlinJvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 ktor = { id = "io.ktor.plugin", version.ref = "ktor" }
-kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
-pluginSerialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
-androidTest = { id = "com.android.test", version.ref = "agp" }
 baselineprofile = { id = "androidx.baselineprofile", version.ref = "baselineprofile" }
 jib = { id = "com.google.cloud.tools.jib", version.ref = "jib" }
 ktlint = { id = "org.jlleitschuh.gradle.ktlint", version.ref = "ktlintPlugin" }

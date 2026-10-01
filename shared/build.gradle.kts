@@ -2,9 +2,9 @@ import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
-    alias(libs.plugins.kotlinMultiplatform)
-    alias(libs.plugins.androidKotlinMultiplatformLibrary)
-    alias(libs.plugins.pluginSerialization)
+    alias(wip.plugins.kotlinMultiplatform)
+    alias(wip.plugins.androidKotlinMultiplatformLibrary)
+    alias(wip.plugins.kotlinSerialization)
     id("io.github.youndie.sborka.base")
     id("io.github.youndie.sborka.lint")
 }
@@ -55,7 +55,7 @@ kotlin {
         }
 
         commonTest.dependencies {
-            api(libs.kotlin.test)
+            api(wip.kotlin.test)
         }
     }
 }
