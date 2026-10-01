@@ -13,8 +13,8 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v7
       # Java и Gradle одним шагом и одной версией на весь портфель: действие ставит 21 и 25 и
-      # оставляет 25 по умолчанию, а модули собираются на `sborka.jvmToolchain=21`, который Gradle
-      # достаёт сам.
+      # оставляет 25 по умолчанию — тот же 25, что у тулчейна соглашений; байткод держит
+      # `sborka.jvmFloor=21`.
       - name: Setup Java and Gradle
         uses: youndie/sborka/.github/actions/setup-kotlin@main
       - name: Build

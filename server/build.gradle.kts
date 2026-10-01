@@ -2,9 +2,9 @@ import io.ktor.plugin.features.DockerImageRegistry
 
 plugins {
     alias(libs.plugins.jib)
-    alias(libs.plugins.kotlinJvm)
+    alias(wip.plugins.kotlinJvm)
     alias(libs.plugins.ktor)
-    alias(libs.plugins.pluginSerialization)
+    alias(wip.plugins.kotlinSerialization)
     application
     id("io.github.youndie.sborka.base")
     id("io.github.youndie.sborka.lint")
@@ -73,7 +73,7 @@ dependencies {
     implementation(libs.koin.logger.slf4j)
 
     testImplementation(libs.ktor.server.tests)
-    testImplementation(libs.kotlin.test.junit)
+    testImplementation(kotlin("test-junit"))
 
     testImplementation(libs.koin.test)
     testImplementation(libs.koin.test.junit4)

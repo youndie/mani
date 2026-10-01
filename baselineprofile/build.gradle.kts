@@ -1,7 +1,11 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
-    alias(libs.plugins.androidTest)
+    // Без версии, и это не упущение. `com.android.test` лежит в том же jar, что и остальные плагины
+    // AGP, а его версию корневой скрипт уже положил на classpath через `wip.plugins.androidApplication`.
+    // В каталоге `wip` этого id нет, а держать ради одной строки свой ключ `agp` значит снова завести
+    // второе число, которое разъедется с общим.
+    id("com.android.test")
     alias(libs.plugins.baselineprofile)
     id("io.github.youndie.sborka.base")
     id("io.github.youndie.sborka.lint")

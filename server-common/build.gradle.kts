@@ -1,6 +1,6 @@
 plugins {
-    alias(libs.plugins.kotlinMultiplatform)
-    alias(libs.plugins.pluginSerialization)
+    alias(wip.plugins.kotlinMultiplatform)
+    alias(wip.plugins.kotlinSerialization)
     id("io.github.youndie.sborka.base")
     id("io.github.youndie.sborka.lint")
 }
@@ -92,7 +92,7 @@ kotlin {
         }
 
         commonTest.dependencies {
-            implementation(libs.kotlin.test)
+            implementation(wip.kotlin.test)
             implementation(libs.kotlinx.coroutines.test)
         }
 

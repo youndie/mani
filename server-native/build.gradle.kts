@@ -1,8 +1,8 @@
 import org.jetbrains.kotlin.gradle.plugin.mpp.NativeBuildType
 
 plugins {
-    alias(libs.plugins.kotlinMultiplatform)
-    alias(libs.plugins.pluginSerialization)
+    alias(wip.plugins.kotlinMultiplatform)
+    alias(wip.plugins.kotlinSerialization)
     id("io.github.youndie.sborka.base")
     id("io.github.youndie.sborka.lint")
 }
@@ -114,7 +114,7 @@ kotlin {
 
         val linuxX64Test by getting {
             dependencies {
-                implementation(libs.kotlin.test)
+                implementation(wip.kotlin.test)
                 implementation(libs.kotlinx.coroutines.test)
                 implementation(libs.ktor.server.tests)
                 implementation(libs.ktor.client.content.negotiation)
