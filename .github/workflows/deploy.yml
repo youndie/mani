@@ -19,7 +19,7 @@ on:
 # `latest` эта пара разъедется молча в день, когда GitHub переведёт ярлык на следующий LTS.
 jobs:
   build:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     # Ручной запуск идёт всегда; запуск по цепочке — только если `Test` завершился успехом.
     # Без этого условия красный прогон точно так же приводил бы к выкату, только позже.
     if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
