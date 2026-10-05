@@ -39,7 +39,7 @@ jobs:
       # оставляет 25 по умолчанию — тот же 25, что у тулчейна соглашений; байткод держит
       # `sborka.jvmFloor=21`.
       - name: Setup Java and Gradle
-        uses: youndie/sborka/.github/actions/setup-kotlin@main
+        uses: youndie/sborka/.github/actions/setup-kotlin@v0.5.0.130
       - name: Check formatting
         run: ./gradlew ktlintCheck --no-daemon
 
@@ -49,7 +49,7 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v7
       - name: Setup Java and Gradle
-        uses: youndie/sborka/.github/actions/setup-kotlin@main
+        uses: youndie/sborka/.github/actions/setup-kotlin@v0.5.0.130
       - name: Run tests
         run: ./gradlew :shared:jvmTest :server-common:jvmTest :server:test :composeApp:desktopTest :composeApp:wasmJsTest --no-daemon
       - name: Summarize tests results
@@ -76,7 +76,7 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v7
       - name: Setup Java and Gradle
-        uses: youndie/sborka/.github/actions/setup-kotlin@main
+        uses: youndie/sborka/.github/actions/setup-kotlin@v0.5.0.130
       - name: Install MongoDB C driver
         run: |
           sudo apt-get update
@@ -110,7 +110,7 @@ jobs:
           sudo udevadm trigger --name-match=kvm  
 
       - name: Setup Java and Gradle
-        uses: youndie/sborka/.github/actions/setup-kotlin@main
+        uses: youndie/sborka/.github/actions/setup-kotlin@v0.5.0.130
 
       - name: AVD cache
         uses: actions/cache@v6
@@ -143,6 +143,6 @@ jobs:
       - name: Checkout sources
         uses: actions/checkout@v7
       - name: Setup Java and Gradle
-        uses: youndie/sborka/.github/actions/setup-kotlin@main
+        uses: youndie/sborka/.github/actions/setup-kotlin@v0.5.0.130
       - name: Run tests
         run: ./gradlew :composeApp:iosSimulatorArm64Test
