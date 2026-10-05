@@ -28,7 +28,7 @@ ktlintPlugin = "14.2.0"
 ktlintTool = "1.8.0"
 # Одна версия и на Gradle-плагин, и на артефакты: плагин подставляет им свою собственную,
 # чем и держит KSP-процессор и движок съёмки в одной паре.
-viddik = "0.5.0.30"
+viddik = "0.7.1.54"
 kotlinxCollectionsImmutable = "0.5.2"
 kotlinxDatetime = "0.8.0"
 kotlinxIo = "0.9.1"
