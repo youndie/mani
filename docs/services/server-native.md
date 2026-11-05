@@ -207,7 +207,7 @@ docker build -f server-native/Dockerfile -t mani-native .
 The tests need a real `mongod` — what they look for raises no errors:
 
 ```bash
-docker run -d --name mani-mongo -p 27017:27017 mongo:8
+docker run -d --name mani-mongo -p 27017:27017 mongo:8.2
 ```
 
 ```bash
