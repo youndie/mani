@@ -124,7 +124,7 @@ Native server tests need a real `mongod`, because what they look for does not ra
 `_id` written as a string or an amount written as text simply matches nothing:
 
 ```bash
-docker run -d --name mani-mongo -p 27017:27017 mongo:8
+docker run -d --name mani-mongo -p 27017:27017 mongo:8.2
 ```
 
 ```bash
