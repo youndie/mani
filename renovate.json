@@ -48,6 +48,23 @@
       "matchManagers": [
         "gradle-wrapper"
       ]
+    },
+    {
+      "description": "Mongo держится на 8.2 и в CI, и в compose: 8.0 и 8.3 сами отказываются стартовать на ядре `7.0.0-*-azure`, которое стоит на раннерах GitHub (SERVER-136848, замер https://github.com/youndie/mongkn/actions/runs/42120027132). Без этого правила Renovate раз за разом предлагает 8.3 и 9 — первый не поднимется, второй — мажор, который решается вместе с продом, а не бампом.",
+      "matchDatasources": [
+        "docker"
+      ],
+      "matchPackageNames": [
+        "mongo"
+      ],
+      "allowedVersions": "/^8\\.2(\\.|$)/"
+    },
+    {
+      "description": "Ярлык раннера прибит намеренно: версия libmongoc на раннере обязана совпадать с базой образа (main.yml, deploy.yml). Перевод на ubuntu-26.04 ломает линковку test-native (`unable to find library -lmongoc-1.0`) и переезжает только вместе с образом.",
+      "matchDatasources": [
+        "github-runners"
+      ],
+      "enabled": false
     }
   ]
 }
