@@ -73,7 +73,7 @@ jobs:
         # (`7.0.0-*-azure`): их проверка читает `uname -r` и не видит, что исправление в ядре уже
         # есть (SERVER-136848). 8.2 на этом ядре работает; замерено 05.11.2026 на всех раннерах
         # GitHub, https://github.com/youndie/mongkn/actions/runs/42120027132.
-        image: mongo:8.3
+        image: mongo:8.2
         ports:
           - 27017:27017
     steps:
